@@ -1,7 +1,5 @@
 // import InstallComfyUIDialog from '@/components/comfyui/InstallComfyUIDialog'
-import UninstallProgressDialog from '@/components/comfyui/UninstallProgressDialog'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PROVIDER_NAME_MAPPING } from '@/constants'
@@ -9,13 +7,9 @@ import { LLMConfig } from '@/types/types'
 import {
   AlertCircle,
   CheckCircle,
-  Play,
-  SquareSquareIcon,
-  Trash2,
 } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useConfigs } from '@/contexts/configs'
 import ComfuiWorkflowSetting from './ComfyuiWorkflowSetting'
 
 interface ComfyuiSettingProps {
@@ -28,12 +22,9 @@ export default function ComfyuiSetting({
   onConfigChange,
 }: ComfyuiSettingProps) {
   const { t } = useTranslation()
-  const { setShowInstallDialog } = useConfigs()
   const [comfyUIStatus, setComfyUIStatus] = useState<
     'unknown' | 'running' | 'not-running'
   >('unknown')
-  const [isComfyUIInstalled, setIsComfyUIInstalled] = useState<boolean>(false)
-  const [showUninstallDialog, setShowUninstallDialog] = useState<boolean>(false)
   const provider = PROVIDER_NAME_MAPPING.comfyui
   const comfyUrl = config.url || ''
   const [comfyuiModels, setComfyuiModels] = useState<string[]>([])
@@ -71,10 +62,6 @@ export default function ComfyuiSetting({
             data?.CheckpointLoaderSimple?.input?.required?.ckpt_name?.[0]
           console.log('ComfyUI models:', modelList)
           setComfyuiModels(modelList)
-
-          // if models are fetched, then ComfyUI is installed and running
-          //TODO: Needs to delete this line, because user may self installed ComfyUI, but we cannot show Start ComfyUI button if user self installed ComfyUI
-          setIsComfyUIInstalled(true)
         }
       })
       .catch((error) => {
@@ -146,10 +133,8 @@ export default function ComfyuiSetting({
 
 
   const getComfyUIStatusIcon = () => {
-    if (!isComfyUIInstalled) return null
-
     if (!comfyUrl) {
-      return <AlertCircle className="w-5 h-5 text-yellow-500" />
+      return null
     }
 
     switch (comfyUIStatus) {
@@ -163,10 +148,8 @@ export default function ComfyuiSetting({
   }
 
   const getComfyUIStatusText = () => {
-    if (!isComfyUIInstalled) return ''
-
     if (!comfyUrl) {
-      return t('settings:comfyui.status.installed')
+      return ''
     }
 
     switch (comfyUIStatus) {
@@ -269,14 +252,6 @@ export default function ComfyuiSetting({
 
       {/* Install Dialog */}
       {/* <InstallComfyUIDialog onInstallSuccess={handleInstallSuccess} /> */}
-
-      {/* Uninstall Dialog */}
-      <UninstallProgressDialog
-        open={showUninstallDialog}
-        onOpenChange={setShowUninstallDialog}
-        onUninstallComplete={handleUninstallComplete}
-        onConfirmUninstall={handleConfirmUninstall}
-      />
     </div>
   )
 }
