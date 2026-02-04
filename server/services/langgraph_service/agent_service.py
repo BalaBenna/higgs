@@ -6,7 +6,6 @@ import traceback
 from utils.http_client import HttpClient
 from langgraph_swarm import create_swarm  # type: ignore
 from langchain_openai import ChatOpenAI
-from langchain_ollama import ChatOllama
 from services.websocket_service import send_to_websocket  # type: ignore
 from services.config_service import config_service
 from typing import Optional, List, Dict, Any, cast, Set, TypedDict
@@ -146,17 +145,11 @@ def _create_text_model(text_model: ModelInfo) -> Any:
     # TODO: Verify if max token is working
     # max_tokens = text_model.get('max_tokens', 8148)
 
-    if provider == 'ollama':
-        return ChatOllama(
-            model=model,
-            base_url=url,
-        )
-    else:
-        # Create httpx client with SSL configuration for ChatOpenAI
-        http_client = HttpClient.create_sync_client()
-        http_async_client = HttpClient.create_async_client()
-        return ChatOpenAI(
-            model=model,
+    # Create httpx client with SSL configuration for ChatOpenAI
+    http_client = HttpClient.create_sync_client()
+    http_async_client = HttpClient.create_async_client()
+    return ChatOpenAI(
+        model=model,
             api_key=api_key,  # type: ignore
             timeout=300,
             base_url=url,

@@ -2,8 +2,8 @@
 Settings Service - 设置服务模块
 
 该模块负责管理应用程序的所有配置设置，包括：
-- 代理配置（proxy settings）
 - 系统提示词（system prompts）
+- 知识库配置
 - 其他应用配置项
 
 主要功能：
@@ -34,7 +34,6 @@ app_settings = {}
 # 默认设置配置模板
 # 定义了应用程序的基础配置结构和默认值
 DEFAULT_SETTINGS = {
-    "proxy": "system",  # 代理设置：'' (不使用代理), 'system' (使用系统代理), 或具体的代理URL地址
     "enabled_knowledge": [],  # 启用的知识库ID列表（保持兼容性）
     "enabled_knowledge_data": []  # 启用的知识库完整数据列表
 }
@@ -160,18 +159,6 @@ class SettingsService:
             print(f"Error loading raw settings: {e}")
             return DEFAULT_SETTINGS
 
-    def get_proxy_config(self):
-        """
-        获取代理配置
-
-        Returns:
-            str: 代理配置字符串
-                - '' : 不使用代理
-                - 'system' : 使用系统代理
-                - URL地址 : 使用指定的代理服务器
-        """
-        settings = self.get_raw_settings()
-        return settings.get('proxy', '')
 
     def get_enabled_knowledge_ids(self):
         """

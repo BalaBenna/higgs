@@ -4,8 +4,7 @@
     "settingsSaved": "Settings saved successfully",
     "settingsReset": "Settings reset to default",
     "failedToSave": "Failed to save settings",
-    "failedToLoad": "Failed to load configuration",
-    "restartRequired": "Please restart the application for proxy settings to take effect"
+    "failedToLoad": "Failed to load configuration"
   },
   "models": {
     "title": "Models",
@@ -36,29 +35,6 @@
     "save": "Save",
     "cancel": "Cancel",
     "noModelsSelected": "Please add at least one model"
-  },
-  "proxy": {
-    "title": "Proxy Settings",
-    "mode": "Proxy Mode",
-    "selectMode": "Select proxy mode",
-    "modes": {
-      "no_proxy": "No Proxy",
-      "system": "System Proxy",
-      "custom": "Custom Proxy"
-    },
-    "enable": "Enable Proxy",
-    "url": "Proxy URL",
-    "urlPlaceholder": "http://proxy.example.com:8080",
-    "testConnection": "Test Connection",
-    "testing": "Testing...",
-    "testSuccess": "Proxy connection test successful",
-    "testFailed": "Proxy connection test failed: {{message}}",
-    "testError": "Proxy connection test error",
-    "status": {
-      "enabled": "Enabled",
-      "disabled": "Disabled",
-      "misconfigured": "Misconfigured"
-    }
   },
   "comfyui": {
     "title": "ComfyUI",

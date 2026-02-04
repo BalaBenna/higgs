@@ -4,17 +4,13 @@ Settings Router - 设置路由模块
 该模块提供设置相关的 API 路由端点，包括：
 - 设置文件存在性检查
 - 设置的获取和更新
-- 代理配置管理
-- 代理连接测试
+- ComfyUI 工作流管理
+- 知识库管理
 
 主要端点：
 - GET /api/settings/exists - 检查设置文件是否存在
 - GET /api/settings - 获取所有设置（敏感信息已掩码）
 - POST /api/settings - 更新设置
-- GET /api/settings/proxy/status - 获取代理状态
-- GET /api/settings/proxy/test - 测试代理连接
-- GET /api/settings/proxy - 获取代理设置
-- POST /api/settings/proxy - 更新代理设置
 - GET /api/settings/knowledge/enabled - 获取启用的知识库列表
 依赖模块：
 - services.settings_service - 设置服务
@@ -87,7 +83,7 @@ async def update_settings(request: Request):
     Example:
         POST /api/settings
         {
-            "proxy": "http://proxy.com:8080"  // 或 "no_proxy" 或 "system"
+            "system_prompt": "You are a helpful assistant."
         }
     """
     data = await request.json()
@@ -95,138 +91,10 @@ async def update_settings(request: Request):
     return result
 
 
-@router.get("/proxy/status")
-async def get_proxy_status():
-    """
-    获取代理配置状态
-
-    Returns:
-        dict: 代理状态信息，包含以下字段：
-            - enable (bool): 代理是否启用
-            - configured (bool): 代理是否正确配置
-            - message (str): 状态描述信息
-
-    Description:
-        检查当前代理配置的状态，包括是否启用和是否正确配置。
-        该端点不会暴露完整的代理 URL 以保护安全性。
-
-    Status Logic:
-        - enable=True, configured=True: 代理已启用且配置正确
-        - enable=True, configured=False: 代理已启用但配置有误
-        - enable=False, configured=False: 代理未启用
-    """
-    # 获取设置中的代理配置
-    settings = settings_service.get_raw_settings()
-    proxy_setting = settings.get('proxy', 'system')
-
-    if proxy_setting == 'no_proxy':
-        # 不使用代理
-        return {
-            "enable": False,
-            "configured": True,
-            "message": "Proxy is disabled"
-        }
-    elif proxy_setting == 'system':
-        # 使用系统代理
-        return {
-            "enable": True,
-            "configured": True,
-            "message": "Using system proxy"
-        }
-    elif proxy_setting.startswith(('http://', 'https://', 'socks4://', 'socks5://')):
-        # 使用指定的代理URL
-        return {
-            "enable": True,
-            "configured": True,
-            "message": "Using custom proxy"
-        }
-    else:
-        # 代理设置格式不正确
-        return {
-            "enable": True,
-            "configured": False,
-            "message": "Proxy configuration is invalid"
-        }
 
 
-@router.get("/proxy")
-async def get_proxy_settings():
-    """
-    获取代理设置
-
-    Returns:
-        dict: 代理配置字典，包含 proxy 字段
-
-    Description:
-        仅返回代理相关的设置，不包含其他配置项。
-        用于前端代理设置页面的数据加载。
-
-    Response Format:
-        {
-            "proxy": "no_proxy" | "system" | "http://proxy.example.com:8080"
-        }
-    """
-    proxy_config = settings_service.get_proxy_config()
-    return {"proxy": proxy_config}
 
 
-@router.post("/proxy")
-async def update_proxy_settings(request: Request):
-    """
-    更新代理设置
-
-    Args:
-        request (Request): HTTP 请求对象，包含代理配置数据
-
-    Returns:
-        dict: 操作结果，包含 status 和 message 字段
-
-    Raises:
-        HTTPException: 当代理配置数据格式不正确时抛出 400 错误
-
-    Description:
-        仅更新代理相关的设置，不影响其他配置项。
-        代理配置应该是一个包含 "proxy" 键的对象。
-
-    Example:
-        POST /api/settings/proxy
-        {
-            "proxy": "no_proxy"  // 不使用代理
-        }
-        或
-        {
-            "proxy": "system"  // 使用系统代理
-        }
-        或
-        {
-            "proxy": "http://proxy.example.com:8080"  // 使用指定代理
-        }
-    """
-    proxy_data = await request.json()
-
-    # 验证代理数据格式
-    if not isinstance(proxy_data, dict) or "proxy" not in proxy_data:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid proxy configuration. Expected format: {'proxy': 'value'}")
-
-    proxy_value = proxy_data["proxy"]
-
-    # 验证代理值的格式
-    if not isinstance(proxy_value, str):
-        raise HTTPException(
-            status_code=400,
-            detail="Proxy value must be a string")
-
-    # 验证代理值的有效性
-    if proxy_value not in ['no_proxy', 'system'] and not proxy_value.startswith(('http://', 'https://', 'socks4://', 'socks5://')):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid proxy value. Must be 'no_proxy', 'system', or a valid proxy URL")
-
-    # 更新代理设置
-    result = await settings_service.update_settings({"proxy": proxy_value})
-    return result
 
 
 class CreateWorkflowRequest(BaseModel):

@@ -44,19 +44,22 @@ DEFAULT_PROVIDERS_CONFIG: AppConfig = {
         'url': 'http://127.0.0.1:8188',
         'api_key': '',
     },
-    'ollama': {
-        'models': {},
-        'url': 'http://localhost:11434',
-        'api_key': '',
-        'max_tokens': 8192,
-    },
     'openai': {
         'models': {
             'gpt-4o': {'type': 'text'},
             'gpt-4o-mini': {'type': 'text'},
         },
         'url': 'https://api.openai.com/v1/',
-        'api_key': '',
+        'api_key': os.getenv('OPENAI_API_KEY', ''),
+        'max_tokens': 8192,
+    },
+    'vertex-ai': {
+        'models': {
+            'imagen-3.0-generate-001': {'type': 'image'},
+            'veo-generate-001': {'type': 'video'},
+        },
+        'url': 'https://aistudio.googleapis.com/v1/',
+        'api_key': os.getenv('GOOGLE_VERTEX_AI_API_KEY', ''),
         'max_tokens': 8192,
     },
 

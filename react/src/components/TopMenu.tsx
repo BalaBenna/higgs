@@ -26,7 +26,7 @@ export default function TopMenu({
 
   return (
     <motion.div
-      className="sticky top-0 z-0 flex w-full h-8 bg-background px-4 justify-between items-center select-none border-b border-border"
+      className="sticky top-0 z-0 flex w-full h-10 bg-background px-4 justify-between items-center select-none"
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
@@ -46,15 +46,6 @@ export default function TopMenu({
             </motion.span>
           </motion.div>
         </motion.div>
-        <Button
-          variant={window.location.pathname === '/assets' ? 'default' : 'ghost'}
-          size="sm"
-          className={cn('flex items-center font-bold rounded-none')}
-          onClick={() => navigate({ to: '/assets' })}
-        >
-          <ImageIcon className="size-4" />
-          {t('canvas:assets', 'Library')}
-        </Button>
       </div>
 
       <div className="flex items-center gap-2">{middle}</div>

@@ -15,19 +15,6 @@ from services.tool_service import TOOL_MAPPING
 router = APIRouter(prefix="/api")
 
 
-def get_ollama_model_list() -> List[str]:
-    base_url = config_service.get_config().get('ollama', {}).get(
-        'url', os.getenv('OLLAMA_HOST', 'http://localhost:11434'))
-    try:
-        response = requests.get(f'{base_url}/api/tags', timeout=5)
-        response.raise_for_status()
-        data = response.json()
-        return [model['name'] for model in data.get('models', [])]
-    except requests.RequestException as e:
-        print(f"Error querying Ollama: {e}")
-        return []
-
-
 async def get_comfyui_model_list(base_url: str) -> List[str]:
     """Get ComfyUI model list from object_info API"""
     try:
@@ -53,24 +40,7 @@ async def get_models() -> list[ModelInfo]:
     config = config_service.get_config()
     res: List[ModelInfo] = []
 
-    # Handle Ollama models separately
-    ollama_url = config.get('ollama', {}).get(
-        'url', os.getenv('OLLAMA_HOST', 'http://localhost:11434'))
-    # Add Ollama models if URL is available
-    if ollama_url and ollama_url.strip():
-        ollama_models = get_ollama_model_list()
-        for ollama_model in ollama_models:
-            res.append({
-                'provider': 'ollama',
-                'model': ollama_model,
-                'url': ollama_url,
-                'type': 'text'
-            })
-
     for provider in config.keys():
-        if provider in ['ollama']:
-            continue
-
         provider_config = config[provider]
         provider_url = provider_config.get('url', '').strip()
         provider_api_key = provider_config.get('api_key', '').strip()
@@ -83,14 +53,13 @@ async def get_models() -> list[ModelInfo]:
         for model_name in models:
             model = models[model_name]
             model_type = model.get('type', 'text')
-            # Only return text models
-            if model_type == 'text':
-                res.append({
-                    'provider': provider,
-                    'model': model_name,
-                    'url': provider_url,
-                    'type': model_type
-                })
+            # Return all model types (text, image, video)
+            res.append({
+                'provider': provider,
+                'model': model_name,
+                'url': provider_url,
+                'type': model_type
+            })
     return res
 
 

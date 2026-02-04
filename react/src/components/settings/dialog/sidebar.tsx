@@ -10,10 +10,10 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
-import { PlugZap, Network, ChevronLeft } from 'lucide-react'
+import { PlugZap, ChevronLeft } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-export type SettingSidebarType = 'provider' | 'proxy'
+export type SettingSidebarType = 'provider'
 
 type SettingSidebar = {
   current: SettingSidebarType
@@ -38,11 +38,6 @@ const SettingSidebar: React.FC<SettingSidebar> = ({
       type: 'provider',
       title: 'settings:provider:title',
       icon: PlugZap,
-    },
-    {
-      type: 'proxy',
-      title: 'settings:proxy:title',
-      icon: Network,
     },
   ]
 
