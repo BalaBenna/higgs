@@ -51,6 +51,45 @@ from tools.generate_image_by_recraft_v3_replicate import (
 from tools.generate_video_by_hailuo_02_jaaz import generate_video_by_hailuo_02_jaaz
 from tools.generate_video_by_veo3_fast_jaaz import generate_video_by_veo3_fast_jaaz
 from tools.generate_image_by_midjourney_jaaz import generate_image_by_midjourney_jaaz
+from tools.stub_image_tools import (
+    generate_image_by_higgsfield_soul_jaaz,
+    generate_image_by_higgsfield_popcorn_jaaz,
+    generate_image_by_nano_banana_pro_jaaz,
+    generate_image_by_z_image_jaaz,
+    generate_image_by_kling_q1_image_jaaz,
+    generate_image_by_wan_2_2_image_jaaz,
+    generate_image_by_reve_jaaz,
+    generate_image_by_topaz_jaaz,
+    generate_image_by_nano_banana_pro_inpaint_jaaz,
+    generate_image_by_nano_banana_inpaint_jaaz,
+    generate_image_by_product_placement_jaaz,
+)
+from tools.stub_video_tools import (
+    generate_video_by_kling_3_jaaz,
+    generate_video_by_grok_imagine_jaaz,
+    generate_video_by_kling_motion_control_jaaz,
+    generate_video_by_sora_2_jaaz,
+    generate_video_by_wan_2_6_jaaz,
+    generate_video_by_kling_avatars_2_jaaz,
+    generate_video_by_higgsfield_dop_jaaz,
+    generate_video_by_kling_q1_edit_jaaz,
+    generate_video_by_kling_3_omni_edit_jaaz,
+    generate_video_by_grok_imagine_edit_jaaz,
+    generate_video_by_seedance_v1_lite_jaaz,
+)
+from tools.feature_tools import (
+    feature_face_swap_jaaz,
+    feature_character_swap_jaaz,
+    feature_video_face_swap_jaaz,
+    feature_inpaint_jaaz,
+    feature_relight_jaaz,
+    feature_upscale_jaaz,
+    feature_skin_enhancer_jaaz,
+    feature_ai_stylist_jaaz,
+    feature_draw_to_edit_jaaz,
+    feature_lipsync_jaaz,
+    feature_soul_id_character_jaaz,
+)
 from services.config_service import config_service
 from services.db_service import db_service
 
@@ -189,6 +228,213 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
         "type": "image",
         "provider": "replicate",
         "tool_function": generate_image_by_flux_kontext_max_replicate,
+    },
+    # ---------------
+    # Stub Image Tools (Coming Soon)
+    # ---------------
+    "generate_image_by_higgsfield_soul_jaaz": {
+        "display_name": "Higgsfield Soul",
+        "type": "image",
+        "provider": "jaaz",
+        "tool_function": generate_image_by_higgsfield_soul_jaaz,
+    },
+    "generate_image_by_higgsfield_popcorn_jaaz": {
+        "display_name": "Higgsfield Popcorn",
+        "type": "image",
+        "provider": "jaaz",
+        "tool_function": generate_image_by_higgsfield_popcorn_jaaz,
+    },
+    "generate_image_by_nano_banana_pro_jaaz": {
+        "display_name": "Nano Banana Pro",
+        "type": "image",
+        "provider": "jaaz",
+        "tool_function": generate_image_by_nano_banana_pro_jaaz,
+    },
+    "generate_image_by_z_image_jaaz": {
+        "display_name": "Z-Image",
+        "type": "image",
+        "provider": "jaaz",
+        "tool_function": generate_image_by_z_image_jaaz,
+    },
+    "generate_image_by_kling_q1_image_jaaz": {
+        "display_name": "Kling Q1 Image",
+        "type": "image",
+        "provider": "jaaz",
+        "tool_function": generate_image_by_kling_q1_image_jaaz,
+    },
+    "generate_image_by_wan_2_2_image_jaaz": {
+        "display_name": "Wan 2.2 Image",
+        "type": "image",
+        "provider": "jaaz",
+        "tool_function": generate_image_by_wan_2_2_image_jaaz,
+    },
+    "generate_image_by_reve_jaaz": {
+        "display_name": "Reve",
+        "type": "image",
+        "provider": "jaaz",
+        "tool_function": generate_image_by_reve_jaaz,
+    },
+    "generate_image_by_topaz_jaaz": {
+        "display_name": "Topaz",
+        "type": "image",
+        "provider": "jaaz",
+        "tool_function": generate_image_by_topaz_jaaz,
+    },
+    "generate_image_by_nano_banana_pro_inpaint_jaaz": {
+        "display_name": "Nano Banana Pro Inpaint",
+        "type": "image",
+        "provider": "jaaz",
+        "tool_function": generate_image_by_nano_banana_pro_inpaint_jaaz,
+    },
+    "generate_image_by_nano_banana_inpaint_jaaz": {
+        "display_name": "Nano Banana Inpaint",
+        "type": "image",
+        "provider": "jaaz",
+        "tool_function": generate_image_by_nano_banana_inpaint_jaaz,
+    },
+    "generate_image_by_product_placement_jaaz": {
+        "display_name": "Product Placement",
+        "type": "image",
+        "provider": "jaaz",
+        "tool_function": generate_image_by_product_placement_jaaz,
+    },
+    # ---------------
+    # Stub Video Tools (Coming Soon)
+    # ---------------
+    "generate_video_by_kling_3_jaaz": {
+        "display_name": "Kling 3.0",
+        "type": "video",
+        "provider": "jaaz",
+        "tool_function": generate_video_by_kling_3_jaaz,
+    },
+    "generate_video_by_grok_imagine_jaaz": {
+        "display_name": "Grok Imagine",
+        "type": "video",
+        "provider": "jaaz",
+        "tool_function": generate_video_by_grok_imagine_jaaz,
+    },
+    "generate_video_by_kling_motion_control_jaaz": {
+        "display_name": "Kling Motion Control",
+        "type": "video",
+        "provider": "jaaz",
+        "tool_function": generate_video_by_kling_motion_control_jaaz,
+    },
+    "generate_video_by_sora_2_jaaz": {
+        "display_name": "Sora 2",
+        "type": "video",
+        "provider": "jaaz",
+        "tool_function": generate_video_by_sora_2_jaaz,
+    },
+    "generate_video_by_wan_2_6_jaaz": {
+        "display_name": "Wan 2.6",
+        "type": "video",
+        "provider": "jaaz",
+        "tool_function": generate_video_by_wan_2_6_jaaz,
+    },
+    "generate_video_by_kling_avatars_2_jaaz": {
+        "display_name": "Kling Avatars 2.0",
+        "type": "video",
+        "provider": "jaaz",
+        "tool_function": generate_video_by_kling_avatars_2_jaaz,
+    },
+    "generate_video_by_higgsfield_dop_jaaz": {
+        "display_name": "Higgsfield DOP",
+        "type": "video",
+        "provider": "jaaz",
+        "tool_function": generate_video_by_higgsfield_dop_jaaz,
+    },
+    "generate_video_by_kling_q1_edit_jaaz": {
+        "display_name": "Kling Q1 Edit",
+        "type": "video",
+        "provider": "jaaz",
+        "tool_function": generate_video_by_kling_q1_edit_jaaz,
+    },
+    "generate_video_by_kling_3_omni_edit_jaaz": {
+        "display_name": "Kling 3.0 Omni Edit",
+        "type": "video",
+        "provider": "jaaz",
+        "tool_function": generate_video_by_kling_3_omni_edit_jaaz,
+    },
+    "generate_video_by_grok_imagine_edit_jaaz": {
+        "display_name": "Grok Imagine Edit",
+        "type": "video",
+        "provider": "jaaz",
+        "tool_function": generate_video_by_grok_imagine_edit_jaaz,
+    },
+    "generate_video_by_seedance_v1_lite_jaaz": {
+        "display_name": "Seedance v1 lite",
+        "type": "video",
+        "provider": "jaaz",
+        "tool_function": generate_video_by_seedance_v1_lite_jaaz,
+    },
+    # ---------------
+    # Feature Tools
+    # ---------------
+    "feature_face_swap_jaaz": {
+        "display_name": "Face Swap",
+        "type": "image",
+        "provider": "jaaz",
+        "tool_function": feature_face_swap_jaaz,
+    },
+    "feature_character_swap_jaaz": {
+        "display_name": "Character Swap",
+        "type": "image",
+        "provider": "jaaz",
+        "tool_function": feature_character_swap_jaaz,
+    },
+    "feature_video_face_swap_jaaz": {
+        "display_name": "Video Face Swap",
+        "type": "video",
+        "provider": "jaaz",
+        "tool_function": feature_video_face_swap_jaaz,
+    },
+    "feature_inpaint_jaaz": {
+        "display_name": "Inpaint",
+        "type": "image",
+        "provider": "jaaz",
+        "tool_function": feature_inpaint_jaaz,
+    },
+    "feature_relight_jaaz": {
+        "display_name": "Relight",
+        "type": "image",
+        "provider": "jaaz",
+        "tool_function": feature_relight_jaaz,
+    },
+    "feature_upscale_jaaz": {
+        "display_name": "Upscale",
+        "type": "image",
+        "provider": "jaaz",
+        "tool_function": feature_upscale_jaaz,
+    },
+    "feature_skin_enhancer_jaaz": {
+        "display_name": "Skin Enhancer",
+        "type": "image",
+        "provider": "jaaz",
+        "tool_function": feature_skin_enhancer_jaaz,
+    },
+    "feature_ai_stylist_jaaz": {
+        "display_name": "AI Stylist",
+        "type": "image",
+        "provider": "jaaz",
+        "tool_function": feature_ai_stylist_jaaz,
+    },
+    "feature_draw_to_edit_jaaz": {
+        "display_name": "Draw to Edit",
+        "type": "image",
+        "provider": "jaaz",
+        "tool_function": feature_draw_to_edit_jaaz,
+    },
+    "feature_lipsync_jaaz": {
+        "display_name": "Lipsync",
+        "type": "video",
+        "provider": "jaaz",
+        "tool_function": feature_lipsync_jaaz,
+    },
+    "feature_soul_id_character_jaaz": {
+        "display_name": "Soul ID Character",
+        "type": "image",
+        "provider": "jaaz",
+        "tool_function": feature_soul_id_character_jaaz,
     },
 }
 

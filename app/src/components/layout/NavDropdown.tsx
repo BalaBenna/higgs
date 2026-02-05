@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import type { NavigationMenu, BadgeType } from '@/data/navigation-menus'
 
 interface NavDropdownProps {
@@ -56,41 +57,50 @@ export function NavDropdown({ menu, isOpen, onClose, tabId }: NavDropdownProps) 
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.15, ease: 'easeOut' }}
         >
-          <div className="bg-card/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl overflow-hidden min-w-[600px]">
+          <div className="bg-card/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl overflow-hidden min-w-[680px]">
             <div className="grid grid-cols-2 divide-x divide-border/30">
               {/* Features Column */}
               <div className="p-4">
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-2">
                   Features
                 </h3>
-                <div className="space-y-0.5">
-                  {menu.features.map((feature) => (
-                    <Link
-                      key={feature.id}
-                      href={feature.path}
-                      onClick={onClose}
-                      className={cn(
-                        'flex items-center gap-3 px-3 py-2 rounded-lg',
-                        'hover:bg-accent/50 transition-colors group'
-                      )}
-                    >
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted/50 group-hover:bg-muted transition-colors">
-                        <feature.icon className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                      </div>
-                      <span className="text-sm font-medium text-foreground/80 group-hover:text-foreground">
-                        {feature.label}
-                      </span>
-                      {feature.badge && (
-                        <Badge
-                          variant={getBadgeVariant(feature.badge)}
-                          className="text-[10px] px-1.5 py-0 ml-auto"
-                        >
-                          {getBadgeLabel(feature.badge)}
-                        </Badge>
-                      )}
-                    </Link>
-                  ))}
-                </div>
+                <ScrollArea className="max-h-[420px]">
+                  <div className="space-y-0.5">
+                    {menu.features.map((feature) => (
+                      <Link
+                        key={feature.id}
+                        href={feature.path}
+                        onClick={onClose}
+                        className={cn(
+                          'flex items-center gap-3 px-3 py-2 rounded-lg',
+                          'hover:bg-accent/50 transition-colors group'
+                        )}
+                      >
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/50 group-hover:bg-muted transition-colors">
+                          <feature.icon className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                        </div>
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <span className="text-sm font-medium text-foreground/80 group-hover:text-foreground">
+                            {feature.label}
+                          </span>
+                          {feature.description && (
+                            <span className="text-[11px] text-muted-foreground truncate">
+                              {feature.description}
+                            </span>
+                          )}
+                        </div>
+                        {feature.badge && (
+                          <Badge
+                            variant={getBadgeVariant(feature.badge)}
+                            className="text-[10px] px-1.5 py-0 shrink-0"
+                          >
+                            {getBadgeLabel(feature.badge)}
+                          </Badge>
+                        )}
+                      </Link>
+                    ))}
+                  </div>
+                </ScrollArea>
               </div>
 
               {/* Models Column */}
@@ -98,38 +108,51 @@ export function NavDropdown({ menu, isOpen, onClose, tabId }: NavDropdownProps) 
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-2">
                   Models
                 </h3>
-                <div className="space-y-0.5">
-                  {menu.models.map((model) => (
-                    <button
-                      key={model.id}
-                      onClick={() => handleModelClick(model)}
-                      className={cn(
-                        'flex items-center justify-between w-full px-3 py-2 rounded-lg text-left',
-                        'hover:bg-accent/50 transition-colors group',
-                        model.isComingSoon && 'opacity-60'
-                      )}
-                    >
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-foreground/80 group-hover:text-foreground">
-                          {model.label}
-                        </span>
-                        {model.provider && (
-                          <span className="text-xs text-muted-foreground">
-                            {model.provider}
-                          </span>
+                <ScrollArea className="max-h-[420px]">
+                  <div className="space-y-0.5">
+                    {menu.models.map((model) => (
+                      <button
+                        key={model.id}
+                        onClick={() => handleModelClick(model)}
+                        className={cn(
+                          'flex items-center justify-between w-full px-3 py-2 rounded-lg text-left',
+                          'hover:bg-accent/50 transition-colors group',
+                          model.isComingSoon && 'opacity-60'
                         )}
-                      </div>
-                      {model.badge && (
-                        <Badge
-                          variant={getBadgeVariant(model.badge)}
-                          className="text-[10px] px-1.5 py-0"
-                        >
-                          {getBadgeLabel(model.badge)}
-                        </Badge>
-                      )}
-                    </button>
-                  ))}
-                </div>
+                      >
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-sm font-medium text-foreground/80 group-hover:text-foreground">
+                            {model.label}
+                          </span>
+                          {model.description ? (
+                            <span className="text-[11px] text-muted-foreground truncate">
+                              {model.description}
+                            </span>
+                          ) : model.provider ? (
+                            <span className="text-[11px] text-muted-foreground">
+                              {model.provider}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                          {model.isComingSoon && (
+                            <span className="text-[10px] text-muted-foreground italic">
+                              Soon
+                            </span>
+                          )}
+                          {model.badge && (
+                            <Badge
+                              variant={getBadgeVariant(model.badge)}
+                              className="text-[10px] px-1.5 py-0"
+                            >
+                              {getBadgeLabel(model.badge)}
+                            </Badge>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </ScrollArea>
               </div>
             </div>
           </div>
@@ -165,7 +188,7 @@ export function NavDropdownTrigger({
     }
     enterTimeoutRef.current = setTimeout(() => {
       setIsOpen(true)
-    }, 150) // 150ms enter delay
+    }, 150)
   }, [])
 
   const handleMouseLeave = useCallback(() => {
@@ -175,7 +198,7 @@ export function NavDropdownTrigger({
     }
     timeoutRef.current = setTimeout(() => {
       setIsOpen(false)
-    }, 300) // 300ms leave delay
+    }, 300)
   }, [])
 
   const handleClose = useCallback(() => {

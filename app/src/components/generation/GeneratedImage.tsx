@@ -46,6 +46,7 @@ export function GeneratedImage({ image }: GeneratedImageProps) {
           alt={image.prompt}
           fill
           className="object-cover"
+          unoptimized
         />
 
         {/* Hover Overlay */}

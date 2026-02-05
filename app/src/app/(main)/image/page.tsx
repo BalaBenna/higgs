@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { GeneratedImage } from '@/components/generation/GeneratedImage'
-import { IMAGE_MODEL_MAPPINGS, getAvailableImageModels } from '@/config/model-mappings'
+import { useImageGeneration } from '@/hooks/use-generation'
 
 const IMAGE_MODELS = [
   { id: 'higgsfield-soul', name: 'Higgsfield Soul', provider: 'Higgsfield', badge: 'best', isComingSoon: true },
@@ -38,7 +38,7 @@ const IMAGE_MODELS = [
   { id: 'ideogram-3', name: 'Ideogram 3', provider: 'Ideogram', toolId: 'generate_image_by_ideogram3_bal_jaaz' },
   { id: 'recraft-v3', name: 'Recraft V3', provider: 'Recraft', toolId: 'generate_image_by_recraft_v3_jaaz' },
   { id: 'nano-banana-pro', name: 'Nano Banana Pro', provider: 'Nano', badge: 'top', isComingSoon: true },
-  { id: 'kling-o1-image', name: 'Kling O1 Image', provider: 'Kuaishou', isComingSoon: true },
+  { id: 'kling-q1-image', name: 'Kling Q1 Image', provider: 'Kuaishou', isComingSoon: true },
 ]
 
 const ASPECT_RATIOS = [
@@ -62,28 +62,11 @@ const STYLES = [
   'Comic Book',
 ]
 
-const MOCK_GENERATED = [
-  {
-    id: '1',
-    src: 'https://picsum.photos/seed/gen1/512/512',
-    prompt: 'A futuristic city with neon lights',
-  },
-  {
-    id: '2',
-    src: 'https://picsum.photos/seed/gen2/512/512',
-    prompt: 'A futuristic city with neon lights',
-  },
-  {
-    id: '3',
-    src: 'https://picsum.photos/seed/gen3/512/512',
-    prompt: 'A futuristic city with neon lights',
-  },
-  {
-    id: '4',
-    src: 'https://picsum.photos/seed/gen4/512/512',
-    prompt: 'A futuristic city with neon lights',
-  },
-]
+interface GeneratedImageData {
+  id: string
+  src: string
+  prompt: string
+}
 
 function getBadgeVariant(badge?: string): 'new' | 'top' | 'best' | 'neon' {
   if (badge === 'new') return 'new'
@@ -103,8 +86,10 @@ function ImagePageContent() {
   const [style, setStyle] = useState('None')
   const [numImages, setNumImages] = useState(4)
   const [guidanceScale, setGuidanceScale] = useState(7.5)
-  const [isGenerating, setIsGenerating] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [generatedImages, setGeneratedImages] = useState<GeneratedImageData[]>([])
+
+  const imageGeneration = useImageGeneration()
 
   useEffect(() => {
     if (modelParam) {
@@ -119,7 +104,7 @@ function ImagePageContent() {
     }
   }, [modelParam])
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!prompt.trim()) return
 
     const selectedModel = IMAGE_MODELS.find((m) => m.id === model)
@@ -128,8 +113,32 @@ function ImagePageContent() {
       return
     }
 
-    setIsGenerating(true)
-    setTimeout(() => setIsGenerating(false), 3000)
+    try {
+      const result = await imageGeneration.mutateAsync({
+        model,
+        prompt: style !== 'None' ? `${prompt}, ${style} style` : prompt,
+        negativePrompt: negativePrompt || undefined,
+        aspectRatio,
+        numImages,
+        guidanceScale,
+        style: style !== 'None' ? style : undefined,
+      })
+
+      if (result?.images) {
+        const newImages: GeneratedImageData[] = result.images.map(
+          (img: { id: string; src?: string; url?: string }) => ({
+            id: img.id,
+            src: img.src || img.url || '',
+            prompt,
+          })
+        )
+        setGeneratedImages((prev) => [...newImages, ...prev])
+        toast.success(`Generated ${newImages.length} image(s)!`)
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Generation failed'
+      toast.error(message)
+    }
   }
 
   const selectedModel = IMAGE_MODELS.find((m) => m.id === model)
@@ -309,9 +318,9 @@ function ImagePageContent() {
             variant="neon"
             size="lg"
             onClick={handleGenerate}
-            disabled={!prompt.trim() || isGenerating}
+            disabled={!prompt.trim() || imageGeneration.isPending}
           >
-            {isGenerating ? (
+            {imageGeneration.isPending ? (
               <>
                 <RefreshCw className="h-4 w-4 animate-spin" />
                 Generating...
@@ -345,9 +354,9 @@ function ImagePageContent() {
             </div>
 
             {/* Generated Images Grid */}
-            {MOCK_GENERATED.length > 0 ? (
+            {generatedImages.length > 0 ? (
               <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {MOCK_GENERATED.map((image, index) => (
+                {generatedImages.map((image, index) => (
                   <motion.div
                     key={image.id}
                     initial={{ opacity: 0, scale: 0.95 }}

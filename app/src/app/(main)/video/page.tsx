@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useVideoGeneration } from '@/hooks/use-generation'
 
 const VIDEO_MODELS = [
   { id: 'higgsfield-dop', name: 'Higgsfield DOP', provider: 'Higgsfield', isComingSoon: true },
@@ -37,6 +38,7 @@ const VIDEO_MODELS = [
   { id: 'seedance-1.5-pro', name: 'Seedance 1.5 Pro', provider: 'ByteDance', quality: 'High', toolId: 'generate_video_by_seedance_v1_jaaz' },
   { id: 'hailuo-o2', name: 'Minimax Hailuo O2', provider: 'MiniMax', quality: 'High', toolId: 'generate_video_by_hailuo_02_jaaz' },
   { id: 'grok-imagine', name: 'Grok Imagine', provider: 'xAI', badge: 'new', isComingSoon: true },
+  { id: 'kling-3.0', name: 'Kling 3.0', provider: 'Kuaishou', badge: 'new', isComingSoon: true },
   { id: 'kling-motion-control', name: 'Kling Motion Control', provider: 'Kuaishou', badge: 'new', isComingSoon: true },
   { id: 'sora-2', name: 'Sora 2', provider: 'OpenAI', isComingSoon: true },
   { id: 'wan-2.6', name: 'Wan 2.6', provider: 'Alibaba', isComingSoon: true },
@@ -60,22 +62,14 @@ const ASPECT_RATIOS = [
   { id: '1:1', label: '1:1', desc: 'Square' },
 ]
 
-const MOCK_VIDEOS = [
-  {
-    id: '1',
-    thumbnail: 'https://picsum.photos/seed/vid1/400/225',
-    prompt: 'A sunset over the ocean with waves crashing',
-    duration: '5s',
-    model: 'Kling 2.6',
-  },
-  {
-    id: '2',
-    thumbnail: 'https://picsum.photos/seed/vid2/400/225',
-    prompt: 'A butterfly emerging from its cocoon',
-    duration: '10s',
-    model: 'Veo 3.1',
-  },
-]
+interface GeneratedVideoData {
+  id: string
+  url: string
+  thumbnail: string
+  prompt: string
+  duration: string
+  model: string
+}
 
 function getBadgeVariant(badge?: string): 'new' | 'top' | 'best' | 'neon' {
   if (badge === 'new') return 'new'
@@ -87,6 +81,7 @@ function getBadgeVariant(badge?: string): 'new' | 'top' | 'best' | 'neon' {
 function VideoPageContent() {
   const searchParams = useSearchParams()
   const modelParam = searchParams.get('model')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [mode, setMode] = useState<'text' | 'image'>('text')
   const [prompt, setPrompt] = useState('')
@@ -95,8 +90,12 @@ function VideoPageContent() {
   const [resolution, setResolution] = useState('720p')
   const [aspectRatio, setAspectRatio] = useState('16:9')
   const [motionStrength, setMotionStrength] = useState(5)
-  const [isGenerating, setIsGenerating] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [sourceImage, setSourceImage] = useState<File | null>(null)
+  const [sourceImagePreview, setSourceImagePreview] = useState<string | null>(null)
+  const [generatedVideos, setGeneratedVideos] = useState<GeneratedVideoData[]>([])
+
+  const videoGeneration = useVideoGeneration()
 
   useEffect(() => {
     if (modelParam) {
@@ -111,7 +110,17 @@ function VideoPageContent() {
     }
   }, [modelParam])
 
-  const handleGenerate = () => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setSourceImage(file)
+      const reader = new FileReader()
+      reader.onload = (ev) => setSourceImagePreview(ev.target?.result as string)
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleGenerate = async () => {
     if (!prompt.trim()) return
 
     const selectedModel = VIDEO_MODELS.find((m) => m.id === model)
@@ -120,8 +129,33 @@ function VideoPageContent() {
       return
     }
 
-    setIsGenerating(true)
-    setTimeout(() => setIsGenerating(false), 5000)
+    try {
+      const result = await videoGeneration.mutateAsync({
+        model,
+        prompt,
+        duration: parseInt(duration),
+        aspectRatio,
+        resolution,
+        motionStrength,
+        sourceImage: mode === 'image' ? sourceImage : null,
+      })
+
+      if (result) {
+        const newVideo: GeneratedVideoData = {
+          id: result.id || `gen_${Date.now()}`,
+          url: result.url || '',
+          thumbnail: result.thumbnail || '',
+          prompt,
+          duration: `${duration}s`,
+          model: selectedModel?.name || model,
+        }
+        setGeneratedVideos((prev) => [newVideo, ...prev])
+        toast.success('Video generated successfully!')
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Video generation failed'
+      toast.error(message)
+    }
   }
 
   const selectedModel = VIDEO_MODELS.find((m) => m.id === model)
@@ -150,14 +184,34 @@ function VideoPageContent() {
             {mode === 'image' && (
               <div className="space-y-2">
                 <label className="text-sm font-medium">Source Image</label>
-                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-neon/50 transition-colors">
-                  <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    Drop an image here or click to upload
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    PNG, JPG up to 10MB
-                  </p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                />
+                <div
+                  className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-neon/50 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {sourceImagePreview ? (
+                    <img
+                      src={sourceImagePreview}
+                      alt="Source"
+                      className="max-h-32 mx-auto rounded-lg object-contain"
+                    />
+                  ) : (
+                    <>
+                      <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        Drop an image here or click to upload
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        PNG, JPG up to 10MB
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -350,9 +404,9 @@ function VideoPageContent() {
             variant="neon"
             size="lg"
             onClick={handleGenerate}
-            disabled={!prompt.trim() || isGenerating}
+            disabled={!prompt.trim() || videoGeneration.isPending}
           >
-            {isGenerating ? (
+            {videoGeneration.isPending ? (
               <>
                 <RefreshCw className="h-4 w-4 animate-spin" />
                 Generating...
@@ -389,9 +443,9 @@ function VideoPageContent() {
             </div>
 
             {/* Generated Videos Grid */}
-            {MOCK_VIDEOS.length > 0 ? (
+            {generatedVideos.length > 0 ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                {MOCK_VIDEOS.map((video, index) => (
+                {generatedVideos.map((video, index) => (
                   <motion.div
                     key={video.id}
                     className="group relative rounded-xl overflow-hidden bg-card border border-border/50 card-hover"
@@ -400,11 +454,24 @@ function VideoPageContent() {
                     transition={{ delay: index * 0.1 }}
                   >
                     <div className="relative aspect-video">
-                      <img
-                        src={video.thumbnail}
-                        alt={video.prompt}
-                        className="w-full h-full object-cover"
-                      />
+                      {video.url ? (
+                        <video
+                          src={video.url}
+                          className="w-full h-full object-cover"
+                          muted
+                          loop
+                          onMouseEnter={(e) => (e.target as HTMLVideoElement).play()}
+                          onMouseLeave={(e) => {
+                            const el = e.target as HTMLVideoElement
+                            el.pause()
+                            el.currentTime = 0
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                          <Video className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                      )}
                       {/* Play overlay */}
                       <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
                         <div className="w-14 h-14 rounded-full bg-neon flex items-center justify-center">
@@ -422,10 +489,14 @@ function VideoPageContent() {
                         <Badge variant="secondary" className="text-xs">
                           {video.model}
                         </Badge>
-                        <Button variant="ghost" size="sm" className="h-7 gap-1">
-                          <Download className="h-3 w-3" />
-                          Download
-                        </Button>
+                        {video.url && (
+                          <a href={video.url} download>
+                            <Button variant="ghost" size="sm" className="h-7 gap-1">
+                              <Download className="h-3 w-3" />
+                              Download
+                            </Button>
+                          </a>
+                        )}
                       </div>
                     </div>
                   </motion.div>

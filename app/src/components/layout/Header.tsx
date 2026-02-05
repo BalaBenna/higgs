@@ -59,7 +59,7 @@ export function Header() {
 
         {/* Navigation Tabs */}
         <nav className="flex-1 flex items-center justify-center">
-          <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-1">
             {NAVIGATION_TABS.map((tab) => {
               const isActive = pathname === tab.path || pathname.startsWith(tab.path + '/')
               const hasDropdown = tab.hasDropdown && TABS_WITH_DROPDOWN.includes(tab.id)

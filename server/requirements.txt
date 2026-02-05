@@ -27,4 +27,6 @@ langchain-openai==0.3.21
 python-socketio==5.13.0
 pymediainfo
 openai-agents
-piexif # For EXIF metadata handling in JPEG files 
+piexif # For EXIF metadata handling in JPEG files
+beautifulsoup4
+lxml

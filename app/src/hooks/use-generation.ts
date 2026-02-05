@@ -27,15 +27,21 @@ interface GenerationResult {
   id: string
   type: 'image' | 'video'
   url: string
+  src?: string
   prompt: string
   model: string
   createdAt: string
 }
 
-async function generateContent(
+interface ImageGenerationResponse {
+  images: GenerationResult[]
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function generateContent<T = any>(
   endpoint: string,
   params: Record<string, unknown>
-): Promise<GenerationResult> {
+): Promise<T> {
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
@@ -45,8 +51,14 @@ async function generateContent(
   })
 
   if (!response.ok) {
-    const error = await response.text()
-    throw new Error(error || 'Generation failed')
+    let errorMsg = 'Generation failed'
+    try {
+      const errorData = await response.json()
+      errorMsg = errorData.detail || errorData.message || errorMsg
+    } catch {
+      errorMsg = await response.text() || errorMsg
+    }
+    throw new Error(errorMsg)
   }
 
   return response.json()
@@ -64,7 +76,7 @@ export function useImageGeneration() {
 
       const model = getModelById(params.model)
 
-      return generateContent('/api/generate/image', {
+      return generateContent<ImageGenerationResponse>('/api/generate/image', {
         tool: toolId,
         prompt: params.prompt,
         negative_prompt: params.negativePrompt,
@@ -110,8 +122,14 @@ export function useVideoGeneration() {
       })
 
       if (!response.ok) {
-        const error = await response.text()
-        throw new Error(error || 'Video generation failed')
+        let errorMsg = 'Video generation failed'
+        try {
+          const errorData = await response.json()
+          errorMsg = errorData.detail || errorData.message || errorMsg
+        } catch {
+          errorMsg = await response.text() || errorMsg
+        }
+        throw new Error(errorMsg)
       }
 
       return response.json()
