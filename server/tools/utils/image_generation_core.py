@@ -15,6 +15,7 @@ from ..image_providers.replicate_provider import ReplicateImageProvider
 from ..image_providers.volces_provider import VolcesProvider
 from ..image_providers.wavespeed_provider import WavespeedProvider
 from ..image_providers.google_ai_provider import GoogleAIImageProvider
+from ..image_providers.fal_provider import FalProvider
 
 # from ..image_providers.comfyui_provider import ComfyUIProvider
 from .image_canvas_utils import (
@@ -29,6 +30,7 @@ IMAGE_PROVIDERS: dict[str, ImageProviderBase] = {
     "volces": VolcesProvider(),
     "wavespeed": WavespeedProvider(),
     "google-ai": GoogleAIImageProvider(),
+    "fal": FalProvider(),
 }
 
 
