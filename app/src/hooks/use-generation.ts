@@ -53,10 +53,17 @@ async function generateContent<T = any>(
   if (!response.ok) {
     let errorMsg = 'Generation failed'
     try {
-      const errorData = await response.json()
-      errorMsg = errorData.detail || errorData.message || errorMsg
+      // Read body as text first to avoid stream consumption issues
+      const errorText = await response.text()
+      try {
+        const errorData = JSON.parse(errorText)
+        errorMsg = errorData.detail || errorData.message || errorMsg
+      } catch {
+        // Not JSON, use text directly
+        errorMsg = errorText || errorMsg
+      }
     } catch {
-      errorMsg = await response.text() || errorMsg
+      // Fallback if text() also fails
     }
     throw new Error(errorMsg)
   }

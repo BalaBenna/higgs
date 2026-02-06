@@ -4,6 +4,21 @@ import io
 # Ensure stdout and stderr use utf-8 encoding to prevent emoji logs from crashing python server
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
+
+# Load .env file manually - MUST BE DONE BEFORE IMPORTS
+env_path = os.path.join(os.path.dirname(__file__), '.env')
+if os.path.exists(env_path):
+    print(f"Loading environment from {env_path}")
+    with open(env_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#'):
+                try:
+                    key, value = line.split('=', 1)
+                    os.environ[key] = value.strip()
+                except ValueError:
+                    continue
+
 print('Importing websocket_router')
 from routers.websocket_router import *  # DO NOT DELETE THIS LINE, OTHERWISE, WEBSOCKET WILL NOT WORK
 print('Importing routers')
@@ -98,7 +113,7 @@ socket_app = socketio.ASGIApp(sio, other_asgi_app=app, socketio_path='/socket.io
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--port', type=int, default=57988,
+    parser.add_argument('--port', type=int, default=int(os.environ.get('DEFAULT_PORT', 57988)),
                         help='Port to run the server on')
     args = parser.parse_args()
     import uvicorn

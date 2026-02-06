@@ -1,0 +1,92 @@
+Listing available models...
+Found 45 models.
+Model Name: models/gemini-2.5-flash
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-2.5-pro
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-2.0-flash
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-2.0-flash-001
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-2.0-flash-exp-image-generation
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-2.0-flash-lite-001
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-2.0-flash-lite
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-exp-1206
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-2.5-flash-preview-tts
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-2.5-pro-preview-tts
+  - Supported Generation Methods: Unknown
+Model Name: models/gemma-3-1b-it
+  - Supported Generation Methods: Unknown
+Model Name: models/gemma-3-4b-it
+  - Supported Generation Methods: Unknown
+Model Name: models/gemma-3-12b-it
+  - Supported Generation Methods: Unknown
+Model Name: models/gemma-3-27b-it
+  - Supported Generation Methods: Unknown
+Model Name: models/gemma-3n-e4b-it
+  - Supported Generation Methods: Unknown
+Model Name: models/gemma-3n-e2b-it
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-flash-latest
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-flash-lite-latest
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-pro-latest
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-2.5-flash-lite
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-2.5-flash-image
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-2.5-flash-preview-09-2025
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-2.5-flash-lite-preview-09-2025
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-3-pro-preview
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-3-flash-preview
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-3-pro-image-preview
+  - Supported Generation Methods: Unknown
+Model Name: models/nano-banana-pro-preview
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-robotics-er-1.5-preview
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-2.5-computer-use-preview-10-2025
+  - Supported Generation Methods: Unknown
+Model Name: models/deep-research-pro-preview-12-2025
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-embedding-001
+  - Supported Generation Methods: Unknown
+Model Name: models/aqa
+  - Supported Generation Methods: Unknown
+Model Name: models/imagen-4.0-generate-preview-06-06
+  - Supported Generation Methods: Unknown
+Model Name: models/imagen-4.0-ultra-generate-preview-06-06
+  - Supported Generation Methods: Unknown
+Model Name: models/imagen-4.0-generate-001
+  - Supported Generation Methods: Unknown
+Model Name: models/imagen-4.0-ultra-generate-001
+  - Supported Generation Methods: Unknown
+Model Name: models/imagen-4.0-fast-generate-001
+  - Supported Generation Methods: Unknown
+Model Name: models/veo-2.0-generate-001
+  - Supported Generation Methods: Unknown
+Model Name: models/veo-3.0-generate-001
+  - Supported Generation Methods: Unknown
+Model Name: models/veo-3.0-fast-generate-001
+  - Supported Generation Methods: Unknown
+Model Name: models/veo-3.1-generate-preview
+  - Supported Generation Methods: Unknown
+Model Name: models/veo-3.1-fast-generate-preview
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-2.5-flash-native-audio-latest
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-2.5-flash-native-audio-preview-09-2025
+  - Supported Generation Methods: Unknown
+Model Name: models/gemini-2.5-flash-native-audio-preview-12-2025
+  - Supported Generation Methods: Unknown

@@ -14,6 +14,7 @@ from ..image_providers.openai_provider import OpenAIImageProvider
 from ..image_providers.replicate_provider import ReplicateImageProvider
 from ..image_providers.volces_provider import VolcesProvider
 from ..image_providers.wavespeed_provider import WavespeedProvider
+from ..image_providers.google_ai_provider import GoogleAIImageProvider
 
 # from ..image_providers.comfyui_provider import ComfyUIProvider
 from .image_canvas_utils import (
@@ -27,6 +28,7 @@ IMAGE_PROVIDERS: dict[str, ImageProviderBase] = {
     "replicate": ReplicateImageProvider(),
     "volces": VolcesProvider(),
     "wavespeed": WavespeedProvider(),
+    "google-ai": GoogleAIImageProvider(),
 }
 
 
@@ -39,6 +41,7 @@ async def generate_image_with_provider(
     prompt: str,
     aspect_ratio: str = "1:1",
     input_images: Optional[list[str]] = None,
+    num_images: int = 1,
 ) -> str:
     """
     通用图像生成函数，支持不同的模型和提供商
@@ -51,9 +54,7 @@ async def generate_image_with_provider(
         tool_call_id: 工具调用ID
         config: 上下文运行配置，包含canvas_id，session_id，model_info，由langgraph注入
         input_images: 可选的输入参考图像列表
-
-    Returns:
-        str: 生成结果消息
+        num_images: 生成图像的数量
     """
 
     provider_instance = IMAGE_PROVIDERS.get(provider)
@@ -78,20 +79,33 @@ async def generate_image_with_provider(
         "provider": provider,
         "aspect_ratio": aspect_ratio,
         "input_images": input_images or [],
+        "num_images": num_images,
     }
 
     # Generate image using the selected provider
-    mime_type, width, height, filename = await provider_instance.generate(
+    generation_result = await provider_instance.generate(
         prompt=prompt,
         model=model,
         aspect_ratio=aspect_ratio,
         input_images=processed_input_images,
         metadata=metadata,
+        num_images=metadata.get('num_images', 1)
     )
 
-    # Save image to canvas
-    image_url = await save_image_to_canvas(
-        session_id, canvas_id, filename, mime_type, width, height
-    )
+    # Handle both single tuple and list of tuples return types
+    if isinstance(generation_result, list):
+        results = generation_result
+    else:
+        results = [generation_result]
 
-    return f"image generated successfully ![image_id: {filename}](http://localhost:{DEFAULT_PORT}{image_url})"
+    image_markdowns = []
+    
+    for mime_type, width, height, filename in results:
+        # Save image to canvas
+        image_url = await save_image_to_canvas(
+            session_id, canvas_id, filename, mime_type, width, height
+        )
+        image_markdowns.append(f"![image_id: {filename}](http://localhost:{DEFAULT_PORT}{image_url})")
+
+    # Combine all markdown strings
+    return f"image generated successfully {' '.join(image_markdowns)}"

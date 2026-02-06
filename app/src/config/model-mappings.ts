@@ -9,20 +9,29 @@ export interface ModelMapping {
 
 export const IMAGE_MODEL_MAPPINGS: ModelMapping[] = [
   {
-    id: 'gpt-image-1.5',
-    name: 'GPT Image 1.5',
+    id: 'dall-e-3',
+    name: 'DALL-E 3',
     provider: 'OpenAI',
     toolId: 'generate_image_by_gpt_image_1_jaaz',
     type: 'image',
     isAvailable: true,
   },
   {
+    id: 'imagen-3',
+    name: 'Imagen 3',
+    provider: 'Google',
+    toolId: 'generate_image_by_imagen_4_jaaz',
+    type: 'image',
+    isAvailable: true,
+  },
+  // Models below require jaaz API subscription
+  {
     id: 'seedream-4.5',
     name: 'Seedream 4.5',
     provider: 'ByteDance',
     toolId: 'generate_image_by_doubao_seedream_3_jaaz',
     type: 'image',
-    isAvailable: true,
+    isAvailable: false,
   },
   {
     id: 'flux-2',
@@ -30,15 +39,7 @@ export const IMAGE_MODEL_MAPPINGS: ModelMapping[] = [
     provider: 'Black Forest Labs',
     toolId: 'generate_image_by_flux_kontext_max_jaaz',
     type: 'image',
-    isAvailable: true,
-  },
-  {
-    id: 'imagen-4',
-    name: 'Imagen 4',
-    provider: 'Google',
-    toolId: 'generate_image_by_imagen_4_jaaz',
-    type: 'image',
-    isAvailable: true,
+    isAvailable: false,
   },
   {
     id: 'midjourney',
@@ -46,7 +47,7 @@ export const IMAGE_MODEL_MAPPINGS: ModelMapping[] = [
     provider: 'Midjourney',
     toolId: 'generate_image_by_midjourney_jaaz',
     type: 'image',
-    isAvailable: true,
+    isAvailable: false,
   },
   {
     id: 'ideogram-3',
@@ -54,7 +55,7 @@ export const IMAGE_MODEL_MAPPINGS: ModelMapping[] = [
     provider: 'Ideogram',
     toolId: 'generate_image_by_ideogram3_bal_jaaz',
     type: 'image',
-    isAvailable: true,
+    isAvailable: false,
   },
   {
     id: 'recraft-v3',
@@ -62,7 +63,7 @@ export const IMAGE_MODEL_MAPPINGS: ModelMapping[] = [
     provider: 'Recraft',
     toolId: 'generate_image_by_recraft_v3_jaaz',
     type: 'image',
-    isAvailable: true,
+    isAvailable: false,
   },
   {
     id: 'flux-kontext-pro',
@@ -70,7 +71,7 @@ export const IMAGE_MODEL_MAPPINGS: ModelMapping[] = [
     provider: 'Black Forest Labs',
     toolId: 'generate_image_by_flux_kontext_pro_jaaz',
     type: 'image',
-    isAvailable: true,
+    isAvailable: false,
   },
   // Coming Soon models
   {

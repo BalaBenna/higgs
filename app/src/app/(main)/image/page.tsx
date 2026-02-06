@@ -29,16 +29,13 @@ import { GeneratedImage } from '@/components/generation/GeneratedImage'
 import { useImageGeneration } from '@/hooks/use-generation'
 
 const IMAGE_MODELS = [
-  { id: 'higgsfield-soul', name: 'Higgsfield Soul', provider: 'Higgsfield', badge: 'best', isComingSoon: true },
-  { id: 'gpt-image-1.5', name: 'GPT Image 1.5', provider: 'OpenAI', toolId: 'generate_image_by_gpt_image_1_jaaz' },
-  { id: 'seedream-4.5', name: 'Seedream 4.5', provider: 'ByteDance', badge: 'new', toolId: 'generate_image_by_doubao_seedream_3_jaaz' },
-  { id: 'flux-2', name: 'FLUX.2', provider: 'Black Forest Labs', badge: 'new', toolId: 'generate_image_by_flux_kontext_max_jaaz' },
-  { id: 'midjourney', name: 'Midjourney', provider: 'Midjourney', toolId: 'generate_image_by_midjourney_jaaz' },
-  { id: 'imagen-4', name: 'Imagen 4', provider: 'Google', toolId: 'generate_image_by_imagen_4_jaaz' },
-  { id: 'ideogram-3', name: 'Ideogram 3', provider: 'Ideogram', toolId: 'generate_image_by_ideogram3_bal_jaaz' },
-  { id: 'recraft-v3', name: 'Recraft V3', provider: 'Recraft', toolId: 'generate_image_by_recraft_v3_jaaz' },
-  { id: 'nano-banana-pro', name: 'Nano Banana Pro', provider: 'Nano', badge: 'top', isComingSoon: true },
-  { id: 'kling-q1-image', name: 'Kling Q1 Image', provider: 'Kuaishou', isComingSoon: true },
+  { id: 'dall-e-3', name: 'DALL-E 3', provider: 'OpenAI', toolId: 'generate_image_by_gpt_image_1_jaaz' },
+  { id: 'imagen-3', name: 'Imagen 3', provider: 'Google', toolId: 'generate_image_by_imagen_4_jaaz' },
+  { id: 'seedream-4.5', name: 'Seedream 4.5', provider: 'ByteDance', toolId: 'generate_image_by_doubao_seedream_3_jaaz', isComingSoon: true },
+  { id: 'flux-2', name: 'FLUX.2', provider: 'Black Forest Labs', toolId: 'generate_image_by_flux_kontext_max_jaaz', isComingSoon: true },
+  { id: 'midjourney', name: 'Midjourney', provider: 'Midjourney', toolId: 'generate_image_by_midjourney_jaaz', isComingSoon: true },
+  { id: 'ideogram-3', name: 'Ideogram 3', provider: 'Ideogram', toolId: 'generate_image_by_ideogram3_bal_jaaz', isComingSoon: true },
+  { id: 'recraft-v3', name: 'Recraft V3', provider: 'Recraft', toolId: 'generate_image_by_recraft_v3_jaaz', isComingSoon: true },
 ]
 
 const ASPECT_RATIOS = [
@@ -81,7 +78,7 @@ function ImagePageContent() {
 
   const [prompt, setPrompt] = useState('')
   const [negativePrompt, setNegativePrompt] = useState('')
-  const [model, setModel] = useState('gpt-image-1.5')
+  const [model, setModel] = useState('dall-e-3')
   const [aspectRatio, setAspectRatio] = useState('1:1')
   const [style, setStyle] = useState('None')
   const [numImages, setNumImages] = useState(4)
