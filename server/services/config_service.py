@@ -3,7 +3,8 @@ import os
 import traceback
 import aiofiles
 import toml
-from typing import Dict, TypedDict, Literal, Optional
+from typing import Dict, Literal, Optional
+from typing_extensions import TypedDict
 
 # 定义配置文件的类型结构
 
@@ -62,8 +63,58 @@ DEFAULT_PROVIDERS_CONFIG: AppConfig = {
         'api_key': os.getenv('GOOGLE_VERTEX_AI_API_KEY', ''),
         'max_tokens': 8192,
     },
-
+    'fal': {
+        'models': {},
+        'url': 'https://queue.fal.run',
+        'api_key': os.getenv('FAL_API_KEY', ''),
+    },
+    'google-ai': {
+        'models': {},
+        'url': 'https://generativelanguage.googleapis.com/v1/',
+        'api_key': os.getenv('GOOGLE_API_KEY', ''),
+    },
+    'replicate': {
+        'models': {},
+        'url': 'https://api.replicate.com/v1/',
+        'api_key': os.getenv('REPLICATE_API_KEY', '') or os.getenv('REPLICATE_API_TOKEN', ''),
+    },
+    'volces': {
+        'models': {},
+        'url': os.getenv('VOLCENGINE_URL', 'https://ark.cn-beijing.volces.com/api/v3'),
+        'api_key': os.getenv('VOLCENGINE_API_KEY', ''),
+    },
+    'wavespeed': {
+        'models': {},
+        'url': 'https://api.wavespeed.ai/v1/',
+        'api_key': os.getenv('WAVESPEED_API_KEY', ''),
+    },
+    'xai': {
+        'models': {},
+        'url': 'https://api.x.ai/v1',
+        'api_key': os.getenv('XAI_API_KEY', ''),
+    },
 }
+
+# Map of provider names to their environment variable names for API keys
+_PROVIDER_ENV_KEYS: Dict[str, str] = {
+    'openai': 'OPENAI_API_KEY',
+    'vertex-ai': 'GOOGLE_VERTEX_AI_API_KEY',
+    'fal': 'FAL_API_KEY',
+    'google-ai': 'GOOGLE_API_KEY',
+    'replicate': 'REPLICATE_API_KEY',
+    'volces': 'VOLCENGINE_API_KEY',
+    'xai': 'XAI_API_KEY',
+    'wavespeed': 'WAVESPEED_API_KEY',
+}
+
+
+def _is_valid_api_key(key: str) -> bool:
+    """Check if an API key is a real key (not empty or placeholder)."""
+    if not key:
+        return False
+    key_lower = key.strip().lower()
+    return not key_lower.startswith('your_') and key_lower not in ('', 'none', 'null')
+
 
 SERVER_DIR = os.path.dirname(os.path.dirname(__file__))
 USER_DATA_DIR = os.getenv(
@@ -113,7 +164,8 @@ class ConfigService:
             # Check if config file exists
             if not self.exists_config():
                 print(
-                    f"Config file not found at {self.config_file}, creating default configuration")
+                    f"Config file not found at {self.config_file}, creating default configuration"
+                )
                 # Create default config file
                 with open(self.config_file, "w") as f:
                     toml.dump(self.app_config, f)
@@ -129,16 +181,37 @@ class ConfigService:
                     provider_config['is_custom'] = True
                 self.app_config[provider] = provider_config
                 # image/video models are hardcoded in the default provider config
-                provider_models = DEFAULT_PROVIDERS_CONFIG.get(
-                    provider, {}).get('models', {})
-                for model_name, model_config in provider_config.get('models', {}).items():
+                provider_models = DEFAULT_PROVIDERS_CONFIG.get(provider, {}).get(
+                    'models', {}
+                )
+                for model_name, model_config in provider_config.get(
+                    'models', {}
+                ).items():
                     # Only text model can be self added
-                    if model_config.get('type') == 'text' and model_name not in provider_models:
+                    if (
+                        model_config.get('type') == 'text'
+                        and model_name not in provider_models
+                    ):
                         provider_models[model_name] = model_config
                         provider_models[model_name]['is_custom'] = True
                 self.app_config[provider]['models'] = provider_models
 
-            # 确保 jaaz URL 始终正确
+            # For all providers, if config.toml has an empty api_key but
+            # the environment variable has a value, use the env var.
+            # This prevents config.toml from overwriting env-based keys.
+            for provider_name, env_key in _PROVIDER_ENV_KEYS.items():
+                if provider_name in self.app_config:
+                    if not _is_valid_api_key(
+                        self.app_config[provider_name].get('api_key', '')
+                    ):
+                        env_val = os.getenv(env_key, '')
+                        # For replicate, also check REPLICATE_API_TOKEN
+                        if not _is_valid_api_key(env_val) and provider_name == 'replicate':
+                            env_val = os.getenv('REPLICATE_API_TOKEN', '')
+                        if _is_valid_api_key(env_val):
+                            self.app_config[provider_name]['api_key'] = env_val
+
+            # Ensure jaaz URL is always correct
             if 'jaaz' in self.app_config:
                 self.app_config['jaaz']['url'] = self._get_jaaz_url()
         except Exception as e:

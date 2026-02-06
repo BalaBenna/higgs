@@ -31,3 +31,6 @@ piexif # For EXIF metadata handling in JPEG files
 google-genai
 beautifulsoup4
 lxml
+replicate
+supabase
+python-jose[cryptography]

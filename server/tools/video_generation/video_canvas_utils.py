@@ -20,6 +20,7 @@ from pymediainfo import MediaInfo
 from nanoid import generate
 import random
 from utils.canvas import find_next_best_element_position
+from services import storage_service
 
 
 class CanvasLockManager:
@@ -44,15 +45,23 @@ canvas_lock_manager = CanvasLockManager()
 async def save_video_to_canvas(
     session_id: str,
     canvas_id: str,
-    video_url: str
+    video_url: str,
+    user_id: str = "",
+    prompt: str = "",
+    model: str = "",
+    provider: str = "",
 ) -> Tuple[str, Dict[str, Any], Dict[str, Any]]:
     """
-    Download video, save to files, create canvas element and return data
+    Download video, save to files/Supabase Storage, create canvas element and return data.
 
     Args:
         session_id: Session ID for notifications
         canvas_id: Canvas ID to add video element
         video_url: URL to download video from
+        user_id: Authenticated user ID (for Supabase storage)
+        prompt: Generation prompt (for generated_content record)
+        model: Model name
+        provider: Provider name
 
     Returns:
         Tuple of (filename, file_data, new_video_element)
@@ -62,7 +71,7 @@ async def save_video_to_canvas(
         # Generate unique video ID
         video_id = generate_video_file_id()
 
-        # Download and save video
+        # Download and save video locally first (for mediainfo processing)
         print(f"🎥 Downloading video from: {video_url}")
         mime_type, width, height, extension = await get_video_info_and_save(
             video_url, os.path.join(FILES_DIR, f"{video_id}")
@@ -71,9 +80,45 @@ async def save_video_to_canvas(
 
         print(f"🎥 Video saved as: {filename}, dimensions: {width}x{height}")
 
+        # Upload to Supabase Storage if user_id is available
+        if user_id:
+            local_path = os.path.join(FILES_DIR, filename)
+            try:
+                async with aiofiles.open(local_path, "rb") as f:
+                    video_bytes = await f.read()
+                file_url = await storage_service.upload_file(
+                    user_id=user_id,
+                    file_bytes=video_bytes,
+                    filename=filename,
+                    bucket=storage_service.GENERATED_CONTENT_BUCKET,
+                    content_type=mime_type,
+                )
+                # Record in generated_content table
+                await db_service.insert_generated_content({
+                    "id": video_id,
+                    "user_id": user_id,
+                    "canvas_id": canvas_id or None,
+                    "type": "video",
+                    "filename": filename,
+                    "storage_path": f"{user_id}/{filename}",
+                    "public_url": file_url,
+                    "mime_type": mime_type,
+                    "width": width,
+                    "height": height,
+                    "prompt": prompt,
+                    "model": model,
+                    "provider": provider,
+                })
+                # Clean up local file
+                os.remove(local_path)
+            except Exception as e:
+                print(f"Warning: Supabase upload failed, keeping local file: {e}")
+                file_url = f"/api/file/{filename}"
+        else:
+            file_url = f"/api/file/{filename}"
+
         # Create file data
         file_id = generate_video_file_id()
-        file_url = f"/api/file/{filename}"
 
         file_data: Dict[str, Any] = {
             "mimeType": mime_type,
@@ -159,7 +204,10 @@ async def process_video_result(
     video_url: str,
     session_id: str,
     canvas_id: str,
-    provider_name: str = ""
+    provider_name: str = "",
+    user_id: str = "",
+    prompt: str = "",
+    model: str = "",
 ) -> str:
     """
     Complete video processing pipeline: save, update canvas, notify
@@ -169,6 +217,9 @@ async def process_video_result(
         session_id: Session ID for notifications
         canvas_id: Canvas ID to add video element
         provider_name: Name of the provider (for logging)
+        user_id: Authenticated user ID (for Supabase storage)
+        prompt: Generation prompt
+        model: Model name
 
     Returns:
         Success message with video link
@@ -178,7 +229,11 @@ async def process_video_result(
         filename, file_data, new_video_element = await save_video_to_canvas(
             session_id=session_id,
             canvas_id=canvas_id,
-            video_url=video_url
+            video_url=video_url,
+            user_id=user_id,
+            prompt=prompt,
+            model=model,
+            provider=provider_name,
         )
 
         # Send completion notification
@@ -192,6 +247,10 @@ async def process_video_result(
 
         provider_info = f" using {provider_name}" if provider_name else ""
         print(f"🎥 Video generation completed{provider_info}: {filename}")
+        # Use the actual URL (Supabase or local) from file_data
+        actual_url = file_data.get("dataURL", "")
+        if actual_url.startswith("http"):
+            return f"video generated successfully ![video_id: {filename}]({actual_url})"
         return format_video_success_message(filename)
 
     except Exception as e:

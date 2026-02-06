@@ -55,34 +55,50 @@ export function useVibeMotionGeneration(callbacks?: GenerationCallbacks) {
 
       const decoder = new TextDecoder()
       let accumulated = ''
+      let buffer = ''
+
+      function processLine(line: string) {
+        if (!line.startsWith('data: ')) return
+        const jsonStr = line.slice(6).trim()
+        if (!jsonStr) return
+
+        const event = JSON.parse(jsonStr)
+
+        if (event.type === 'delta' && event.content) {
+          accumulated += event.content
+          callbacks?.onCodeUpdate?.(accumulated)
+        } else if (event.type === 'error') {
+          throw new Error(event.content || 'Generation error')
+        }
+      }
 
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
 
         const chunk = decoder.decode(value, { stream: true })
-        const lines = chunk.split('\n')
+        const lines = (buffer + chunk).split('\n')
+
+        // Last element may be an incomplete line — keep it in the buffer
+        buffer = lines.pop() ?? ''
 
         for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          const jsonStr = line.slice(6).trim()
-          if (!jsonStr) continue
-
           try {
-            const event = JSON.parse(jsonStr)
-
-            if (event.type === 'delta' && event.content) {
-              accumulated += event.content
-              callbacks?.onCodeUpdate?.(accumulated)
-            } else if (event.type === 'error') {
-              throw new Error(event.content || 'Generation error')
-            }
-            // type === 'done' means stream ended
+            processLine(line)
           } catch (parseErr) {
             // Skip malformed SSE lines
             if (parseErr instanceof SyntaxError) continue
             throw parseErr
           }
+        }
+      }
+
+      // Process any remaining data in the buffer
+      if (buffer.trim()) {
+        try {
+          processLine(buffer)
+        } catch {
+          // Ignore trailing partial data
         }
       }
 

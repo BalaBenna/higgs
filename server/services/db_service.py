@@ -1,214 +1,275 @@
-import sqlite3
-import json
-import os
-from typing import List, Dict, Any, Optional
-import aiosqlite
-from .config_service import USER_DATA_DIR
-from .migrations.manager import MigrationManager, CURRENT_VERSION
+"""
+Database service backed by Supabase (PostgreSQL).
+Replaces the previous SQLite/aiosqlite implementation.
+All user-scoped methods accept a user_id parameter.
+"""
 
-DB_PATH = os.path.join(USER_DATA_DIR, "localmanus.db")
+import json
+from typing import List, Dict, Any, Optional
+from services.supabase_service import get_supabase
+
 
 class DatabaseService:
     def __init__(self):
-        self.db_path = DB_PATH
-        self._ensure_db_directory()
-        self._migration_manager = MigrationManager()
-        self._init_db()
+        pass
 
-    def _ensure_db_directory(self):
-        """Ensure the database directory exists"""
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+    # ── Canvases ──────────────────────────────────────────────────────────
 
-    def _init_db(self):
-        """Initialize the database with the current schema"""
-        with sqlite3.connect(self.db_path) as conn:
-            # Create version table if it doesn't exist
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS db_version (
-                    version INTEGER PRIMARY KEY
-                )
-            """)
-            
-            # Get current version
-            cursor = conn.execute("SELECT version FROM db_version")
-            current_version = cursor.fetchone()
-            print('local db version', current_version, 'latest version', CURRENT_VERSION)
-            
-            if current_version is None:
-                # First time setup - start from version 0
-                conn.execute("INSERT INTO db_version (version) VALUES (0)")
-                self._migration_manager.migrate(conn, 0, CURRENT_VERSION)
-            elif current_version[0] < CURRENT_VERSION:
-                print('Migrating database from version', current_version[0], 'to', CURRENT_VERSION)
-                # Need to migrate
-                self._migration_manager.migrate(conn, current_version[0], CURRENT_VERSION)
+    async def create_canvas(self, id: str, name: str, user_id: str = ""):
+        """Create a new canvas."""
+        sb = get_supabase()
+        sb.table("canvases").insert(
+            {"id": id, "name": name, "user_id": user_id}
+        ).execute()
 
-    async def create_canvas(self, id: str, name: str):
-        """Create a new canvas"""
-        async with aiosqlite.connect(self.db_path) as db:
-            await db.execute("""
-                INSERT INTO canvases (id, name)
-                VALUES (?, ?)
-            """, (id, name))
-            await db.commit()
-
-    async def list_canvases(self) -> List[Dict[str, Any]]:
-        """Get all canvases"""
-        async with aiosqlite.connect(self.db_path) as db:
-            db.row_factory = sqlite3.Row
-            cursor = await db.execute("""
-                SELECT id, name, description, thumbnail, created_at, updated_at
-                FROM canvases
-                ORDER BY updated_at DESC
-            """)
-            rows = await cursor.fetchall()
-            return [dict(row) for row in rows]
-
-    async def create_chat_session(self, id: str, model: str, provider: str, canvas_id: str, title: Optional[str] = None):
-        """Save a new chat session"""
-        async with aiosqlite.connect(self.db_path) as db:
-            await db.execute("""
-                INSERT INTO chat_sessions (id, model, provider, canvas_id, title)
-                VALUES (?, ?, ?, ?, ?)
-            """, (id, model, provider, canvas_id, title))
-            await db.commit()
-
-    async def create_message(self, session_id: str, role: str, message: str):
-        """Save a chat message"""
-        async with aiosqlite.connect(self.db_path) as db:
-            await db.execute("""
-                INSERT INTO chat_messages (session_id, role, message)
-                VALUES (?, ?, ?)
-            """, (session_id, role, message))
-            await db.commit()
-
-    async def get_chat_history(self, session_id: str) -> List[Dict[str, Any]]:
-        """Get chat history for a session"""
-        async with aiosqlite.connect(self.db_path) as db:
-            db.row_factory = sqlite3.Row
-            cursor = await db.execute("""
-                SELECT role, message, id
-                FROM chat_messages
-                WHERE session_id = ?
-                ORDER BY id ASC
-            """, (session_id,))
-            rows = await cursor.fetchall()
-            
-            messages = []
-            for row in rows:
-                row_dict = dict(row)
-                if row_dict['message']:
-                    try:
-                        msg = json.loads(row_dict['message'])
-                        messages.append(msg)
-                    except:
-                        pass
-                
-            return messages
-
-    async def list_sessions(self, canvas_id: str) -> List[Dict[str, Any]]:
-        """List all chat sessions"""
-        async with aiosqlite.connect(self.db_path) as db:
-            db.row_factory = sqlite3.Row
-            if canvas_id:
-                cursor = await db.execute("""
-                    SELECT id, title, model, provider, created_at, updated_at
-                    FROM chat_sessions
-                    WHERE canvas_id = ?
-                    ORDER BY updated_at DESC
-                """, (canvas_id,))
-            else:
-                cursor = await db.execute("""
-                    SELECT id, title, model, provider, created_at, updated_at
-                    FROM chat_sessions
-                    ORDER BY updated_at DESC
-                """)
-            rows = await cursor.fetchall()
-            return [dict(row) for row in rows]
-
-    async def save_canvas_data(self, id: str, data: str, thumbnail: str = None):
-        """Save canvas data"""
-        async with aiosqlite.connect(self.db_path) as db:
-            await db.execute("""
-                UPDATE canvases 
-                SET data = ?, thumbnail = ?, updated_at = STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'now')
-                WHERE id = ?
-            """, (data, thumbnail, id))
-            await db.commit()
+    async def list_canvases(self, user_id: str = "") -> List[Dict[str, Any]]:
+        """List canvases for a user."""
+        sb = get_supabase()
+        query = sb.table("canvases").select(
+            "id, name, description, thumbnail, created_at, updated_at"
+        )
+        if user_id:
+            query = query.eq("user_id", user_id)
+        result = query.order("updated_at", desc=True).execute()
+        return result.data or []
 
     async def get_canvas_data(self, id: str) -> Optional[Dict[str, Any]]:
-        """Get canvas data"""
-        async with aiosqlite.connect(self.db_path) as db:
-            db.row_factory = sqlite3.Row
-            cursor = await db.execute("""
-                SELECT data, name
-                FROM canvases
-                WHERE id = ?
-            """, (id,))
-            row = await cursor.fetchone()
-
-            sessions = await self.list_sessions(id)
-            
-            if row:
-                return {
-                    'data': json.loads(row['data']) if row['data'] else {},
-                    'name': row['name'],
-                    'sessions': sessions
-                }
+        """Get canvas data including sessions."""
+        sb = get_supabase()
+        result = (
+            sb.table("canvases")
+            .select("data, name")
+            .eq("id", id)
+            .maybe_single()
+            .execute()
+        )
+        row = result.data
+        if not row:
             return None
 
+        sessions = await self.list_sessions(id)
+        data_raw = row.get("data")
+        if isinstance(data_raw, str):
+            try:
+                data_raw = json.loads(data_raw)
+            except (json.JSONDecodeError, TypeError):
+                data_raw = {}
+        return {
+            "data": data_raw or {},
+            "name": row.get("name", ""),
+            "sessions": sessions,
+        }
+
+    async def save_canvas_data(
+        self, id: str, data: str, thumbnail: str = None
+    ):
+        """Save canvas data (JSON string)."""
+        sb = get_supabase()
+        update_payload: Dict[str, Any] = {"data": json.loads(data) if isinstance(data, str) else data}
+        if thumbnail is not None:
+            update_payload["thumbnail"] = thumbnail
+        sb.table("canvases").update(update_payload).eq("id", id).execute()
+
     async def delete_canvas(self, id: str):
-        """Delete canvas and related data"""
-        async with aiosqlite.connect(self.db_path) as db:
-            await db.execute("DELETE FROM canvases WHERE id = ?", (id,))
-            await db.commit()
+        """Delete canvas and related data (cascade handled by FK)."""
+        sb = get_supabase()
+        sb.table("canvases").delete().eq("id", id).execute()
 
     async def rename_canvas(self, id: str, name: str):
-        """Rename canvas"""
-        async with aiosqlite.connect(self.db_path) as db:
-            await db.execute("UPDATE canvases SET name = ? WHERE id = ?", (name, id))
-            await db.commit()
+        """Rename a canvas."""
+        sb = get_supabase()
+        sb.table("canvases").update({"name": name}).eq("id", id).execute()
 
-    async def create_comfy_workflow(self, name: str, api_json: str, description: str, inputs: str, outputs: str = None):
-        """Create a new comfy workflow"""
-        async with aiosqlite.connect(self.db_path) as db:
-            await db.execute("""
-                INSERT INTO comfy_workflows (name, api_json, description, inputs, outputs)
-                VALUES (?, ?, ?, ?, ?)
-            """, (name, api_json, description, inputs, outputs))
-            await db.commit()
+    # ── Chat Sessions ─────────────────────────────────────────────────────
+
+    async def create_chat_session(
+        self,
+        id: str,
+        model: str,
+        provider: str,
+        canvas_id: str,
+        title: Optional[str] = None,
+        user_id: str = "",
+    ):
+        """Create a new chat session."""
+        sb = get_supabase()
+        payload: Dict[str, Any] = {
+            "id": id,
+            "model": model,
+            "provider": provider,
+            "canvas_id": canvas_id or None,
+            "user_id": user_id,
+        }
+        if title:
+            payload["title"] = title
+        sb.table("chat_sessions").insert(payload).execute()
+
+    async def list_sessions(
+        self, canvas_id: str = "", user_id: str = ""
+    ) -> List[Dict[str, Any]]:
+        """List chat sessions, optionally filtered by canvas_id."""
+        sb = get_supabase()
+        query = sb.table("chat_sessions").select(
+            "id, title, model, provider, created_at, updated_at"
+        )
+        if canvas_id:
+            query = query.eq("canvas_id", canvas_id)
+        if user_id:
+            query = query.eq("user_id", user_id)
+        result = query.order("updated_at", desc=True).execute()
+        return result.data or []
+
+    # ── Chat Messages ─────────────────────────────────────────────────────
+
+    async def create_message(self, session_id: str, role: str, message: str):
+        """Save a chat message."""
+        sb = get_supabase()
+        # message is a JSON string — store as JSONB
+        try:
+            msg_data = json.loads(message) if isinstance(message, str) else message
+        except (json.JSONDecodeError, TypeError):
+            msg_data = message
+        sb.table("chat_messages").insert(
+            {"session_id": session_id, "role": role, "message": msg_data}
+        ).execute()
+
+    async def get_chat_history(
+        self, session_id: str
+    ) -> List[Dict[str, Any]]:
+        """Get chat history for a session."""
+        sb = get_supabase()
+        result = (
+            sb.table("chat_messages")
+            .select("role, message, id")
+            .eq("session_id", session_id)
+            .order("id", desc=False)
+            .execute()
+        )
+        messages = []
+        for row in result.data or []:
+            msg = row.get("message")
+            if msg is not None:
+                # msg is already a dict (JSONB), no need to parse
+                if isinstance(msg, str):
+                    try:
+                        msg = json.loads(msg)
+                    except (json.JSONDecodeError, TypeError):
+                        continue
+                messages.append(msg)
+        return messages
+
+    # ── ComfyUI Workflows (not user-scoped) ───────────────────────────────
+
+    async def create_comfy_workflow(
+        self,
+        name: str,
+        api_json: str,
+        description: str,
+        inputs: str,
+        outputs: str = None,
+    ):
+        """Create a new comfy workflow."""
+        sb = get_supabase()
+        payload: Dict[str, Any] = {
+            "name": name,
+            "description": description,
+        }
+        # Store as JSONB
+        for field, value in [("api_json", api_json), ("inputs", inputs), ("outputs", outputs)]:
+            if value is not None:
+                try:
+                    payload[field] = json.loads(value) if isinstance(value, str) else value
+                except (json.JSONDecodeError, TypeError):
+                    payload[field] = value
+        sb.table("comfy_workflows").insert(payload).execute()
 
     async def list_comfy_workflows(self) -> List[Dict[str, Any]]:
-        """List all comfy workflows"""
-        async with aiosqlite.connect(self.db_path) as db:
-            db.row_factory = sqlite3.Row
-            cursor = await db.execute("SELECT id, name, description, api_json, inputs, outputs FROM comfy_workflows ORDER BY id DESC")
-            rows = await cursor.fetchall()
-            return [dict(row) for row in rows]
+        """List all comfy workflows."""
+        sb = get_supabase()
+        result = (
+            sb.table("comfy_workflows")
+            .select("id, name, description, api_json, inputs, outputs")
+            .order("id", desc=True)
+            .execute()
+        )
+        return result.data or []
 
     async def delete_comfy_workflow(self, id: int):
-        """Delete a comfy workflow"""
-        async with aiosqlite.connect(self.db_path) as db:
-            await db.execute("DELETE FROM comfy_workflows WHERE id = ?", (id,))
-            await db.commit()
+        """Delete a comfy workflow."""
+        sb = get_supabase()
+        sb.table("comfy_workflows").delete().eq("id", id).execute()
 
     async def get_comfy_workflow(self, id: int):
-        """Get comfy workflow dict"""
-        async with aiosqlite.connect(self.db_path) as db:
-            db.row_factory = sqlite3.Row
-            cursor = await db.execute(
-                "SELECT api_json FROM comfy_workflows WHERE id = ?", (id,)
-            )
-            row = await cursor.fetchone()
-        try:
-            workflow_json = (
-                row["api_json"]
-                if isinstance(row["api_json"], dict)
-                else json.loads(row["api_json"])
-            )
-            return workflow_json
-        except json.JSONDecodeError as exc:
-            raise ValueError(f"Stored workflow api_json is not valid JSON: {exc}")
+        """Get comfy workflow api_json dict."""
+        sb = get_supabase()
+        result = (
+            sb.table("comfy_workflows")
+            .select("api_json")
+            .eq("id", id)
+            .single()
+            .execute()
+        )
+        row = result.data
+        if not row:
+            raise ValueError(f"Workflow {id} not found")
+        api_json = row.get("api_json")
+        if isinstance(api_json, str):
+            try:
+                return json.loads(api_json)
+            except json.JSONDecodeError as exc:
+                raise ValueError(
+                    f"Stored workflow api_json is not valid JSON: {exc}"
+                )
+        return api_json
 
-# Create a singleton instance
+    # ── Generated Content ─────────────────────────────────────────────────
+
+    async def insert_generated_content(self, data: Dict[str, Any]):
+        """Insert a row into the generated_content table."""
+        sb = get_supabase()
+        sb.table("generated_content").insert(data).execute()
+
+    async def list_generated_content(
+        self,
+        user_id: str,
+        content_type: Optional[str] = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> List[Dict[str, Any]]:
+        """List generated content for a user."""
+        sb = get_supabase()
+        query = sb.table("generated_content").select("*").eq("user_id", user_id)
+        if content_type:
+            query = query.eq("type", content_type)
+        result = (
+            query.order("created_at", desc=True)
+            .range(offset, offset + limit - 1)
+            .execute()
+        )
+        return result.data or []
+
+    async def get_generated_content(
+        self, id: str, user_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """Get a single generated content item."""
+        sb = get_supabase()
+        result = (
+            sb.table("generated_content")
+            .select("*")
+            .eq("id", id)
+            .eq("user_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+        return result.data
+
+    async def delete_generated_content(self, id: str, user_id: str):
+        """Delete a generated content item."""
+        sb = get_supabase()
+        sb.table("generated_content").delete().eq("id", id).eq(
+            "user_id", user_id
+        ).execute()
+
+
+# Singleton instance
 db_service = DatabaseService()

@@ -1,45 +1,51 @@
-from fastapi import APIRouter, Request
-#from routers.agent import chat
+from fastapi import APIRouter, Request, Depends
 from services.chat_service import handle_chat
 from services.db_service import db_service
+from middleware.auth import get_current_user
 import asyncio
 import json
 
 router = APIRouter(prefix="/api/canvas")
 
+
 @router.get("/list")
-async def list_canvases():
-    return await db_service.list_canvases()
+async def list_canvases(user_id: str = Depends(get_current_user)):
+    return await db_service.list_canvases(user_id=user_id)
+
 
 @router.post("/create")
-async def create_canvas(request: Request):
+async def create_canvas(request: Request, user_id: str = Depends(get_current_user)):
     data = await request.json()
     id = data.get('canvas_id')
     name = data.get('name')
 
-    asyncio.create_task(handle_chat(data))
-    await db_service.create_canvas(id, name)
-    return {"id": id }
+    asyncio.create_task(handle_chat(data, user_id=user_id))
+    await db_service.create_canvas(id, name, user_id=user_id)
+    return {"id": id}
+
 
 @router.get("/{id}")
-async def get_canvas(id: str):
+async def get_canvas(id: str, user_id: str = Depends(get_current_user)):
     return await db_service.get_canvas_data(id)
 
+
 @router.post("/{id}/save")
-async def save_canvas(id: str, request: Request):
+async def save_canvas(id: str, request: Request, user_id: str = Depends(get_current_user)):
     payload = await request.json()
     data_str = json.dumps(payload['data'])
     await db_service.save_canvas_data(id, data_str, payload['thumbnail'])
-    return {"id": id }
+    return {"id": id}
+
 
 @router.post("/{id}/rename")
-async def rename_canvas(id: str, request: Request):
+async def rename_canvas(id: str, request: Request, user_id: str = Depends(get_current_user)):
     data = await request.json()
     name = data.get('name')
     await db_service.rename_canvas(id, name)
-    return {"id": id }
+    return {"id": id}
+
 
 @router.delete("/{id}/delete")
-async def delete_canvas(id: str):
+async def delete_canvas(id: str, user_id: str = Depends(get_current_user)):
     await db_service.delete_canvas(id)
-    return {"id": id }
+    return {"id": id}

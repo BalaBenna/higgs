@@ -22,7 +22,7 @@ if os.path.exists(env_path):
 print('Importing websocket_router')
 from routers.websocket_router import *  # DO NOT DELETE THIS LINE, OTHERWISE, WEBSOCKET WILL NOT WORK
 print('Importing routers')
-from routers import config_router, image_router, root_router, workspace, canvas, ssl_test, chat_router, settings, tool_confirmation, character_router, template_router, community_router, vibe_motion_router, feature_router, product_scraper_router
+from routers import config_router, image_router, root_router, workspace, canvas, ssl_test, chat_router, settings, tool_confirmation, character_router, template_router, community_router, vibe_motion_router, feature_router, product_scraper_router, auth_router, content_router
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI
@@ -77,6 +77,8 @@ app.include_router(community_router.router)
 app.include_router(vibe_motion_router.router)
 app.include_router(feature_router.router)
 app.include_router(product_scraper_router.router)
+app.include_router(auth_router.router)
+app.include_router(content_router.router)
 
 # Mount the React build directory
 react_build_dir = os.environ.get('UI_DIST_DIR', os.path.join(

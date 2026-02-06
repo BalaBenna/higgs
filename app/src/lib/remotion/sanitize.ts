@@ -13,27 +13,31 @@ export function stripMarkdownFences(raw: string): string {
 
 /**
  * Remove import statements since all modules are injected at runtime.
+ * Handles multi-line imports like:
+ *   import {
+ *     Foo,
+ *     Bar,
+ *   } from 'module'
  */
 function removeImports(code: string): string {
+  // Multi-line and single-line named/default imports: import ... from '...'
+  code = code.replace(/import\s+[\s\S]*?\s+from\s+['"][^'"]*['"];?\s*/g, '')
+  // Side-effect imports: import '...'
+  code = code.replace(/import\s+['"][^'"]*['"];?\s*/g, '')
   return code
-    .split('\n')
-    .filter((line) => {
-      const trimmed = line.trim()
-      // Remove single-line imports
-      if (trimmed.startsWith('import ') && trimmed.includes(' from ')) return false
-      if (trimmed.startsWith('import {') && trimmed.includes(' from ')) return false
-      return true
-    })
-    .join('\n')
 }
 
 /**
  * Remove export keywords since we evaluate and capture the component directly.
+ * Uses line-anchored patterns to avoid mangling string content.
  */
 function removeExports(code: string): string {
+  code = code.replace(/^export\s+default\s+/gm, '')
+  code = code.replace(
+    /^export\s+(?=(?:const|let|var|function|class|type|interface|enum|abstract)\s)/gm,
+    ''
+  )
   return code
-    .replace(/export\s+default\s+/g, '')
-    .replace(/export\s+/g, '')
 }
 
 /**

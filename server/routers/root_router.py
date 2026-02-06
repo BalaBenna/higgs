@@ -5,7 +5,7 @@ import inspect
 import asyncio
 import traceback
 from datetime import datetime
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 import requests
 import httpx
 from pydantic import BaseModel
@@ -20,6 +20,7 @@ from utils.http_client import HttpClient
 from models.config_model import ModelInfo
 from typing import List, Optional
 from services.tool_service import TOOL_MAPPING
+from middleware.auth import get_current_user, optional_auth
 
 router = APIRouter(prefix="/api")
 
@@ -114,12 +115,12 @@ async def list_tools() -> list[ToolInfoJson]:
 
 
 @router.get("/list_chat_sessions")
-async def list_chat_sessions():
-    return await db_service.list_sessions()
+async def list_chat_sessions(user_id: str = Depends(get_current_user)):
+    return await db_service.list_sessions(user_id=user_id)
 
 
 @router.get("/chat_session/{session_id}")
-async def get_chat_session(session_id: str):
+async def get_chat_session(session_id: str, user_id: str = Depends(get_current_user)):
     return await db_service.get_chat_history(session_id)
 
 
@@ -140,7 +141,7 @@ class ImageGenerateRequest(BaseModel):
 
 
 @router.post("/generate/image")
-async def generate_image(req: ImageGenerateRequest):
+async def generate_image(req: ImageGenerateRequest, user_id: str = Depends(get_current_user)):
     """Direct image generation endpoint that invokes a tool by name."""
     tool_info = TOOL_MAPPING.get(req.tool) or tool_service.tools.get(req.tool)
     if not tool_info:
@@ -160,7 +161,7 @@ async def generate_image(req: ImageGenerateRequest):
         )
 
     session_id = f"direct_{uuid.uuid4().hex[:8]}"
-    config = {"configurable": {"canvas_id": "", "session_id": session_id}}
+    config = {"configurable": {"canvas_id": "", "session_id": session_id, "user_id": user_id}}
 
     # Check if this tool accepts input_images
     sig = inspect.signature(tool_fn.coroutine) if hasattr(tool_fn, 'coroutine') else None
@@ -189,11 +190,17 @@ async def generate_image(req: ImageGenerateRequest):
             if has_input_images and req.input_images:
                 invoke_args["input_images"] = req.input_images
                 
-            result = await tool_fn.ainvoke(
-                invoke_args,
-                config=config,
-            )
-            
+            try:
+                result = await tool_fn.ainvoke(
+                    invoke_args,
+                    config=config,
+                )
+                print(f"🖼️ Batch tool result: {str(result)[:200]}")
+            except Exception as tool_error:
+                print(f"🖼️ Batch tool invocation error: {tool_error}")
+                traceback.print_exc()
+                raise
+
             # Parse multiple image URLs from the tool result string
             # The result string format is: "image generated successfully ![id](url) ![id](url) ..."
             url_matches = re.finditer(r'!\[.*?\]\((http[^\s\)]+)\)', str(result))
@@ -224,13 +231,24 @@ async def generate_image(req: ImageGenerateRequest):
                 }
                 if has_input_images and req.input_images:
                     invoke_args["input_images"] = req.input_images
-                result = await tool_fn.ainvoke(
-                    invoke_args,
-                    config=config,
-                )
+                try:
+                    result = await tool_fn.ainvoke(
+                        invoke_args,
+                        config=config,
+                    )
+                    print(f"🖼️ Tool result: {str(result)[:200]}")
+                except Exception as tool_error:
+                    print(f"🖼️ Tool invocation error: {tool_error}")
+                    traceback.print_exc()
+                    raise
                 # Parse the image URL from the tool result string
                 url_match = re.search(r'(http[^\s\)]+)', str(result))
-                image_url = normalize_file_url(url_match.group(1)) if url_match else ""
+                if not url_match:
+                    # Fallback: look for /api/file/ pattern directly
+                    alt_match = re.search(r'(/api/file/[^\s\)]+)', str(result))
+                    image_url = alt_match.group(1) if alt_match else ""
+                else:
+                    image_url = normalize_file_url(url_match.group(1))
                 results.append({
                     "id": f"gen_{uuid.uuid4().hex[:8]}",
                     "type": "image",
@@ -256,6 +274,19 @@ async def generate_video(
     motion_strength: Optional[str] = Form(None),
     model_name: Optional[str] = Form(None),
     source_image: Optional[UploadFile] = File(None),
+    # Kling-specific fields
+    negative_prompt: Optional[str] = Form(None),
+    cfg_scale: Optional[str] = Form(None),
+    guidance_scale: Optional[str] = Form(None),
+    generate_audio: Optional[str] = Form(None),
+    mode: Optional[str] = Form(None),
+    end_image: Optional[UploadFile] = File(None),
+    audio_file: Optional[UploadFile] = File(None),
+    video_file: Optional[UploadFile] = File(None),
+    voice_id: Optional[str] = Form(None),
+    voice_speed: Optional[str] = Form(None),
+    lip_sync_text: Optional[str] = Form(None),
+    user_id: str = Depends(get_current_user),
 ):
     """Direct video generation endpoint that invokes a tool by name."""
     tool_info = TOOL_MAPPING.get(tool) or tool_service.tools.get(tool)
@@ -276,7 +307,7 @@ async def generate_video(
         )
 
     session_id = f"direct_{uuid.uuid4().hex[:8]}"
-    config = {"configurable": {"canvas_id": "", "session_id": session_id}}
+    config = {"configurable": {"canvas_id": "", "session_id": session_id, "user_id": user_id}}
 
     try:
         call_id = f"call_{uuid.uuid4().hex[:8]}"
@@ -287,30 +318,78 @@ async def generate_video(
         if duration:
             invoke_args["duration"] = int(duration)
 
-        # Check if this tool expects input_images
+        # Inspect tool signature for supported params
         sig = inspect.signature(tool_fn.coroutine) if hasattr(tool_fn, 'coroutine') else None
-        has_input_images_param = sig and 'input_images' in sig.parameters if sig else False
+        params = sig.parameters if sig else {}
 
-        if has_input_images_param:
-            if source_image and source_image.filename:
-                # Save uploaded source image to FILES_DIR
-                file_id = generate_file_id()
-                ext = source_image.filename.rsplit('.', 1)[-1] if '.' in source_image.filename else 'png'
-                filename = f"{file_id}.{ext}"
-                file_path = os.path.join(FILES_DIR, filename)
-                content = await source_image.read()
-                with open(file_path, 'wb') as f:
-                    f.write(content)
-                invoke_args["input_images"] = [filename]
-            else:
-                # Check if input_images is required (no default value)
-                param = sig.parameters['input_images']
+        has_input_images_param = 'input_images' in params
+        has_start_image_param = 'start_image' in params
+
+        # Helper to save an uploaded file and return its filename
+        async def _save_upload(upload: UploadFile) -> str:
+            fid = generate_file_id()
+            ext = upload.filename.rsplit('.', 1)[-1] if upload.filename and '.' in upload.filename else 'bin'
+            fname = f"{fid}.{ext}"
+            fpath = os.path.join(FILES_DIR, fname)
+            content = await upload.read()
+            with open(fpath, 'wb') as f:
+                f.write(content)
+            return fname
+
+        # Handle source image → input_images or start_image
+        if source_image and source_image.filename:
+            saved_name = await _save_upload(source_image)
+            if has_start_image_param:
+                invoke_args["start_image"] = saved_name
+            elif has_input_images_param:
+                invoke_args["input_images"] = [saved_name]
+        else:
+            if has_input_images_param:
+                param = params['input_images']
                 if param.default is inspect.Parameter.empty:
                     display = tool_info.get("display_name", tool)
                     raise HTTPException(
                         status_code=400,
                         detail=f"{display} requires a source image. Please upload an image and use Image-to-Video mode.",
                     )
+            if has_start_image_param:
+                param = params['start_image']
+                if param.default is inspect.Parameter.empty and 'start_image' not in invoke_args:
+                    display = tool_info.get("display_name", tool)
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"{display} requires a source image. Please upload an image.",
+                    )
+
+        # Handle end_image upload
+        if end_image and end_image.filename and 'end_image' in params:
+            invoke_args["end_image"] = await _save_upload(end_image)
+
+        # Handle audio_file upload
+        if audio_file and audio_file.filename and 'audio_url' in params:
+            invoke_args["audio_url"] = await _save_upload(audio_file)
+
+        # Handle video_file upload
+        if video_file and video_file.filename and 'video_url' in params:
+            invoke_args["video_url"] = await _save_upload(video_file)
+
+        # Pass scalar params if the tool accepts them
+        if negative_prompt and 'negative_prompt' in params:
+            invoke_args["negative_prompt"] = negative_prompt
+        if cfg_scale and 'cfg_scale' in params:
+            invoke_args["cfg_scale"] = float(cfg_scale)
+        if guidance_scale and 'guidance_scale' in params:
+            invoke_args["guidance_scale"] = float(guidance_scale)
+        if generate_audio is not None and 'generate_audio' in params:
+            invoke_args["generate_audio"] = generate_audio.lower() == "true"
+        if mode and 'mode' in params:
+            invoke_args["mode"] = mode
+        if voice_id and 'voice_id' in params:
+            invoke_args["voice_id"] = voice_id
+        if voice_speed and 'voice_speed' in params:
+            invoke_args["voice_speed"] = float(voice_speed)
+        if lip_sync_text and 'text' in params:
+            invoke_args["text"] = lip_sync_text
 
         # Auto-confirm for tools that use tool_confirmation_manager (e.g. Veo3)
         async def _auto_confirm(cid: str):
@@ -322,10 +401,25 @@ async def generate_video(
 
         asyncio.create_task(_auto_confirm(call_id))
 
-        result = await tool_fn.ainvoke(invoke_args, config=config)
+        try:
+            result = await tool_fn.ainvoke(invoke_args, config=config)
+            print(f"🎬 Video tool result: {str(result)[:200]}")
+        except Exception as tool_error:
+            print(f"🎬 Video tool invocation error: {tool_error}")
+            traceback.print_exc()
+            raise
 
-        url_match = re.search(r'(http[^\s\)]+)', str(result))
-        video_url = normalize_file_url(url_match.group(1)) if url_match else ""
+        result_str = str(result)
+        if result_str.startswith("Failed") or "API key not configured" in result_str:
+            raise HTTPException(status_code=400, detail=result_str)
+
+        url_match = re.search(r'(http[^\s\)]+)', result_str)
+        if not url_match:
+            # Fallback: look for /api/file/ pattern directly
+            alt_match = re.search(r'(/api/file/[^\s\)]+)', result_str)
+            video_url = alt_match.group(1) if alt_match else ""
+        else:
+            video_url = normalize_file_url(url_match.group(1))
 
         return {
             "id": f"gen_{uuid.uuid4().hex[:8]}",

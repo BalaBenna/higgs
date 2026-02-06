@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { MODEL_TO_TOOL_MAP, getModelById } from '@/config/model-mappings'
+import { createClient } from '@/lib/supabase/client'
 
 interface GenerationParams {
   model: string
@@ -21,6 +22,18 @@ interface VideoGenerationParams {
   resolution?: string
   motionStrength?: number
   sourceImage?: File | null
+  // Kling-specific params
+  negativePrompt?: string
+  cfgScale?: number
+  guidanceScale?: number
+  generateAudio?: boolean
+  mode?: string
+  endImage?: File | null
+  audioFile?: File | null
+  videoFile?: File | null
+  voiceId?: string
+  voiceSpeed?: number
+  lipSyncText?: string
 }
 
 interface GenerationResult {
@@ -37,15 +50,28 @@ interface ImageGenerationResponse {
   images: GenerationResult[]
 }
 
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const supabase = createClient()
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  if (session?.access_token) {
+    return { Authorization: `Bearer ${session.access_token}` }
+  }
+  return {}
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function generateContent<T = any>(
   endpoint: string,
   params: Record<string, unknown>
 ): Promise<T> {
+  const authHeaders = await getAuthHeaders()
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...authHeaders,
     },
     body: JSON.stringify(params),
   })
@@ -111,6 +137,7 @@ export function useVideoGeneration() {
       }
 
       const model = getModelById(params.model)
+      const authHeaders = await getAuthHeaders()
 
       const formData = new FormData()
       formData.append('tool', toolId)
@@ -122,9 +149,26 @@ export function useVideoGeneration() {
         formData.append('motion_strength', String(params.motionStrength))
       if (params.sourceImage) formData.append('source_image', params.sourceImage)
       if (model?.name) formData.append('model_name', model.name)
+      // Kling-specific params
+      if (params.negativePrompt) formData.append('negative_prompt', params.negativePrompt)
+      if (params.cfgScale !== undefined)
+        formData.append('cfg_scale', String(params.cfgScale))
+      if (params.guidanceScale !== undefined)
+        formData.append('guidance_scale', String(params.guidanceScale))
+      if (params.generateAudio !== undefined)
+        formData.append('generate_audio', String(params.generateAudio))
+      if (params.mode) formData.append('mode', params.mode)
+      if (params.endImage) formData.append('end_image', params.endImage)
+      if (params.audioFile) formData.append('audio_file', params.audioFile)
+      if (params.videoFile) formData.append('video_file', params.videoFile)
+      if (params.voiceId) formData.append('voice_id', params.voiceId)
+      if (params.voiceSpeed !== undefined)
+        formData.append('voice_speed', String(params.voiceSpeed))
+      if (params.lipSyncText) formData.append('lip_sync_text', params.lipSyncText)
 
       const response = await fetch('/api/generate/video', {
         method: 'POST',
+        headers: authHeaders,
         body: formData,
       })
 
@@ -156,14 +200,13 @@ export function useVideoGeneration() {
 
 export function useChatGeneration() {
   return useMutation({
-    mutationFn: async (params: {
-      message: string
-      sessionId?: string
-    }) => {
+    mutationFn: async (params: { message: string; sessionId?: string }) => {
+      const authHeaders = await getAuthHeaders()
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...authHeaders,
         },
         body: JSON.stringify({
           message: params.message,

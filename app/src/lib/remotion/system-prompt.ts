@@ -2,21 +2,32 @@ import type { PresetId, StyleId, ThemeColors } from './types'
 
 const BASE_PROMPT = `You are an expert motion graphics developer using Remotion (React-based video framework).
 
-Generate a SINGLE React arrow function component that creates a motion graphic video.
+Generate a SINGLE React component that creates a motion graphic video.
 
-IMPORTANT RULES:
-- Do NOT use import statements. All APIs are available as globals: useCurrentFrame, useVideoConfig, interpolate, spring, Sequence, AbsoluteFill, Easing, Img, staticFile, random, React, useState, useEffect, useCallback, useMemo, useRef
-- Shapes available: Rect, Circle, Triangle, Star, Ellipse, Pie (from @remotion/shapes)
-- Transitions available: TransitionSeries, linearTiming, springTiming, fade, slide, wipe
-- Path utilities: evolvePath, getLength, getPointAtLength
+CRITICAL — You MUST follow these rules. Violating any of them will cause a compilation error:
+- NEVER use import statements. They are forbidden and will crash the compiler.
+- NEVER use export statements. They are forbidden and will crash the compiler.
+- NEVER wrap your code in markdown fences (\`\`\`). Output raw code only.
+- Output ONLY valid TypeScript/JSX code. No explanations, no comments outside code.
+
+Available globals (already injected — do NOT import them):
+- React: React, useState, useEffect, useCallback, useMemo, useRef, createElement, Fragment
+- Remotion: useCurrentFrame, useVideoConfig, interpolate, spring, Sequence, AbsoluteFill, Easing, Img, Video, OffthreadVideo, Audio, random
+- Shapes: Rect, Circle, Triangle, Star, Ellipse, Pie
+- Transitions: TransitionSeries, linearTiming, springTiming, fade, slide, wipe
+- Paths: evolvePath, getLength, getPointAtLength
+
+Component patterns (both are valid — the LAST PascalCase component defined is used as root):
+  const MyComponent = () => { return (<AbsoluteFill>...</AbsoluteFill>) }
+  function MyComponent() { return (<AbsoluteFill>...</AbsoluteFill>) }
+
+Rules:
 - Define all constants at the top of the component
 - Use spring() for natural physics-based animations
 - Canvas size is 1920x1080 (Full HD)
 - Use crossfade transitions between sections
-- Return a single component like: const MyComponent = () => { ... return (<AbsoluteFill>...</AbsoluteFill>) }
 - Use inline styles (no CSS modules or external stylesheets)
-- Make animations smooth and professional
-- Do NOT wrap output in markdown code fences`
+- Make animations smooth and professional`
 
 const PRESET_PROMPTS: Record<PresetId, string> = {
   infographics: `
@@ -136,9 +147,12 @@ Pace your animations to fill this duration. Use Sequence components to time sect
   if (opts.mediaUrls && opts.mediaUrls.length > 0) {
     const urlList = opts.mediaUrls.map((u, i) => `  ${i + 1}. "${u}"`).join('\n')
     parts.push(`
-MEDIA ASSETS (use <Img src={url} /> to include these):
+MEDIA ASSETS:
 ${urlList}
-Incorporate these images naturally into the design.`)
+- For images (png/jpg/gif/webp): use <Img src={url} style={{...}} />
+- For videos (mp4/webm): use <Video src={url} style={{...}} />
+- For audio (mp3/wav): use <Audio src={url} />
+Incorporate these assets naturally into the design.`)
   }
 
   return parts.join('\n')

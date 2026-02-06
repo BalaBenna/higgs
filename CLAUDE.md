@@ -27,9 +27,15 @@ python main.py --port 57989  # Use port 57989 to match Next.js proxy
 
 ### Testing
 ```bash
+# Frontend (vitest)
 cd app && npm test           # Run vitest
 cd app && npm run test:run   # Run tests once
 cd app && npm run test:watch # Watch mode
+
+# Backend (pytest)
+cd server && pytest tests/
+pytest tests/test_file.py -v                          # Single file
+pytest tests/test_file.py::TestClass::test_method -v  # Single test
 ```
 
 **Requirements:** Python 3.12+, Node.js
@@ -39,6 +45,13 @@ cd app && npm run test:watch # Watch mode
 ### Monorepo Structure
 - `app/` - Frontend (Next.js 15 + React 18 + TypeScript)
 - `server/` - Backend (FastAPI + Python)
+
+### Core Data Flow
+1. Client connects via WebSocket (Socket.io) → `websocket_router.py`
+2. Chat requests go through `chat_router.py` → `chat_service.py`
+3. `langgraph_service/` orchestrates multi-agent chat using LangGraph Swarm
+4. Tools (image/video gen) are invoked by the LLM and executed against providers
+5. Results stream back via WebSocket events (`session_update`, `done`, `error`)
 
 ### Frontend Stack
 - **Routing:** Next.js App Router (file-based routes in `app/src/app/`)
@@ -51,20 +64,23 @@ cd app && npm run test:watch # Watch mode
 
 ### Backend Stack
 - **Framework:** FastAPI with Uvicorn, wrapped in Socket.io ASGIApp
-- **AI Agents:** LangGraph for multi-agent orchestration
+- **AI Agents:** LangGraph Swarm for multi-agent orchestration
 - **Multi-model:** OpenAI, Anthropic, Google (Gemini/Veo/Imagen), and various image/video generation APIs
 - **Real-time:** Socket.io for WebSocket communication
-- **Database:** aiosqlite
+- **Database:** aiosqlite (SQLite). Tables: `canvases`, `chat_sessions`, `chat_messages`, `comfy_workflows`, `db_version`. Migrations in `server/services/migrations/`.
+- **Config:** TOML-based config stored in `user_data/config.toml`
 
 ### Key Directories
 - `app/src/components/` - UI components (ui/, generation/, gallery/, layout/, etc.)
 - `app/src/hooks/` - React hooks (use-generation.ts, use-feature.ts, use-upload.ts)
 - `app/src/config/model-mappings.ts` - Frontend model IDs to backend tool IDs
 - `app/src/data/navigation-menus.ts` - Navigation menu definitions
-- `server/routers/` - FastAPI route handlers
-- `server/services/` - Business logic (jaaz_service.py, chat_service.py, langgraph_service/)
-- `server/services/tool_service.py` - Tool registration via `TOOL_MAPPING` dict
+- `server/routers/` - FastAPI route handlers (chat_router, canvas, workspace, config_router, websocket_router)
+- `server/services/` - Business logic (chat_service.py, langgraph_service/, tool_service.py, db_service.py, config_service.py)
 - `server/tools/` - Image/video generation tool definitions (LangChain `@tool` decorated)
+- `server/tools/image_providers/` - Provider-specific image generation (fal, jaaz, openai, google, replicate, volces)
+- `server/tools/video_providers/` - Video generation providers
+- `server/models/` - Pydantic/TypedDict data models
 
 ### API Communication
 Next.js proxies to backend (configured in `app/next.config.js`):
@@ -79,14 +95,35 @@ Next.js proxies to backend (configured in `app/next.config.js`):
 - Video tools use `process_video_result()` helper from `tools/video_generation/video_canvas_utils.py`
 - `server/tools/utils/image_generation_core.py` has `generate_image_with_provider()` orchestrator
 - Registration: `TOOL_MAPPING` in `tool_service.py` → `ToolService.initialize()` registers tools based on available provider API keys
+- ComfyUI workflow tools are dynamically registered from the database
+- Tool context (`canvas_id`, `session_id`) is passed via `RunnableConfig.configurable`
+- Provider implementations follow base class pattern in `tools/image_providers/image_base_provider.py`
+
+### Tool Definition Pattern
+```python
+@tool("tool_name", description="...", args_schema=PydanticSchema)
+async def tool_function(prompt: str, config: RunnableConfig, ...) -> str:
+    ctx = config.get("configurable", {})
+    canvas_id = ctx.get("canvas_id", "")
+    session_id = ctx.get("session_id", "")
+    # Implementation...
+```
+
+### Environment Variables
+Set in `.env`:
+- `DEFAULT_PORT` - Server port (default: 57988)
+- `BASE_API_URL` - Base URL for jaaz API
+- `UI_DIST_DIR` - Path to frontend build
+- `USER_DATA_DIR` - User data directory path
+- Provider API keys: `OPENAI_API_KEY`, `GOOGLE_API_KEY`, `GOOGLE_VERTEX_AI_API_KEY`, etc.
 
 ## Code Style
 
 ### TypeScript/JavaScript
-- Prettier: no semicolons, single quotes, 100 char width, trailing commas (es5)
-- ESLint via next lint
+- Prettier: no semicolons, single quotes, 100 char width, trailing commas (es5), JSX single quotes, LF line endings
+- ESLint via `next lint`
 
 ### Python
 - Black formatter (line-length 88, skip string normalization)
 - isort (black profile)
-- Ruff linter (rules: E, W, F, I, B, C4, UP)
+- Ruff linter (rules: E, W, F, I, B, C4, UP; ignores: E501, B008, C901)

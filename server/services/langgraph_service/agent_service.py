@@ -8,12 +8,14 @@ from langgraph_swarm import create_swarm  # type: ignore
 from langchain_openai import ChatOpenAI
 from services.websocket_service import send_to_websocket  # type: ignore
 from services.config_service import config_service
-from typing import Optional, List, Dict, Any, cast, Set, TypedDict
+from typing import Optional, List, Dict, Any, cast, Set
+from typing_extensions import TypedDict
 from models.config_model import ModelInfo
 
 
 class ContextInfo(TypedDict):
     """Context information passed to tools"""
+
     canvas_id: str
     session_id: str
     model_info: Dict[str, List[ModelInfo]]
@@ -55,7 +57,8 @@ def _fix_chat_history(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             # 记录修复信息
             if removed_calls:
                 print(
-                    f"🔧 修复消息历史：移除了 {len(removed_calls)} 个不完整的工具调用: {removed_calls}")
+                    f"🔧 修复消息历史：移除了 {len(removed_calls)} 个不完整的工具调用: {removed_calls}"
+                )
 
             # 更新消息
             if valid_tool_calls:
@@ -80,7 +83,7 @@ async def langgraph_multi_agent(
     session_id: str,
     text_model: ModelInfo,
     tool_list: List[ToolInfoJson],
-    system_prompt: Optional[str] = None
+    system_prompt: Optional[str] = None,
 ) -> None:
     """多智能体处理函数
 
@@ -101,21 +104,18 @@ async def langgraph_multi_agent(
 
         # 3. 创建智能体
         agents = AgentManager.create_agents(
-            text_model_instance,
-            tool_list,  # 传入所有注册的工具
-            system_prompt or ""
+            text_model_instance, tool_list, system_prompt or ""  # 传入所有注册的工具
         )
         agent_names = [agent.name for agent in agents]
         print('👇agent_names', agent_names)
-        last_agent = AgentManager.get_last_active_agent(
-            fixed_messages, agent_names)
+        last_agent = AgentManager.get_last_active_agent(fixed_messages, agent_names)
 
         print('👇last_agent', last_agent)
 
         # 4. 创建智能体群组
         swarm = create_swarm(
             agents=agents,  # type: ignore
-            default_active_agent=last_agent if last_agent else agent_names[0]
+            default_active_agent=last_agent if last_agent else agent_names[0],
         )
 
         # 5. 创建上下文
@@ -127,7 +127,8 @@ async def langgraph_multi_agent(
 
         # 6. 流处理
         processor = StreamProcessor(
-            session_id, db_service, send_to_websocket)  # type: ignore
+            session_id, db_service, send_to_websocket
+        )  # type: ignore
         await processor.process_stream(swarm, fixed_messages, context)
 
     except Exception as e:
@@ -139,8 +140,9 @@ def _create_text_model(text_model: ModelInfo) -> Any:
     model = text_model.get('model')
     provider = text_model.get('provider')
     url = text_model.get('url')
-    api_key = config_service.app_config.get(  # type: ignore
-        provider, {}).get("api_key", "")
+    api_key = config_service.app_config.get(provider, {}).get(  # type: ignore
+        "api_key", ""
+    )
 
     # TODO: Verify if max token is working
     # max_tokens = text_model.get('max_tokens', 8148)
@@ -150,14 +152,14 @@ def _create_text_model(text_model: ModelInfo) -> Any:
     http_async_client = HttpClient.create_async_client()
     return ChatOpenAI(
         model=model,
-            api_key=api_key,  # type: ignore
-            timeout=300,
-            base_url=url,
-            temperature=0,
-            # max_tokens=max_tokens, # TODO: 暂时注释掉有问题的参数
-            http_client=http_client,
-            http_async_client=http_async_client
-        )
+        api_key=api_key,  # type: ignore
+        timeout=300,
+        base_url=url,
+        temperature=0,
+        # max_tokens=max_tokens, # TODO: 暂时注释掉有问题的参数
+        http_client=http_client,
+        http_async_client=http_async_client,
+    )
 
 
 async def _handle_error(error: Exception, session_id: str) -> None:
@@ -167,7 +169,6 @@ async def _handle_error(error: Exception, session_id: str) -> None:
     print(f"Full traceback:\n{tb_str}")
     traceback.print_exc()
 
-    await send_to_websocket(session_id, cast(Dict[str, Any], {
-        'type': 'error',
-        'error': str(error)
-    }))
+    await send_to_websocket(
+        session_id, cast(Dict[str, Any], {'type': 'error', 'error': str(error)})
+    )

@@ -1,5 +1,6 @@
 import traceback
 from typing import Dict
+from typing_extensions import TypedDict
 from langchain_core.tools import BaseTool
 from models.tool_model import ToolInfo
 from tools.comfy_dynamic import build_tool
@@ -8,6 +9,15 @@ from tools.generate_image_by_gpt_image_1_jaaz import generate_image_by_gpt_image
 from tools.generate_image_by_imagen_4_jaaz import generate_image_by_imagen_4_jaaz
 from tools.generate_image_by_imagen_4_replicate import (
     generate_image_by_imagen_4_replicate,
+)
+from tools.generate_image_by_flux_2_pro_replicate import (
+    generate_image_by_flux_2_pro_replicate,
+)
+from tools.generate_image_by_ideogram_v3_turbo_replicate import (
+    generate_image_by_ideogram_v3_turbo_replicate,
+)
+from tools.generate_image_by_flux_1_1_pro_replicate import (
+    generate_image_by_flux_1_1_pro_replicate,
 )
 from tools.generate_image_by_ideogram3_bal_jaaz import (
     generate_image_by_ideogram3_bal_jaaz,
@@ -51,6 +61,8 @@ from tools.generate_image_by_recraft_v3_replicate import (
 from tools.generate_video_by_hailuo_02_jaaz import generate_video_by_hailuo_02_jaaz
 from tools.generate_video_by_veo3_fast_jaaz import generate_video_by_veo3_fast_jaaz
 from tools.generate_image_by_midjourney_jaaz import generate_image_by_midjourney_jaaz
+from tools.generate_image_by_grok_imagine_xai import generate_image_by_grok_imagine_xai
+from tools.generate_video_by_grok_imagine_xai import generate_video_by_grok_imagine_xai
 from tools.stub_image_tools import (
     generate_image_by_higgsfield_soul_jaaz,
     generate_image_by_higgsfield_popcorn_jaaz,
@@ -77,6 +89,19 @@ from tools.stub_video_tools import (
     generate_video_by_grok_imagine_edit_jaaz,
     generate_video_by_seedance_v1_lite_jaaz,
 )
+from tools.kling_replicate_tools import (
+    generate_video_by_kling_v26_replicate,
+    generate_video_by_kling_v25_turbo_replicate,
+    generate_video_by_kling_v21_master_replicate,
+    generate_video_by_kling_v20_replicate,
+    generate_video_by_kling_v16_standard_replicate,
+    generate_video_by_kling_v16_pro_replicate,
+    generate_video_by_kling_v15_pro_replicate,
+    generate_video_by_kling_v21_i2v_replicate,
+    generate_video_by_kling_v26_motion_control_replicate,
+    generate_video_by_kling_avatar_v2_replicate,
+    generate_video_by_kling_lip_sync_replicate,
+)
 from tools.feature_tools import (
     feature_face_swap_jaaz,
     feature_character_swap_jaaz,
@@ -90,6 +115,7 @@ from tools.feature_tools import (
     feature_lipsync_jaaz,
     feature_soul_id_character_jaaz,
 )
+
 # Fal.ai Image Tools
 from tools.fal_image_tools import (
     generate_image_by_nano_banana_fal,
@@ -107,6 +133,7 @@ from tools.fal_image_tools import (
     generate_image_by_kling_image_fal,
     generate_image_by_wan_image_fal,
 )
+
 # Fal.ai Video Tools
 from tools.fal_video_tools import (
     generate_video_by_kling_fal,
@@ -119,14 +146,17 @@ from tools.fal_video_tools import (
     generate_video_by_higgsfield_dop_fal,
     generate_video_by_grok_fal,
 )
+
 # OpenAI Sora Tool
 from tools.sora_video_tools import generate_video_by_sora_openai
+
 # Direct API Image Tools
 from tools.direct_image_tools import (
     generate_image_by_gpt_image_openai,
     generate_image_by_imagen_google,
     enhance_image_by_topaz,
 )
+
 # Google Veo Tool
 from tools.google_veo_tools import generate_video_by_veo_google
 from services.config_service import config_service
@@ -180,6 +210,12 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
         "type": "image",
         "provider": "jaaz",
         "tool_function": generate_image_by_midjourney_jaaz,
+    },
+    "generate_image_by_grok_imagine_xai": {
+        "display_name": "Grok Imagine",
+        "type": "image",
+        "provider": "xai",
+        "tool_function": generate_image_by_grok_imagine_xai,
     },
     "generate_image_by_doubao_seedream_3_jaaz": {
         "display_name": "Doubao Seedream 3",
@@ -268,143 +304,236 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
         "provider": "replicate",
         "tool_function": generate_image_by_flux_kontext_max_replicate,
     },
+    "generate_image_by_flux_2_pro_replicate": {
+        "display_name": "FLUX 2 Pro",
+        "type": "image",
+        "provider": "replicate",
+        "tool_function": generate_image_by_flux_2_pro_replicate,
+    },
+    "generate_image_by_ideogram_v3_turbo_replicate": {
+        "display_name": "Ideogram V3 Turbo",
+        "type": "image",
+        "provider": "replicate",
+        "tool_function": generate_image_by_ideogram_v3_turbo_replicate,
+    },
+    "generate_image_by_flux_1_1_pro_replicate": {
+        "display_name": "FLUX 1.1 Pro",
+        "type": "image",
+        "provider": "replicate",
+        "tool_function": generate_image_by_flux_1_1_pro_replicate,
+    },
     # ---------------
-    # Stub Image Tools (Coming Soon)
+    # Higgsfield-Parity Image Tools (via Replicate)
     # ---------------
     "generate_image_by_higgsfield_soul_jaaz": {
         "display_name": "Higgsfield Soul",
         "type": "image",
-        "provider": "jaaz",
+        "provider": "replicate",
         "tool_function": generate_image_by_higgsfield_soul_jaaz,
     },
     "generate_image_by_higgsfield_popcorn_jaaz": {
         "display_name": "Higgsfield Popcorn",
         "type": "image",
-        "provider": "jaaz",
+        "provider": "replicate",
         "tool_function": generate_image_by_higgsfield_popcorn_jaaz,
     },
     "generate_image_by_nano_banana_pro_jaaz": {
         "display_name": "Nano Banana Pro",
         "type": "image",
-        "provider": "jaaz",
+        "provider": "replicate",
         "tool_function": generate_image_by_nano_banana_pro_jaaz,
     },
     "generate_image_by_z_image_jaaz": {
         "display_name": "Z-Image",
         "type": "image",
-        "provider": "jaaz",
+        "provider": "replicate",
         "tool_function": generate_image_by_z_image_jaaz,
     },
     "generate_image_by_kling_q1_image_jaaz": {
         "display_name": "Kling Q1 Image",
         "type": "image",
-        "provider": "jaaz",
+        "provider": "replicate",
         "tool_function": generate_image_by_kling_q1_image_jaaz,
     },
     "generate_image_by_wan_2_2_image_jaaz": {
         "display_name": "Wan 2.2 Image",
         "type": "image",
-        "provider": "jaaz",
+        "provider": "replicate",
         "tool_function": generate_image_by_wan_2_2_image_jaaz,
     },
     "generate_image_by_reve_jaaz": {
         "display_name": "Reve",
         "type": "image",
-        "provider": "jaaz",
+        "provider": "replicate",
         "tool_function": generate_image_by_reve_jaaz,
     },
     "generate_image_by_topaz_jaaz": {
         "display_name": "Topaz",
         "type": "image",
-        "provider": "jaaz",
+        "provider": "replicate",
         "tool_function": generate_image_by_topaz_jaaz,
     },
     "generate_image_by_nano_banana_pro_inpaint_jaaz": {
         "display_name": "Nano Banana Pro Inpaint",
         "type": "image",
-        "provider": "jaaz",
+        "provider": "replicate",
         "tool_function": generate_image_by_nano_banana_pro_inpaint_jaaz,
     },
     "generate_image_by_nano_banana_inpaint_jaaz": {
         "display_name": "Nano Banana Inpaint",
         "type": "image",
-        "provider": "jaaz",
+        "provider": "replicate",
         "tool_function": generate_image_by_nano_banana_inpaint_jaaz,
     },
     "generate_image_by_product_placement_jaaz": {
         "display_name": "Product Placement",
         "type": "image",
-        "provider": "jaaz",
+        "provider": "replicate",
         "tool_function": generate_image_by_product_placement_jaaz,
     },
     # ---------------
-    # Stub Video Tools (Coming Soon)
+    # Higgsfield-Parity Video Tools (via Replicate)
     # ---------------
     "generate_video_by_kling_3_jaaz": {
         "display_name": "Kling 3.0",
         "type": "video",
-        "provider": "jaaz",
+        "provider": "replicate",
         "tool_function": generate_video_by_kling_3_jaaz,
     },
     "generate_video_by_grok_imagine_jaaz": {
         "display_name": "Grok Imagine",
         "type": "video",
-        "provider": "jaaz",
+        "provider": "replicate",
         "tool_function": generate_video_by_grok_imagine_jaaz,
+    },
+    "generate_video_by_grok_imagine_xai": {
+        "display_name": "Grok Imagine (xAI Direct)",
+        "type": "video",
+        "provider": "xai",
+        "tool_function": generate_video_by_grok_imagine_xai,
     },
     "generate_video_by_kling_motion_control_jaaz": {
         "display_name": "Kling Motion Control",
         "type": "video",
-        "provider": "jaaz",
+        "provider": "replicate",
         "tool_function": generate_video_by_kling_motion_control_jaaz,
     },
     "generate_video_by_sora_2_jaaz": {
         "display_name": "Sora 2",
         "type": "video",
-        "provider": "jaaz",
+        "provider": "replicate",
         "tool_function": generate_video_by_sora_2_jaaz,
     },
     "generate_video_by_wan_2_6_jaaz": {
         "display_name": "Wan 2.6",
         "type": "video",
-        "provider": "jaaz",
+        "provider": "replicate",
         "tool_function": generate_video_by_wan_2_6_jaaz,
     },
     "generate_video_by_kling_avatars_2_jaaz": {
         "display_name": "Kling Avatars 2.0",
         "type": "video",
-        "provider": "jaaz",
+        "provider": "replicate",
         "tool_function": generate_video_by_kling_avatars_2_jaaz,
     },
     "generate_video_by_higgsfield_dop_jaaz": {
         "display_name": "Higgsfield DOP",
         "type": "video",
-        "provider": "jaaz",
+        "provider": "replicate",
         "tool_function": generate_video_by_higgsfield_dop_jaaz,
     },
     "generate_video_by_kling_q1_edit_jaaz": {
         "display_name": "Kling Q1 Edit",
         "type": "video",
-        "provider": "jaaz",
+        "provider": "replicate",
         "tool_function": generate_video_by_kling_q1_edit_jaaz,
     },
     "generate_video_by_kling_3_omni_edit_jaaz": {
         "display_name": "Kling 3.0 Omni Edit",
         "type": "video",
-        "provider": "jaaz",
+        "provider": "replicate",
         "tool_function": generate_video_by_kling_3_omni_edit_jaaz,
     },
     "generate_video_by_grok_imagine_edit_jaaz": {
         "display_name": "Grok Imagine Edit",
         "type": "video",
-        "provider": "jaaz",
+        "provider": "replicate",
         "tool_function": generate_video_by_grok_imagine_edit_jaaz,
     },
     "generate_video_by_seedance_v1_lite_jaaz": {
-        "display_name": "Seedance v1 lite",
+        "display_name": "Seedance v1 Lite",
         "type": "video",
-        "provider": "jaaz",
+        "provider": "replicate",
         "tool_function": generate_video_by_seedance_v1_lite_jaaz,
+    },
+    # ---------------
+    # Kling Replicate Tools (kwaivgi/*)
+    # ---------------
+    "generate_video_by_kling_v26_replicate": {
+        "display_name": "Kling v2.6",
+        "type": "video",
+        "provider": "replicate",
+        "tool_function": generate_video_by_kling_v26_replicate,
+    },
+    "generate_video_by_kling_v25_turbo_replicate": {
+        "display_name": "Kling v2.5 Turbo",
+        "type": "video",
+        "provider": "replicate",
+        "tool_function": generate_video_by_kling_v25_turbo_replicate,
+    },
+    "generate_video_by_kling_v21_master_replicate": {
+        "display_name": "Kling v2.1 Master",
+        "type": "video",
+        "provider": "replicate",
+        "tool_function": generate_video_by_kling_v21_master_replicate,
+    },
+    "generate_video_by_kling_v20_replicate": {
+        "display_name": "Kling v2.0",
+        "type": "video",
+        "provider": "replicate",
+        "tool_function": generate_video_by_kling_v20_replicate,
+    },
+    "generate_video_by_kling_v16_standard_replicate": {
+        "display_name": "Kling v1.6 Standard",
+        "type": "video",
+        "provider": "replicate",
+        "tool_function": generate_video_by_kling_v16_standard_replicate,
+    },
+    "generate_video_by_kling_v16_pro_replicate": {
+        "display_name": "Kling v1.6 Pro",
+        "type": "video",
+        "provider": "replicate",
+        "tool_function": generate_video_by_kling_v16_pro_replicate,
+    },
+    "generate_video_by_kling_v15_pro_replicate": {
+        "display_name": "Kling v1.5 Pro",
+        "type": "video",
+        "provider": "replicate",
+        "tool_function": generate_video_by_kling_v15_pro_replicate,
+    },
+    "generate_video_by_kling_v21_i2v_replicate": {
+        "display_name": "Kling v2.1 (I2V)",
+        "type": "video",
+        "provider": "replicate",
+        "tool_function": generate_video_by_kling_v21_i2v_replicate,
+    },
+    "generate_video_by_kling_v26_motion_control_replicate": {
+        "display_name": "Kling v2.6 Motion Control",
+        "type": "video",
+        "provider": "replicate",
+        "tool_function": generate_video_by_kling_v26_motion_control_replicate,
+    },
+    "generate_video_by_kling_avatar_v2_replicate": {
+        "display_name": "Kling Avatar v2",
+        "type": "video",
+        "provider": "replicate",
+        "tool_function": generate_video_by_kling_avatar_v2_replicate,
+    },
+    "generate_video_by_kling_lip_sync_replicate": {
+        "display_name": "Kling Lip Sync",
+        "type": "video",
+        "provider": "replicate",
+        "tool_function": generate_video_by_kling_lip_sync_replicate,
     },
     # ---------------
     # Feature Tools
@@ -646,7 +775,7 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
     "enhance_image_by_topaz": {
         "display_name": "Topaz Enhancer",
         "type": "image",
-        "provider": "fal",
+        "provider": "replicate",
         "tool_function": enhance_image_by_topaz,
     },
     # ---------------
@@ -685,15 +814,43 @@ class ToolService:
         self.tools[tool_id] = tool_info
 
     # TODO: Check if there will be racing conditions when server just starting up but tools are not ready yet.
+    def _has_valid_key(self, provider_name: str) -> bool:
+        """Check if a provider has a valid (non-placeholder) API key."""
+        config = config_service.app_config.get(provider_name, {})
+        key = config.get("api_key", "")
+        return bool(key and not key.strip().lower().startswith('your_'))
+
     async def initialize(self):
         self.clear_tools()
         try:
-            for provider_name, provider_config in config_service.app_config.items():
-                # register all tools by api provider with api key
-                if provider_config.get("api_key", ""):
-                    for tool_id, tool_info in TOOL_MAPPING.items():
-                        if tool_info.get("provider") == provider_name:
-                            self.register_tool(tool_id, tool_info)
+            # Collect which providers have valid API keys
+            active_providers = set()
+            for provider_name in config_service.app_config:
+                if self._has_valid_key(provider_name):
+                    active_providers.add(provider_name)
+
+            # "jaaz" provider tools are wrappers that route to real providers.
+            # Register them if ANY real generation provider is available.
+            has_any_generation_provider = bool(
+                active_providers
+                & {
+                    'openai',
+                    'fal',
+                    'google-ai',
+                    'vertex-ai',
+                    'replicate',
+                    'wavespeed',
+                    'xai',
+                }
+            )
+            if has_any_generation_provider:
+                active_providers.add('jaaz')
+
+            for provider_name in active_providers:
+                for tool_id, tool_info in TOOL_MAPPING.items():
+                    if tool_info.get("provider") == provider_name:
+                        self.register_tool(tool_id, tool_info)
+
             # Register comfyui workflow tools
             if config_service.app_config.get("comfyui", {}).get("url", ""):
                 await register_comfy_tools()

@@ -5,7 +5,7 @@ Contains the main orchestration logic for image generation across different prov
 
 from typing import Optional, Dict, Any
 from common import DEFAULT_PORT
-from tools.utils.image_utils import process_input_image
+from tools.utils.image_utils import process_input_image, get_image_info_and_process
 from ..image_providers.image_base_provider import ImageProviderBase
 
 # 导入所有提供商以确保自动注册 (不要删除这些导入)
@@ -16,6 +16,7 @@ from ..image_providers.volces_provider import VolcesProvider
 from ..image_providers.wavespeed_provider import WavespeedProvider
 from ..image_providers.google_ai_provider import GoogleAIImageProvider
 from ..image_providers.fal_provider import FalProvider
+from ..image_providers.xai_provider import XAIImageProvider
 
 # from ..image_providers.comfyui_provider import ComfyUIProvider
 from .image_canvas_utils import (
@@ -31,6 +32,7 @@ IMAGE_PROVIDERS: dict[str, ImageProviderBase] = {
     "wavespeed": WavespeedProvider(),
     "google-ai": GoogleAIImageProvider(),
     "fal": FalProvider(),
+    "xai": XAIImageProvider(),
 }
 
 
@@ -44,6 +46,7 @@ async def generate_image_with_provider(
     aspect_ratio: str = "1:1",
     input_images: Optional[list[str]] = None,
     num_images: int = 1,
+    user_id: str = "",
 ) -> str:
     """
     通用图像生成函数，支持不同的模型和提供商
@@ -51,12 +54,13 @@ async def generate_image_with_provider(
     Args:
         prompt: 图像生成提示词
         aspect_ratio: 图像长宽比
-        model_name: 内部模型名称 (如 'gpt-image-1', 'imagen-4')
-        model: 模型标识符 (如 'openai/gpt-image-1', 'google/imagen-4')
-        tool_call_id: 工具调用ID
-        config: 上下文运行配置，包含canvas_id，session_id，model_info，由langgraph注入
+        model: 模型标识符
+        canvas_id: Canvas ID
+        session_id: Session ID
+        provider: Provider name
         input_images: 可选的输入参考图像列表
         num_images: 生成图像的数量
+        user_id: Authenticated user ID (for Supabase storage)
     """
 
     provider_instance = IMAGE_PROVIDERS.get(provider)
@@ -91,7 +95,7 @@ async def generate_image_with_provider(
         aspect_ratio=aspect_ratio,
         input_images=processed_input_images,
         metadata=metadata,
-        num_images=metadata.get('num_images', 1)
+        num_images=metadata.get('num_images', 1),
     )
 
     # Handle both single tuple and list of tuples return types
@@ -101,13 +105,46 @@ async def generate_image_with_provider(
         results = [generation_result]
 
     image_markdowns = []
-    
+
     for mime_type, width, height, filename in results:
-        # Save image to canvas
+        # If we have a user_id, re-process the saved file to get bytes for Supabase upload
+        image_bytes = None
+        if user_id:
+            try:
+                from services.config_service import FILES_DIR
+                import os
+                local_path = os.path.join(FILES_DIR, filename)
+                if os.path.exists(local_path):
+                    with open(local_path, "rb") as f:
+                        image_bytes = f.read()
+                    # Clean up local file after reading
+                    os.remove(local_path)
+            except Exception as e:
+                print(f"Warning: Could not read local file for upload: {e}")
+
+        # Save image to canvas (uploads to Supabase if user_id + bytes available)
         image_url = await save_image_to_canvas(
-            session_id, canvas_id, filename, mime_type, width, height
+            session_id,
+            canvas_id,
+            filename,
+            mime_type,
+            width,
+            height,
+            user_id=user_id,
+            image_bytes=image_bytes,
+            prompt=prompt,
+            model=model,
+            provider=provider,
+            aspect_ratio=aspect_ratio,
         )
-        image_markdowns.append(f"![image_id: {filename}](http://localhost:{DEFAULT_PORT}{image_url})")
+
+        # Use the URL directly (Supabase public URL or local URL)
+        if image_url.startswith("http"):
+            image_markdowns.append(f"![image_id: {filename}]({image_url})")
+        else:
+            image_markdowns.append(
+                f"![image_id: {filename}](http://localhost:{DEFAULT_PORT}{image_url})"
+            )
 
     # Combine all markdown strings
     return f"image generated successfully {' '.join(image_markdowns)}"

@@ -33,6 +33,11 @@ FAL_MODEL_ENDPOINTS = {
     "ideogram-3": "fal-ai/ideogram/v3",
     "recraft-v3": "fal-ai/recraft-v3",
     "midjourney": "fal-ai/midjourney/imagine",
+    # Higgsfield models
+    "higgsfield-soul": "fal-ai/higgsfield/soul",
+    # Inpainting models
+    "nano-banana-pro-inpaint": "fal-ai/nano-banana-pro/inpaint",
+    "nano-banana-inpaint": "fal-ai/nano-banana/inpaint",
 }
 
 

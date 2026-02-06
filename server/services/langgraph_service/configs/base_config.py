@@ -1,4 +1,5 @@
-from typing import Annotated, Optional, Dict, Any, Sequence, List, TypedDict
+from typing import Annotated, Optional, Dict, Any, Sequence, List
+from typing_extensions import TypedDict
 from langgraph.types import Command
 from langgraph.prebuilt import InjectedState
 from langchain_core.messages import ToolMessage
@@ -9,6 +10,7 @@ from models.tool_model import ToolInfoJson
 
 class ToolConfig(TypedDict):
     """工具配置"""
+
     tool: str
 
 
@@ -40,12 +42,16 @@ def create_handoff_tool(
     if description is None:
         description = f"Ask agent '{agent_name}' for help"
 
-    @tool(name, description=description+"""
+    @tool(
+        name,
+        description=description
+        + """
     \nIMPORTANT RULES:
             1. You MUST complete the other tool calls and wait for their result BEFORE attempting to transfer to another agent
             2. Do NOT call this handoff tool with other tools simultaneously
             3. Always wait for the result of other tool calls before making this handoff call
-    """)
+    """,
+    )
     def handoff_to_agent(
         state: Annotated[Dict[str, Any], InjectedState],
         tool_call_id: Annotated[str, InjectedToolCallId],
@@ -58,18 +64,22 @@ def create_handoff_tool(
         return Command(
             goto=agent_name,
             graph=Command.PARENT,
-            update={"messages": state["messages"] +
-                    [tool_message], "active_agent": agent_name},
+            update={
+                "messages": state["messages"] + [tool_message],
+                "active_agent": agent_name,
+            },
         )
 
-    setattr(handoff_to_agent, 'metadata', {
-            METADATA_KEY_HANDOFF_DESTINATION: agent_name})
+    setattr(
+        handoff_to_agent, 'metadata', {METADATA_KEY_HANDOFF_DESTINATION: agent_name}
+    )
 
     return handoff_to_agent
 
 
 class HandoffConfig(TypedDict):
     """切换智能体配置"""
+
     agent_name: str
     description: str
 
@@ -86,7 +96,7 @@ class BaseAgentConfig:
         name: str,
         tools: Sequence[ToolInfoJson],
         system_prompt: str,
-        handoffs: Optional[List[HandoffConfig]] = None
+        handoffs: Optional[List[HandoffConfig]] = None,
     ) -> None:
         self.name = name
         self.tools = tools

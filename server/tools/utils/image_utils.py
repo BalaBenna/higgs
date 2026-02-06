@@ -8,6 +8,7 @@ from typing import Any, Optional, Tuple
 from nanoid import generate
 from utils.http_client import HttpClient
 from services.config_service import FILES_DIR
+from services.storage_service import upload_file as storage_upload_file
 
 
 def generate_image_id() -> str:
@@ -121,6 +122,71 @@ async def get_image_info_and_save(
         raise e
 
 
+async def get_image_info_and_process(
+    url: str,
+    is_b64: bool = False,
+    metadata: Optional[dict[str, Any]] = None,
+) -> Tuple[bytes, str, int, int, str]:
+    """
+    Download/decode image, convert to PNG, return processed bytes + metadata.
+    Does NOT save to disk — caller is responsible for uploading to Supabase Storage.
+
+    Returns:
+        (image_bytes, mime_type, width, height, extension)
+    """
+    try:
+        if is_b64:
+            image_data = base64.b64decode(url)
+        else:
+            async with HttpClient.create_aiohttp() as session:
+                async with session.get(url) as response:
+                    image_data = await response.read()
+
+        image = Image.open(BytesIO(image_data))
+        width, height = image.size
+        original_format = image.format or "Unknown"
+
+        # Handle color modes (same logic as get_image_info_and_save)
+        if image.mode == "P":
+            image = image.convert("RGBA") if "transparency" in image.info else image.convert("RGB")
+        elif image.mode == "LA":
+            image = image.convert("RGBA")
+        elif image.mode == "L":
+            pass
+        elif image.mode == "CMYK":
+            image = image.convert("RGB")
+        elif image.mode not in ("RGB", "RGBA"):
+            image = image.convert("RGB")
+
+        extension = "png"
+        mime_type = "image/png"
+
+        pnginfo = PngImagePlugin.PngInfo()
+        pnginfo.add_text("original_format", original_format)
+        if metadata:
+            for key, value in metadata.items():
+                try:
+                    if isinstance(value, (dict, list)):
+                        text_value = json.dumps(value, ensure_ascii=False)
+                    elif value is None:
+                        text_value = "null"
+                    else:
+                        text_value = str(value)
+                    pnginfo.add_text(str(key), text_value)
+                except Exception as e:
+                    print(f"Warning: Failed to add metadata key '{key}': {e}")
+
+        buf = BytesIO()
+        image.save(buf, format="PNG", optimize=True, pnginfo=pnginfo)
+        image_bytes = buf.getvalue()
+
+        return image_bytes, mime_type, width, height, extension
+
+    except Exception as e:
+        print(f"Error processing image: {e}")
+        raise
+
+
 # Canvas-related utilities have been moved to tools/image_generation/image_canvas_utils.py
 
 
@@ -136,10 +202,11 @@ async def get_image_info_and_save(
 
 async def process_input_image(input_image: str | None) -> str | None:
     """
-    Process input image and convert to base64 format
+    Process input image and convert to base64 format.
+    Supports both Supabase Storage URLs (https://...) and local file paths.
 
     Args:
-        input_image: Image file path
+        input_image: Image file path or URL
 
     Returns:
         Base64 encoded image with data URL, or None if no image
@@ -148,13 +215,23 @@ async def process_input_image(input_image: str | None) -> str | None:
         return None
 
     try:
-        full_path = os.path.join(FILES_DIR, input_image)
-        if not os.path.exists(full_path):
-            print(f"Warning: Image file not found: {full_path}")
-            return None
+        # Handle URLs (Supabase Storage or any HTTP URL)
+        if input_image.startswith("http://") or input_image.startswith("https://"):
+            async with HttpClient.create_aiohttp() as session:
+                async with session.get(input_image) as response:
+                    image_data = await response.read()
+            image = Image.open(BytesIO(image_data))
+            # Determine mime type from URL extension or default
+            ext = os.path.splitext(input_image.split("?")[0])[1].lower()
+        else:
+            # Local file path (backward compat)
+            full_path = os.path.join(FILES_DIR, input_image)
+            if not os.path.exists(full_path):
+                print(f"Warning: Image file not found: {full_path}")
+                return None
+            image = Image.open(full_path)
+            ext = os.path.splitext(input_image)[1].lower()
 
-        image = Image.open(full_path)
-        ext = os.path.splitext(input_image)[1].lower()
         mime_type_map = {
             '.png': 'image/png',
             '.jpg': 'image/jpeg',

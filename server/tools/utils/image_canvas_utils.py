@@ -14,6 +14,7 @@ from services.db_service import db_service
 from services.websocket_service import broadcast_session_update
 from services.websocket_service import send_to_websocket
 from utils.canvas import find_next_best_element_position
+from services import storage_service
 
 def generate_file_id() -> str:
     """Generate unique file ID"""
@@ -91,29 +92,72 @@ async def generate_new_image_element(
     }
 
 
-async def save_image_to_canvas(session_id: str, canvas_id: str, filename: str, mime_type: str, width: int, height: int) -> str:
-    """Save image to canvas with proper locking and positioning"""
+async def save_image_to_canvas(
+    session_id: str,
+    canvas_id: str,
+    filename: str,
+    mime_type: str,
+    width: int,
+    height: int,
+    user_id: str = "",
+    image_bytes: Optional[bytes] = None,
+    prompt: str = "",
+    model: str = "",
+    provider: str = "",
+    aspect_ratio: str = "",
+) -> str:
+    """Save image to canvas with proper locking and positioning.
+
+    If user_id and image_bytes are provided, uploads to Supabase Storage
+    and records in generated_content. Otherwise falls back to local file URL.
+    """
+    # Upload to Supabase Storage if we have user_id + bytes
+    if user_id and image_bytes is not None:
+        image_url = await storage_service.upload_file(
+            user_id=user_id,
+            file_bytes=image_bytes,
+            filename=filename,
+            bucket=storage_service.GENERATED_CONTENT_BUCKET,
+            content_type=mime_type,
+        )
+        # Record in generated_content table
+        await db_service.insert_generated_content({
+            "id": filename.rsplit(".", 1)[0],
+            "user_id": user_id,
+            "canvas_id": canvas_id or None,
+            "type": "image",
+            "filename": filename,
+            "storage_path": f"{user_id}/{filename}",
+            "public_url": image_url,
+            "mime_type": mime_type,
+            "width": width,
+            "height": height,
+            "prompt": prompt,
+            "model": model,
+            "provider": provider,
+            "aspect_ratio": aspect_ratio,
+        })
+    else:
+        image_url = f"/api/file/{filename}"
+
     # Use lock to ensure atomicity of the save process
     async with canvas_lock_manager.lock_canvas(canvas_id):
-        # Fetch canvas data once inside the lock
         canvas: Optional[Dict[str, Any]] = await db_service.get_canvas_data(canvas_id)
         if canvas is None:
             canvas = {'data': {}}
         canvas_data: Dict[str, Any] = canvas.get('data', {})
 
-        # Ensure 'elements' and 'files' keys exist
         if 'elements' not in canvas_data:
             canvas_data['elements'] = []
         if 'files' not in canvas_data:
             canvas_data['files'] = {}
 
         file_id = generate_file_id()
-        url = f'/api/file/{filename}'
 
         file_data: Dict[str, Any] = {
             'mimeType': mime_type,
             'id': file_id,
-            'dataURL': url,
+            'dataURL': image_url,
             'created': int(time.time() * 1000),
         }
 
@@ -124,20 +168,15 @@ async def save_image_to_canvas(session_id: str, canvas_id: str, filename: str, m
                 'width': width,
                 'height': height,
             },
-            canvas_data
+            canvas_data,
         )
 
-        # Update the canvas data with the new element and file info
         elements_list = cast(List[Dict[str, Any]], canvas_data['elements'])
         elements_list.append(new_image_element)
         canvas_data['files'][file_id] = file_data
 
-        image_url = f"/api/file/{filename}"
-
-        # Save the updated canvas data back to the database
         await db_service.save_canvas_data(canvas_id, json.dumps(canvas_data))
 
-        # Broadcast image generation message to frontend
         await broadcast_session_update(session_id, canvas_id, {
             'type': 'image_generated',
             'element': new_image_element,

@@ -6,9 +6,14 @@ Contains the main orchestration logic for video generation across different prov
 import traceback
 from typing import List, cast, Optional, Any
 from models.config_model import ModelInfo
-from ..video_providers.video_base_provider import get_default_provider, VideoProviderBase
+from ..video_providers.video_base_provider import (
+    get_default_provider,
+    VideoProviderBase,
+)
+
 # Import all providers to ensure automatic registration (don't delete these imports)
 from ..video_providers.volces_provider import VolcesVideoProvider  # type: ignore
+from ..video_providers.xai_provider import XAIVideoProvider  # type: ignore
 from .video_canvas_utils import (
     send_video_start_notification,
     send_video_error_notification,
@@ -26,7 +31,7 @@ async def generate_video_with_provider(
     config: Any,
     input_images: Optional[list[str]] = None,
     camera_fixed: bool = True,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> str:
     """
     Universal video generation function supporting different models and providers
@@ -47,7 +52,8 @@ async def generate_video_with_provider(
     """
     model_name = model.split(
         # Some model names contain "/", like "openai/gpt-image-1", need to handle
-        '/')[-1]
+        '/'
+    )[-1]
     print(f'🛠️ Video Generation {model_name} tool_call_id', tool_call_id)
     ctx = config.get('configurable', {})
     canvas_id = ctx.get('canvas_id', '')
@@ -60,15 +66,26 @@ async def generate_video_with_provider(
     try:
         # Determine provider selection
         model_info_list: List[ModelInfo] = cast(
-            List[ModelInfo], ctx.get('model_info', {}).get(model_name, []))
+            List[ModelInfo], ctx.get('model_info', {}).get(model_name, [])
+        )
 
         if model_info_list == []:
             # video registed as tool
             model_info_list: List[ModelInfo] = cast(
-                List[ModelInfo], ctx.get('tool_list', {}))
+                List[ModelInfo], ctx.get('tool_list', {})
+            )
 
-        # Use get_default_provider which already handles Jaaz prioritization
-        provider_name = get_default_provider(model_info_list)
+        # Model to provider mapping for direct API providers
+        model_provider_mapping = {
+            'grok-imagine': 'xai',  # Grok uses xAI provider
+        }
+
+        # Check if model has a direct provider mapping
+        if model_name in model_provider_mapping:
+            provider_name = model_provider_mapping[model_name]
+        else:
+            # Use get_default_provider which already handles Jaaz prioritization
+            provider_name = get_default_provider(model_info_list)
 
         print(f"🎥 Using provider: {provider_name} for {model_name}")
 
@@ -78,7 +95,7 @@ async def generate_video_with_provider(
         # Send start notification
         await send_video_start_notification(
             session_id,
-            f"Starting video generation using {model_name} via {provider_name}..."
+            f"Starting video generation using {model_name} via {provider_name}...",
         )
 
         # Process input images for the provider
@@ -97,7 +114,7 @@ async def generate_video_with_provider(
             aspect_ratio=aspect_ratio,
             input_images=processed_input_images,
             camera_fixed=camera_fixed,
-            **kwargs
+            **kwargs,
         )
 
         # Process video result (save, update canvas, notify)
@@ -105,7 +122,7 @@ async def generate_video_with_provider(
             video_url=video_url,
             session_id=session_id,
             canvas_id=canvas_id,
-            provider_name=f"{model_name} ({provider_name})"
+            provider_name=f"{model_name} ({provider_name})",
         )
 
     except Exception as e:
@@ -117,5 +134,4 @@ async def generate_video_with_provider(
         await send_video_error_notification(session_id, error_message)
 
         # Re-raise the exception for proper error handling
-        raise Exception(
-            f"{model_name} video generation failed: {error_message}")
+        raise Exception(f"{model_name} video generation failed: {error_message}")

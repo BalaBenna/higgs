@@ -58,7 +58,7 @@ def _get_gemini_client():
 async def _openai_event_stream(client: AsyncOpenAI, req: MotionGenerateRequest):
     try:
         stream = await client.chat.completions.create(
-            model="gpt-4o",
+            model=req.model or "gpt-4o",
             messages=[
                 {"role": "system", "content": req.system_prompt},
                 {"role": "user", "content": req.prompt},
@@ -84,7 +84,7 @@ async def _gemini_event_stream(client, req: MotionGenerateRequest):
         from google.genai import types
 
         response = await client.aio.models.generate_content_stream(
-            model="gemini-2.5-pro",
+            model=req.model or "gemini-2.5-pro",
             contents=req.prompt,
             config=types.GenerateContentConfig(
                 system_instruction=req.system_prompt,

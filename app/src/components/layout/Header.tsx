@@ -11,6 +11,7 @@ import {
   Sparkles,
   Folder,
   Crown,
+  ImageIcon,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -27,6 +28,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { NavDropdownTrigger } from '@/components/layout/NavDropdown'
 import { NAVIGATION_MENUS, TABS_WITH_DROPDOWN } from '@/data/navigation-menus'
+import { useAuth } from '@/contexts/auth-context'
 
 const NAVIGATION_TABS = [
   { id: 'explore', label: 'Explore', path: '/explore' },
@@ -45,6 +47,18 @@ const NAVIGATION_TABS = [
 
 export function Header() {
   const pathname = usePathname()
+  const { user, loading, signOut } = useAuth()
+
+  const userName =
+    user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || ''
+  const userEmail = user?.email || ''
+  const userAvatar =
+    user?.user_metadata?.avatar_url || user?.user_metadata?.picture || ''
+  const userInitial = userName
+    ? userName.charAt(0).toUpperCase()
+    : userEmail
+      ? userEmail.charAt(0).toUpperCase()
+      : ''
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -61,8 +75,10 @@ export function Header() {
         <nav className="flex-1 flex items-center justify-center">
           <div className="flex items-center gap-1">
             {NAVIGATION_TABS.map((tab) => {
-              const isActive = pathname === tab.path || pathname.startsWith(tab.path + '/')
-              const hasDropdown = tab.hasDropdown && TABS_WITH_DROPDOWN.includes(tab.id)
+              const isActive =
+                pathname === tab.path || pathname.startsWith(tab.path + '/')
+              const hasDropdown =
+                tab.hasDropdown && TABS_WITH_DROPDOWN.includes(tab.id)
               const menu = hasDropdown ? NAVIGATION_MENUS[tab.id] : null
 
               const tabContent = (
@@ -78,9 +94,7 @@ export function Header() {
                   >
                     <span className="flex items-center gap-1.5">
                       {tab.label}
-                      {hasDropdown && (
-                        <ChevronDown className="h-3 w-3 opacity-50" />
-                      )}
+                      {hasDropdown && <ChevronDown className="h-3 w-3 opacity-50" />}
                       {tab.badge && (
                         <Badge variant="neon" className="text-[10px] px-1.5 py-0">
                           {tab.badge}
@@ -139,40 +153,60 @@ export function Header() {
           </Button>
 
           {/* User Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="gap-2 px-2">
-                <Avatar className="h-7 w-7">
-                  <AvatarImage src="" alt="User" />
-                  <AvatarFallback className="bg-muted text-xs">
-                    <User className="h-4 w-4" />
-                  </AvatarFallback>
-                </Avatar>
-                <ChevronDown className="h-3 w-3 text-muted-foreground" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <User className="mr-2 h-4 w-4" />
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Folder className="mr-2 h-4 w-4" />
-                My Projects
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                Settings
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">
-                <LogOut className="mr-2 h-4 w-4" />
-                Log out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {!loading && user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2 px-2">
+                  <Avatar className="h-7 w-7">
+                    <AvatarImage src={userAvatar} alt={userName} />
+                    <AvatarFallback className="bg-muted text-xs">
+                      {userInitial || <User className="h-4 w-4" />}
+                    </AvatarFallback>
+                  </Avatar>
+                  <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">{userName}</span>
+                    <span className="text-xs text-muted-foreground">{userEmail}</span>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/profile">
+                    <User className="mr-2 h-4 w-4" />
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/my-content">
+                    <ImageIcon className="mr-2 h-4 w-4" />
+                    My Content
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/settings">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => signOut()}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : !loading ? (
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/login">Sign in</Link>
+            </Button>
+          ) : null}
         </div>
       </div>
     </header>

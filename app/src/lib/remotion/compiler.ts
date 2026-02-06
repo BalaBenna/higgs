@@ -47,6 +47,7 @@ export async function compileCode(rawCode: string): Promise<CompilationResult> {
     const transpiled = babel.transform(wrappedCode, {
       presets: ['react', 'typescript'],
       filename: 'motion-component.tsx',
+      parserOpts: { allowReturnOutsideFunction: true },
     })
 
     if (!transpiled?.code) {
@@ -89,13 +90,21 @@ export async function compileCode(rawCode: string): Promise<CompilationResult> {
 }
 
 /**
- * Wrap user code so the last variable declaration (the component) is returned.
+ * Wrap user code so the last PascalCase-named component is returned.
+ * Detects both `const Component = ...` and `function Component(...)` patterns.
  */
 function wrapForEvaluation(code: string): string {
+  // Collect all PascalCase-named declarations with their positions
   const constMatches = [...code.matchAll(/(?:const|let|var)\s+([A-Z]\w*)\s*=/g)]
-  if (constMatches.length > 0) {
-    const lastMatch = constMatches[constMatches.length - 1]
-    const componentName = lastMatch[1]
+  const funcMatches = [...code.matchAll(/function\s+([A-Z]\w*)\s*\(/g)]
+
+  const allMatches = [
+    ...constMatches.map((m) => ({ name: m[1], index: m.index ?? 0 })),
+    ...funcMatches.map((m) => ({ name: m[1], index: m.index ?? 0 })),
+  ].sort((a, b) => a.index - b.index)
+
+  if (allMatches.length > 0) {
+    const componentName = allMatches[allMatches.length - 1].name
     return `${code}\nreturn ${componentName};`
   }
 

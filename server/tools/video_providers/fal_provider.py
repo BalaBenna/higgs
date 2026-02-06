@@ -44,6 +44,10 @@ FAL_VIDEO_MODEL_ENDPOINTS = {
     
     # Grok
     "grok-imagine": "fal-ai/grok-imagine",
+    # OpenAI Sora (via fal)
+    "sora-2": "fal-ai/sora/v2",
+    # Kling Edit (reuse master endpoint)
+    "kling-edit": "fal-ai/kling-video/v2.0/master",
 }
 
 

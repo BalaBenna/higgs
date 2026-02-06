@@ -28,14 +28,18 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { GeneratedImage } from '@/components/generation/GeneratedImage'
 import { useImageGeneration } from '@/hooks/use-generation'
 
-const IMAGE_MODELS = [
-  { id: 'dall-e-3', name: 'DALL-E 3', provider: 'OpenAI', toolId: 'generate_image_by_gpt_image_1_jaaz' },
+const IMAGE_MODELS: { id: string; name: string; provider: string; toolId: string; isComingSoon?: boolean; badge?: string }[] = [
+  { id: 'gpt-image-1.5', name: 'GPT Image 1.5', provider: 'OpenAI', toolId: 'generate_image_by_gpt_image_openai' },
+  { id: 'dall-e-3', name: 'DALL-E 3', provider: 'OpenAI', toolId: 'generate_image_by_gpt_image_openai' },
   { id: 'imagen-3', name: 'Imagen 3', provider: 'Google', toolId: 'generate_image_by_imagen_4_jaaz' },
-  { id: 'seedream-4.5', name: 'Seedream 4.5', provider: 'ByteDance', toolId: 'generate_image_by_doubao_seedream_3_jaaz', isComingSoon: true },
-  { id: 'flux-2', name: 'FLUX.2', provider: 'Black Forest Labs', toolId: 'generate_image_by_flux_kontext_max_jaaz', isComingSoon: true },
-  { id: 'midjourney', name: 'Midjourney', provider: 'Midjourney', toolId: 'generate_image_by_midjourney_jaaz', isComingSoon: true },
-  { id: 'ideogram-3', name: 'Ideogram 3', provider: 'Ideogram', toolId: 'generate_image_by_ideogram3_bal_jaaz', isComingSoon: true },
-  { id: 'recraft-v3', name: 'Recraft V3', provider: 'Recraft', toolId: 'generate_image_by_recraft_v3_jaaz', isComingSoon: true },
+  { id: 'seedream-4.5', name: 'Seedream 4.5', provider: 'ByteDance', toolId: 'generate_image_by_doubao_seedream_3_jaaz' },
+  { id: 'flux-2', name: 'FLUX.2', provider: 'Black Forest Labs', toolId: 'generate_image_by_flux_kontext_max_jaaz' },
+  { id: 'midjourney', name: 'Midjourney', provider: 'Midjourney', toolId: 'generate_image_by_midjourney_jaaz' },
+  { id: 'ideogram-3', name: 'Ideogram 3', provider: 'Ideogram', toolId: 'generate_image_by_ideogram3_bal_jaaz' },
+  { id: 'recraft-v3', name: 'Recraft V3', provider: 'Recraft', toolId: 'generate_image_by_recraft_v3_jaaz' },
+  { id: 'flux-2-pro-replicate', name: 'FLUX 2 Pro (Replicate)', provider: 'Black Forest Labs', toolId: 'generate_image_by_flux_2_pro_replicate' },
+  { id: 'ideogram-v3-turbo', name: 'Ideogram V3 Turbo', provider: 'Ideogram', toolId: 'generate_image_by_ideogram_v3_turbo_replicate' },
+  { id: 'flux-1.1-pro', name: 'FLUX 1.1 Pro', provider: 'Black Forest Labs', toolId: 'generate_image_by_flux_1_1_pro_replicate' },
 ]
 
 const ASPECT_RATIOS = [
@@ -78,7 +82,7 @@ function ImagePageContent() {
 
   const [prompt, setPrompt] = useState('')
   const [negativePrompt, setNegativePrompt] = useState('')
-  const [model, setModel] = useState('dall-e-3')
+  const [model, setModel] = useState('gpt-image-1.5')
   const [aspectRatio, setAspectRatio] = useState('1:1')
   const [style, setStyle] = useState('None')
   const [numImages, setNumImages] = useState(4)
