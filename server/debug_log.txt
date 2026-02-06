@@ -1,0 +1,250 @@
+
+--- Batch 1 Error ---
+Model: imagen-4.0-generate-001
+Prompt: A testing robot
+Params: num=1, ar=1:1
+Exception: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'API key expired. Please renew the API key.', 'status': 'INVALID_ARGUMENT', 'details': [{'@type': 'type.googleapis.com/google.rpc.ErrorInfo', 'reason': 'API_KEY_INVALID', 'domain': 'googleapis.com', 'metadata': {'service': 'generativelanguage.googleapis.com'}}, {'@type': 'type.googleapis.com/google.rpc.LocalizedMessage', 'locale': 'en-US', 'message': 'API key expired. Please renew the API key.'}]}}
+Traceback (most recent call last):
+  File "D:\higgs\server\tools\image_providers\google_ai_provider.py", line 68, in generate
+    response = client.models.generate_images(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\models.py", line 5744, in generate_images
+    api_response = self._generate_images(
+                   ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\models.py", line 4480, in _generate_images
+    response = self._api_client.request(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\_api_client.py", line 1386, in request
+    response = self._request(http_request, http_options, stream=False)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\_api_client.py", line 1222, in _request
+    return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 471, in __call__
+    do = self.iter(retry_state=retry_state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 372, in iter
+    result = action(retry_state)
+             ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 414, in exc_check
+    raise retry_exc.reraise()
+          ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 185, in reraise
+    raise self.last_attempt.result()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 474, in __call__
+    result = fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\_api_client.py", line 1199, in _request_once
+    errors.APIError.raise_for_response(response)
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\errors.py", line 134, in raise_for_response
+    cls.raise_error(response.status_code, response_json, response)
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\errors.py", line 159, in raise_error
+    raise ClientError(status_code, response_json, response)
+google.genai.errors.ClientError: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'API key expired. Please renew the API key.', 'status': 'INVALID_ARGUMENT', 'details': [{'@type': 'type.googleapis.com/google.rpc.ErrorInfo', 'reason': 'API_KEY_INVALID', 'domain': 'googleapis.com', 'metadata': {'service': 'generativelanguage.googleapis.com'}}, {'@type': 'type.googleapis.com/google.rpc.LocalizedMessage', 'locale': 'en-US', 'message': 'API key expired. Please renew the API key.'}]}}
+
+--- Batch 1 Error ---
+Model: imagen-4.0-generate-001
+Prompt: A testing robot
+Params: num=1, ar=1:1
+Exception: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'API key expired. Please renew the API key.', 'status': 'INVALID_ARGUMENT', 'details': [{'@type': 'type.googleapis.com/google.rpc.ErrorInfo', 'reason': 'API_KEY_INVALID', 'domain': 'googleapis.com', 'metadata': {'service': 'generativelanguage.googleapis.com'}}, {'@type': 'type.googleapis.com/google.rpc.LocalizedMessage', 'locale': 'en-US', 'message': 'API key expired. Please renew the API key.'}]}}
+Traceback (most recent call last):
+  File "D:\higgs\server\tools\image_providers\google_ai_provider.py", line 68, in generate
+    for i in range(batches):
+                       ^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\models.py", line 5744, in generate_images
+    api_response = self._generate_images(
+                   ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\models.py", line 4480, in _generate_images
+    response = self._api_client.request(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\_api_client.py", line 1386, in request
+    response = self._request(http_request, http_options, stream=False)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\_api_client.py", line 1222, in _request
+    return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 471, in __call__
+    do = self.iter(retry_state=retry_state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 372, in iter
+    result = action(retry_state)
+             ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 414, in exc_check
+    raise retry_exc.reraise()
+          ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 185, in reraise
+    raise self.last_attempt.result()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 474, in __call__
+    result = fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\_api_client.py", line 1199, in _request_once
+    errors.APIError.raise_for_response(response)
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\errors.py", line 134, in raise_for_response
+    cls.raise_error(response.status_code, response_json, response)
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\errors.py", line 159, in raise_error
+    raise ClientError(status_code, response_json, response)
+google.genai.errors.ClientError: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'API key expired. Please renew the API key.', 'status': 'INVALID_ARGUMENT', 'details': [{'@type': 'type.googleapis.com/google.rpc.ErrorInfo', 'reason': 'API_KEY_INVALID', 'domain': 'googleapis.com', 'metadata': {'service': 'generativelanguage.googleapis.com'}}, {'@type': 'type.googleapis.com/google.rpc.LocalizedMessage', 'locale': 'en-US', 'message': 'API key expired. Please renew the API key.'}]}}
+
+--- Batch 1 Error ---
+Model: imagen-4.0-generate-001
+Prompt: A testing robot
+Params: num=1, ar=1:1
+Exception: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'API key expired. Please renew the API key.', 'status': 'INVALID_ARGUMENT', 'details': [{'@type': 'type.googleapis.com/google.rpc.ErrorInfo', 'reason': 'API_KEY_INVALID', 'domain': 'googleapis.com', 'metadata': {'service': 'generativelanguage.googleapis.com'}}, {'@type': 'type.googleapis.com/google.rpc.LocalizedMessage', 'locale': 'en-US', 'message': 'API key expired. Please renew the API key.'}]}}
+Traceback (most recent call last):
+  File "D:\higgs\server\tools\image_providers\google_ai_provider.py", line 68, in generate
+    for i in range(batches):
+                       ^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\models.py", line 5744, in generate_images
+    api_response = self._generate_images(
+                   ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\models.py", line 4480, in _generate_images
+    response = self._api_client.request(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\_api_client.py", line 1386, in request
+    response = self._request(http_request, http_options, stream=False)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\_api_client.py", line 1222, in _request
+    return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 471, in __call__
+    do = self.iter(retry_state=retry_state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 372, in iter
+    result = action(retry_state)
+             ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 414, in exc_check
+    raise retry_exc.reraise()
+          ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 185, in reraise
+    raise self.last_attempt.result()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 474, in __call__
+    result = fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\_api_client.py", line 1199, in _request_once
+    errors.APIError.raise_for_response(response)
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\errors.py", line 134, in raise_for_response
+    cls.raise_error(response.status_code, response_json, response)
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\errors.py", line 159, in raise_error
+    raise ClientError(status_code, response_json, response)
+google.genai.errors.ClientError: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'API key expired. Please renew the API key.', 'status': 'INVALID_ARGUMENT', 'details': [{'@type': 'type.googleapis.com/google.rpc.ErrorInfo', 'reason': 'API_KEY_INVALID', 'domain': 'googleapis.com', 'metadata': {'service': 'generativelanguage.googleapis.com'}}, {'@type': 'type.googleapis.com/google.rpc.LocalizedMessage', 'locale': 'en-US', 'message': 'API key expired. Please renew the API key.'}]}}
+DEBUG: Using API Key: AIzaS...j8HhI
+
+--- Batch 1 Error ---
+Model: imagen-4.0-generate-001
+Prompt: A testing robot
+Params: num=1, ar=1:1
+Exception: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'API key expired. Please renew the API key.', 'status': 'INVALID_ARGUMENT', 'details': [{'@type': 'type.googleapis.com/google.rpc.ErrorInfo', 'reason': 'API_KEY_INVALID', 'domain': 'googleapis.com', 'metadata': {'service': 'generativelanguage.googleapis.com'}}, {'@type': 'type.googleapis.com/google.rpc.LocalizedMessage', 'locale': 'en-US', 'message': 'API key expired. Please renew the API key.'}]}}
+Traceback (most recent call last):
+  File "D:\higgs\server\tools\image_providers\google_ai_provider.py", line 75, in generate
+    response = client.models.generate_images(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\models.py", line 5744, in generate_images
+    api_response = self._generate_images(
+                   ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\models.py", line 4480, in _generate_images
+    response = self._api_client.request(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\_api_client.py", line 1386, in request
+    response = self._request(http_request, http_options, stream=False)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\_api_client.py", line 1222, in _request
+    return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 471, in __call__
+    do = self.iter(retry_state=retry_state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 372, in iter
+    result = action(retry_state)
+             ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 414, in exc_check
+    raise retry_exc.reraise()
+          ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 185, in reraise
+    raise self.last_attempt.result()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 474, in __call__
+    result = fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\_api_client.py", line 1199, in _request_once
+    errors.APIError.raise_for_response(response)
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\errors.py", line 134, in raise_for_response
+    cls.raise_error(response.status_code, response_json, response)
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\errors.py", line 159, in raise_error
+    raise ClientError(status_code, response_json, response)
+google.genai.errors.ClientError: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'API key expired. Please renew the API key.', 'status': 'INVALID_ARGUMENT', 'details': [{'@type': 'type.googleapis.com/google.rpc.ErrorInfo', 'reason': 'API_KEY_INVALID', 'domain': 'googleapis.com', 'metadata': {'service': 'generativelanguage.googleapis.com'}}, {'@type': 'type.googleapis.com/google.rpc.LocalizedMessage', 'locale': 'en-US', 'message': 'API key expired. Please renew the API key.'}]}}
+DEBUG: Using API Key: AIzaS...j8HhI
+
+--- Batch 1 Error ---
+Model: imagen-4.0-generate-001
+Prompt: A testing robot
+Params: num=1, ar=1:1
+Exception: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'API key expired. Please renew the API key.', 'status': 'INVALID_ARGUMENT', 'details': [{'@type': 'type.googleapis.com/google.rpc.ErrorInfo', 'reason': 'API_KEY_INVALID', 'domain': 'googleapis.com', 'metadata': {'service': 'generativelanguage.googleapis.com'}}, {'@type': 'type.googleapis.com/google.rpc.LocalizedMessage', 'locale': 'en-US', 'message': 'API key expired. Please renew the API key.'}]}}
+Traceback (most recent call last):
+  File "D:\higgs\server\tools\image_providers\google_ai_provider.py", line 75, in generate
+    response = client.models.generate_images(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\models.py", line 5744, in generate_images
+    api_response = self._generate_images(
+                   ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\models.py", line 4480, in _generate_images
+    response = self._api_client.request(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\_api_client.py", line 1386, in request
+    response = self._request(http_request, http_options, stream=False)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\_api_client.py", line 1222, in _request
+    return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 471, in __call__
+    do = self.iter(retry_state=retry_state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 372, in iter
+    result = action(retry_state)
+             ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 414, in exc_check
+    raise retry_exc.reraise()
+          ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 185, in reraise
+    raise self.last_attempt.result()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\tenacity\__init__.py", line 474, in __call__
+    result = fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\_api_client.py", line 1199, in _request_once
+    errors.APIError.raise_for_response(response)
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\errors.py", line 134, in raise_for_response
+    cls.raise_error(response.status_code, response_json, response)
+  File "C:\Users\chdin\AppData\Local\Programs\Python\Python312\Lib\site-packages\google\genai\errors.py", line 159, in raise_error
+    raise ClientError(status_code, response_json, response)
+google.genai.errors.ClientError: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'API key expired. Please renew the API key.', 'status': 'INVALID_ARGUMENT', 'details': [{'@type': 'type.googleapis.com/google.rpc.ErrorInfo', 'reason': 'API_KEY_INVALID', 'domain': 'googleapis.com', 'metadata': {'service': 'generativelanguage.googleapis.com'}}, {'@type': 'type.googleapis.com/google.rpc.LocalizedMessage', 'locale': 'en-US', 'message': 'API key expired. Please renew the API key.'}]}}
+DEBUG: Using API Key: AIzaS...QZGBs
+DEBUG: Using API Key: AIzaS...QZGBs
+DEBUG: Using API Key: AIzaS...QZGBs

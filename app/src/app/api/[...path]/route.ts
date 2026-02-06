@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:57988'
+const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:57989'
 
 async function proxyRequest(
   request: NextRequest,
@@ -9,23 +9,30 @@ async function proxyRequest(
   const { path } = await params
   const url = `${BACKEND_URL}/api/${path.join('/')}`
 
+  // Forward headers (excluding host and content-length for FormData)
+  const headers = new Headers()
+  const contentType = request.headers.get('content-type') || ''
+  const isFormData = contentType.includes('multipart/form-data')
+  
+  request.headers.forEach((value, key) => {
+    const lowerKey = key.toLowerCase()
+    // Skip host and content-length (will be recalculated)
+    if (lowerKey !== 'host' && lowerKey !== 'content-length') {
+      headers.set(key, value)
+    }
+  })
+
   // Get the request body for non-GET requests
-  let body: string | null = null
+  let body: BodyInit | null = null
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     try {
-      body = await request.text()
+      // For FormData, pass through as-is using arrayBuffer
+      // This preserves the multipart boundary and structure
+      body = await request.arrayBuffer()
     } catch {
       // No body
     }
   }
-
-  // Forward headers (excluding host)
-  const headers = new Headers()
-  request.headers.forEach((value, key) => {
-    if (key.toLowerCase() !== 'host') {
-      headers.set(key, value)
-    }
-  })
 
   try {
     const response = await fetch(url, {

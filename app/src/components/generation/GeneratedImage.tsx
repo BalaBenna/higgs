@@ -11,6 +11,7 @@ import {
   Maximize2,
   MoreHorizontal,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -33,6 +34,34 @@ interface GeneratedImageProps {
 export function GeneratedImage({ image }: GeneratedImageProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [isLiked, setIsLiked] = useState(false)
+
+  const handleDownload = async () => {
+    try {
+      const response = await fetch(image.src)
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `generated-image-${image.id}.png`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      toast.success('Image downloaded')
+    } catch (e) {
+      console.error('Download failed', e)
+      window.open(image.src, '_blank')
+    }
+  }
+
+  const handleCopyPrompt = () => {
+    navigator.clipboard.writeText(image.prompt)
+    toast.success('Prompt copied to clipboard')
+  }
+
+  const handleViewFull = () => {
+    window.open(image.src, '_blank')
+  }
 
   return (
     <motion.div
@@ -80,11 +109,11 @@ export function GeneratedImage({ image }: GeneratedImageProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDownload}>
                   <Download className="mr-2 h-4 w-4" />
                   Download
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={handleCopyPrompt}>
                   <Copy className="mr-2 h-4 w-4" />
                   Copy Prompt
                 </DropdownMenuItem>
@@ -93,7 +122,7 @@ export function GeneratedImage({ image }: GeneratedImageProps) {
                   Regenerate
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={handleViewFull}>
                   <Maximize2 className="mr-2 h-4 w-4" />
                   View Full Size
                 </DropdownMenuItem>
@@ -107,6 +136,7 @@ export function GeneratedImage({ image }: GeneratedImageProps) {
               variant="secondary"
               size="sm"
               className="flex-1 bg-white/10 hover:bg-white/20 text-white"
+              onClick={handleDownload}
             >
               <Download className="h-4 w-4 mr-2" />
               Download
@@ -115,6 +145,7 @@ export function GeneratedImage({ image }: GeneratedImageProps) {
               variant="secondary"
               size="sm"
               className="bg-white/10 hover:bg-white/20 text-white"
+              onClick={handleViewFull}
             >
               <Maximize2 className="h-4 w-4" />
             </Button>

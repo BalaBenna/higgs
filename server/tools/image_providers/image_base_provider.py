@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Any, Tuple
+from typing import Optional, Any, Tuple, Union, List
 
 
 class ImageProviderBase(ABC):
@@ -25,6 +25,6 @@ class ImageProviderBase(ABC):
             **kwargs: Additional provider-specific parameters
 
         Returns:
-            Tuple[str, int, int, str]: (mime_type, width, height, filename)
+            Union[Tuple[str, int, int, str], List[Tuple[str, int, int, str]]]: (mime_type, width, height, filename) or list of them
         """
         pass

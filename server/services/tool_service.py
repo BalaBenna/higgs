@@ -90,6 +90,45 @@ from tools.feature_tools import (
     feature_lipsync_jaaz,
     feature_soul_id_character_jaaz,
 )
+# Fal.ai Image Tools
+from tools.fal_image_tools import (
+    generate_image_by_nano_banana_fal,
+    generate_image_by_seedream_fal,
+    generate_image_by_flux2_fal,
+    generate_image_by_flux2_max_fal,
+    generate_image_by_flux_kontext_fal,
+    generate_image_by_flux_kontext_max_fal,
+    generate_image_by_midjourney_fal,
+    generate_image_by_ideogram_fal,
+    generate_image_by_recraft_fal,
+    generate_image_by_reve_fal,
+    generate_image_by_higgsfield_soul_fal,
+    generate_image_by_z_image_fal,
+    generate_image_by_kling_image_fal,
+    generate_image_by_wan_image_fal,
+)
+# Fal.ai Video Tools
+from tools.fal_video_tools import (
+    generate_video_by_kling_fal,
+    generate_video_by_kling_motion_fal,
+    generate_video_by_kling_avatars_fal,
+    generate_video_by_veo_fal,
+    generate_video_by_seedance_fal,
+    generate_video_by_wan_fal,
+    generate_video_by_hailuo_fal,
+    generate_video_by_higgsfield_dop_fal,
+    generate_video_by_grok_fal,
+)
+# OpenAI Sora Tool
+from tools.sora_video_tools import generate_video_by_sora_openai
+# Direct API Image Tools
+from tools.direct_image_tools import (
+    generate_image_by_gpt_image_openai,
+    generate_image_by_imagen_google,
+    enhance_image_by_topaz,
+)
+# Google Veo Tool
+from tools.google_veo_tools import generate_video_by_veo_google
 from services.config_service import config_service
 from services.db_service import db_service
 
@@ -435,6 +474,189 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
         "type": "image",
         "provider": "jaaz",
         "tool_function": feature_soul_id_character_jaaz,
+    },
+    # ---------------
+    # Fal.ai Image Tools
+    # ---------------
+    "generate_image_by_nano_banana_fal": {
+        "display_name": "Nano Banana Pro",
+        "type": "image",
+        "provider": "fal",
+        "tool_function": generate_image_by_nano_banana_fal,
+    },
+    "generate_image_by_seedream_fal": {
+        "display_name": "Seedream 4.5",
+        "type": "image",
+        "provider": "fal",
+        "tool_function": generate_image_by_seedream_fal,
+    },
+    "generate_image_by_flux2_fal": {
+        "display_name": "FLUX.2 Pro",
+        "type": "image",
+        "provider": "fal",
+        "tool_function": generate_image_by_flux2_fal,
+    },
+    "generate_image_by_flux2_max_fal": {
+        "display_name": "FLUX.2 Max",
+        "type": "image",
+        "provider": "fal",
+        "tool_function": generate_image_by_flux2_max_fal,
+    },
+    "generate_image_by_flux_kontext_fal": {
+        "display_name": "FLUX Kontext Pro",
+        "type": "image",
+        "provider": "fal",
+        "tool_function": generate_image_by_flux_kontext_fal,
+    },
+    "generate_image_by_flux_kontext_max_fal": {
+        "display_name": "FLUX Kontext Max",
+        "type": "image",
+        "provider": "fal",
+        "tool_function": generate_image_by_flux_kontext_max_fal,
+    },
+    "generate_image_by_midjourney_fal": {
+        "display_name": "Midjourney",
+        "type": "image",
+        "provider": "fal",
+        "tool_function": generate_image_by_midjourney_fal,
+    },
+    "generate_image_by_ideogram_fal": {
+        "display_name": "Ideogram 3",
+        "type": "image",
+        "provider": "fal",
+        "tool_function": generate_image_by_ideogram_fal,
+    },
+    "generate_image_by_recraft_fal": {
+        "display_name": "Recraft V3",
+        "type": "image",
+        "provider": "fal",
+        "tool_function": generate_image_by_recraft_fal,
+    },
+    "generate_image_by_reve_fal": {
+        "display_name": "Reve",
+        "type": "image",
+        "provider": "fal",
+        "tool_function": generate_image_by_reve_fal,
+    },
+    "generate_image_by_higgsfield_soul_fal": {
+        "display_name": "Higgsfield Soul",
+        "type": "image",
+        "provider": "fal",
+        "tool_function": generate_image_by_higgsfield_soul_fal,
+    },
+    "generate_image_by_z_image_fal": {
+        "display_name": "Z-Image",
+        "type": "image",
+        "provider": "fal",
+        "tool_function": generate_image_by_z_image_fal,
+    },
+    "generate_image_by_kling_image_fal": {
+        "display_name": "Kling Q1 Image",
+        "type": "image",
+        "provider": "fal",
+        "tool_function": generate_image_by_kling_image_fal,
+    },
+    "generate_image_by_wan_image_fal": {
+        "display_name": "Wan 2.0 Image",
+        "type": "image",
+        "provider": "fal",
+        "tool_function": generate_image_by_wan_image_fal,
+    },
+    # ---------------
+    # Fal.ai Video Tools
+    # ---------------
+    "generate_video_by_kling_fal": {
+        "display_name": "Kling 3.0",
+        "type": "video",
+        "provider": "fal",
+        "tool_function": generate_video_by_kling_fal,
+    },
+    "generate_video_by_kling_motion_fal": {
+        "display_name": "Kling Motion Control",
+        "type": "video",
+        "provider": "fal",
+        "tool_function": generate_video_by_kling_motion_fal,
+    },
+    "generate_video_by_kling_avatars_fal": {
+        "display_name": "Kling Avatars 2.0",
+        "type": "video",
+        "provider": "fal",
+        "tool_function": generate_video_by_kling_avatars_fal,
+    },
+    "generate_video_by_veo_fal": {
+        "display_name": "Google Veo 3.1",
+        "type": "video",
+        "provider": "fal",
+        "tool_function": generate_video_by_veo_fal,
+    },
+    "generate_video_by_seedance_fal": {
+        "display_name": "Seedance 1.5 Pro",
+        "type": "video",
+        "provider": "fal",
+        "tool_function": generate_video_by_seedance_fal,
+    },
+    "generate_video_by_wan_fal": {
+        "display_name": "Wan 2.6",
+        "type": "video",
+        "provider": "fal",
+        "tool_function": generate_video_by_wan_fal,
+    },
+    "generate_video_by_hailuo_fal": {
+        "display_name": "MiniMax Hailuo 02",
+        "type": "video",
+        "provider": "fal",
+        "tool_function": generate_video_by_hailuo_fal,
+    },
+    "generate_video_by_higgsfield_dop_fal": {
+        "display_name": "Higgsfield DOP",
+        "type": "video",
+        "provider": "fal",
+        "tool_function": generate_video_by_higgsfield_dop_fal,
+    },
+    "generate_video_by_grok_fal": {
+        "display_name": "Grok Imagine",
+        "type": "video",
+        "provider": "fal",
+        "tool_function": generate_video_by_grok_fal,
+    },
+    # ---------------
+    # OpenAI Sora Tool
+    # ---------------
+    "generate_video_by_sora_openai": {
+        "display_name": "Sora 2",
+        "type": "video",
+        "provider": "openai",
+        "tool_function": generate_video_by_sora_openai,
+    },
+    # ---------------
+    # Direct API Image Tools
+    # ---------------
+    "generate_image_by_gpt_image_openai": {
+        "display_name": "GPT Image / DALL-E 3",
+        "type": "image",
+        "provider": "openai",
+        "tool_function": generate_image_by_gpt_image_openai,
+    },
+    "generate_image_by_imagen_google": {
+        "display_name": "Google Imagen 3",
+        "type": "image",
+        "provider": "google-ai",
+        "tool_function": generate_image_by_imagen_google,
+    },
+    "enhance_image_by_topaz": {
+        "display_name": "Topaz Enhancer",
+        "type": "image",
+        "provider": "fal",
+        "tool_function": enhance_image_by_topaz,
+    },
+    # ---------------
+    # Google Veo Tool
+    # ---------------
+    "generate_video_by_veo_google": {
+        "display_name": "Google Veo 3",
+        "type": "video",
+        "provider": "google-ai",
+        "tool_function": generate_video_by_veo_google,
     },
 }
 

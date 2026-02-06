@@ -165,34 +165,81 @@ async def generate_image(req: ImageGenerateRequest):
     # Check if this tool accepts input_images
     sig = inspect.signature(tool_fn.coroutine) if hasattr(tool_fn, 'coroutine') else None
     has_input_images = sig and 'input_images' in sig.parameters if sig else False
+    
+    # Check if this tool accepts num_images
+    has_num_images = sig and 'num_images' in sig.parameters if sig else False
+    # Also check args_schema if available
+    if not has_num_images and hasattr(tool_fn, 'args_schema') and tool_fn.args_schema:
+        schema = tool_fn.args_schema
+        # Check if num_images is a field in the schema
+        if 'num_images' in schema.__fields__:
+            has_num_images = True
 
     try:
         results = []
-        for i in range(req.num_images or 1):
+        
+        # If tool supports batch generation, call it once
+        if has_num_images and (req.num_images or 1) > 1:
             call_id = f"call_{uuid.uuid4().hex[:8]}"
             invoke_args = {
                 "prompt": req.prompt,
                 "aspect_ratio": req.aspect_ratio or "1:1",
-                "tool_call_id": call_id,
+                "num_images": req.num_images,
             }
             if has_input_images and req.input_images:
                 invoke_args["input_images"] = req.input_images
+                
             result = await tool_fn.ainvoke(
                 invoke_args,
                 config=config,
             )
-            # Parse the image URL from the tool result string
-            url_match = re.search(r'(http[^\s\)]+)', str(result))
-            image_url = normalize_file_url(url_match.group(1)) if url_match else ""
-            results.append({
-                "id": f"gen_{uuid.uuid4().hex[:8]}",
-                "type": "image",
-                "url": image_url,
-                "src": image_url,
-                "prompt": req.prompt,
-                "model": req.model_name or req.tool,
-                "createdAt": datetime.now().isoformat(),
-            })
+            
+            # Parse multiple image URLs from the tool result string
+            # The result string format is: "image generated successfully ![id](url) ![id](url) ..."
+            url_matches = re.finditer(r'!\[.*?\]\((http[^\s\)]+)\)', str(result))
+            
+            for match in url_matches:
+                image_url = normalize_file_url(match.group(1))
+                results.append({
+                    "id": f"gen_{uuid.uuid4().hex[:8]}",
+                    "type": "image",
+                    "url": image_url,
+                    "src": image_url,
+                    "prompt": req.prompt,
+                    "model": req.model_name or req.tool,
+                    "createdAt": datetime.now().isoformat(),
+                })
+                
+            # Fallback if no URLs found but result is not empty (error handling)
+            if not results and str(result):
+                print(f"Warning: No image URLs found in result: {result}")
+                
+        else:
+            # Legacy loop for tools that don't support batching
+            for i in range(req.num_images or 1):
+                call_id = f"call_{uuid.uuid4().hex[:8]}"
+                invoke_args = {
+                    "prompt": req.prompt,
+                    "aspect_ratio": req.aspect_ratio or "1:1",
+                }
+                if has_input_images and req.input_images:
+                    invoke_args["input_images"] = req.input_images
+                result = await tool_fn.ainvoke(
+                    invoke_args,
+                    config=config,
+                )
+                # Parse the image URL from the tool result string
+                url_match = re.search(r'(http[^\s\)]+)', str(result))
+                image_url = normalize_file_url(url_match.group(1)) if url_match else ""
+                results.append({
+                    "id": f"gen_{uuid.uuid4().hex[:8]}",
+                    "type": "image",
+                    "url": image_url,
+                    "src": image_url,
+                    "prompt": req.prompt,
+                    "model": req.model_name or req.tool,
+                    "createdAt": datetime.now().isoformat(),
+                })
         return {"images": results}
     except Exception as e:
         traceback.print_exc()
@@ -236,7 +283,6 @@ async def generate_video(
         invoke_args = {
             "prompt": prompt,
             "aspect_ratio": aspect_ratio or "16:9",
-            "tool_call_id": call_id,
         }
         if duration:
             invoke_args["duration"] = int(duration)

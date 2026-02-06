@@ -56,53 +56,95 @@ class OpenAIImageProvider(ImageProviderBase):
                     )
             else:
                 # Image generation mode
-                # Map aspect ratio to size
+                # Map aspect ratio to size - DALL-E 3 only supports these sizes
                 size_map = {
                     "1:1": "1024x1024",
                     "16:9": "1792x1024",
                     "9:16": "1024x1792",
-                    "4:3": "1024x768",
-                    "3:4": "768x1024"
+                    "4:3": "1024x1024",  # Use square as fallback
+                    "3:4": "1024x1024"   # Use square as fallback
                 }
                 size = size_map.get(aspect_ratio, "1024x1024")
+                
+                num_images = kwargs.get("num_images", 1)
+                
+                # result container
+                generated_data = []
+                
+                # DALL-E 3 only supports n=1
+                if 'dall-e-3' in model and num_images > 1:
+                    print(f"DALL-E 3 detected, generating {num_images} images in parallel")
+                    
+                    import asyncio
+                    from fastapi.concurrency import run_in_threadpool
+                    
+                    async def generate_single(idx):
+                        try:
+                            print(f"Starting generation {idx+1}/{num_images}")
+                            res = await run_in_threadpool(
+                                self.client.images.generate,
+                                model=model,
+                                prompt=prompt,
+                                n=1,
+                                size=size,
+                            )
+                            return res.data if res.data else []
+                        except Exception as e:
+                            print(f"Error in generation {idx+1}: {e}")
+                            return []
 
-                result = self.client.images.generate(
-                    model=model,
-                    prompt=prompt,
-                    n=kwargs.get("num_images", 1),
-                    size=size,
-                )
+                    # Run all requests in parallel
+                    tasks = [generate_single(i) for i in range(num_images)]
+                    results_list = await asyncio.gather(*tasks)
+                    
+                    for r in results_list:
+                        generated_data.extend(r)
+                        
+                else:
+                    # For other models or single image, try batching
+                    # Note: DALL-E 2 limit is 10, but we assume client handles sane limits or we just trust API for now
+                    result = self.client.images.generate(
+                        model=model,
+                        prompt=prompt,
+                        n=num_images,
+                        size=size,
+                    )
+                    if result.data:
+                        generated_data = result.data
 
             # Process the result
-            if not result.data or len(result.data) == 0:
+            if not generated_data:
                 raise Exception("No image data returned from OpenAI API")
 
-            image_data = result.data[0]
+            results = []
+            
+            for image_data in generated_data:
+                # Handle different response formats
+                if hasattr(image_data, 'b64_json') and image_data.b64_json:
+                    # Base64 response
+                    image_b64 = image_data.b64_json
+                    image_id = generate_image_id()
+                    mime_type, width, height, extension = await get_image_info_and_save(
+                        image_b64, os.path.join(FILES_DIR, f'{image_id}'), is_b64=True
+                    )
+                elif hasattr(image_data, 'url') and image_data.url:
+                    # URL response
+                    image_url = image_data.url
+                    image_id = generate_image_id()
+                    mime_type, width, height, extension = await get_image_info_and_save(
+                        image_url, os.path.join(FILES_DIR, f'{image_id}')
+                    )
+                else:
+                    continue # Skip invalid data
+                
+                if mime_type:
+                    filename = f'{image_id}.{extension}'
+                    results.append((mime_type, width, height, filename))
+            
+            if not results:
+                 raise Exception("Failed to process generated images")
 
-            # Handle different response formats
-            if hasattr(image_data, 'b64_json') and image_data.b64_json:
-                # Base64 response
-                image_b64 = image_data.b64_json
-                image_id = generate_image_id()
-                mime_type, width, height, extension = await get_image_info_and_save(
-                    image_b64, os.path.join(FILES_DIR, f'{image_id}'), is_b64=True
-                )
-            elif hasattr(image_data, 'url') and image_data.url:
-                # URL response
-                image_url = image_data.url
-                image_id = generate_image_id()
-                mime_type, width, height, extension = await get_image_info_and_save(
-                    image_url, os.path.join(FILES_DIR, f'{image_id}')
-                )
-            else:
-                raise Exception("Invalid response format from OpenAI API")
-
-            # Ensure mime_type is not None
-            if mime_type is None:
-                raise Exception('Failed to determine image MIME type')
-
-            filename = f'{image_id}.{extension}'
-            return mime_type, width, height, filename
+            return results
 
         except Exception as e:
             print('Error generating image with OpenAI:', e)
