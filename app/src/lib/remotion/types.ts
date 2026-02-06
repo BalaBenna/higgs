@@ -9,6 +9,18 @@ export type StyleId = 'minimal' | 'corporate' | 'fashion' | 'marketing'
 
 export type ThemeId = 'prism' | 'mosaic' | 'candy' | 'custom'
 
+export type ModelId = 'gpt-4o' | 'gemini-2.5-pro'
+
+export const MODEL_DATA: { id: ModelId; label: string; provider: string; description: string }[] = [
+  { id: 'gpt-4o', label: 'GPT-4o', provider: 'OpenAI', description: 'Fast, reliable code generation' },
+  {
+    id: 'gemini-2.5-pro',
+    label: 'Gemini 2.5 Pro',
+    provider: 'Google',
+    description: 'Advanced reasoning, large context',
+  },
+]
+
 export interface ThemeColors {
   primary: string
   secondary: string
@@ -24,6 +36,7 @@ export interface MotionGenerationParams {
   themeColors?: ThemeColors
   duration: number
   mediaUrls?: string[]
+  model?: ModelId
 }
 
 export interface CompilationResult {

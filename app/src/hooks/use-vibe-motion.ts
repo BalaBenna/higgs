@@ -35,6 +35,7 @@ export function useVibeMotionGeneration(callbacks?: GenerationCallbacks) {
           theme: params.theme,
           duration: params.duration,
           media_urls: params.mediaUrls,
+          model: params.model,
         }),
       })
 

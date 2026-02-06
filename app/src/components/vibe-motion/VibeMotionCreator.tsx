@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 
+import { ModelSelector } from './ModelSelector'
 import { StyleSelector } from './StyleSelector'
 import { ThemeSelector } from './ThemeSelector'
 import { DurationSelector } from './DurationSelector'
@@ -17,9 +18,11 @@ import { RemotionPreview } from './RemotionPreview'
 
 import { useVibeMotionGeneration, useMotionMediaUpload } from '@/hooks/use-vibe-motion'
 import {
+  MODEL_DATA,
   PRESET_LABELS,
   QUICK_PROMPTS,
   THEME_DATA,
+  type ModelId,
   type PresetId,
   type StyleId,
   type ThemeId,
@@ -32,6 +35,7 @@ interface VibeMotionCreatorProps {
 
 export function VibeMotionCreator({ preset, onBack }: VibeMotionCreatorProps) {
   const [prompt, setPrompt] = useState('')
+  const [model, setModel] = useState<ModelId>('gpt-4o')
   const [style, setStyle] = useState<StyleId | undefined>()
   const [theme, setTheme] = useState<ThemeId | undefined>()
   const [duration, setDuration] = useState(10)
@@ -74,6 +78,7 @@ export function VibeMotionCreator({ preset, onBack }: VibeMotionCreatorProps) {
         themeColors,
         duration: effectiveDuration,
         mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
+        model,
       })
     } catch (error) {
       const message =
@@ -163,6 +168,9 @@ export function VibeMotionCreator({ preset, onBack }: VibeMotionCreatorProps) {
           </div>
         )}
 
+        {/* Model */}
+        <ModelSelector value={model} onChange={setModel} />
+
         {/* Style */}
         <StyleSelector value={style} onChange={setStyle} />
 
@@ -194,7 +202,8 @@ export function VibeMotionCreator({ preset, onBack }: VibeMotionCreatorProps) {
             )}
           </Button>
           <p className="text-xs text-muted-foreground text-center mt-2">
-            Powered by AI — generation takes ~10-30 seconds
+            Powered by {MODEL_DATA.find((m) => m.id === model)?.label ?? 'AI'} — generation takes
+            ~10-30 seconds
           </p>
         </div>
       </motion.div>

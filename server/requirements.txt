@@ -28,5 +28,6 @@ python-socketio==5.13.0
 pymediainfo
 openai-agents
 piexif # For EXIF metadata handling in JPEG files
+google-genai
 beautifulsoup4
 lxml
