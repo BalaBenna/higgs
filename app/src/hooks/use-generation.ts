@@ -12,6 +12,7 @@ interface GenerationParams {
   numImages?: number
   guidanceScale?: number
   style?: string
+  inputImages?: string[]
 }
 
 interface VideoGenerationParams {
@@ -107,10 +108,12 @@ export function useImageGeneration() {
         guidance_scale: params.guidanceScale,
         style: params.style,
         model_name: model?.name,
+        input_images: params.inputImages,
       })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['generations'] })
+      queryClient.invalidateQueries({ queryKey: ['my-content'] })
     },
   })
 }
@@ -183,6 +186,7 @@ export function useVideoGeneration() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['generations'] })
+      queryClient.invalidateQueries({ queryKey: ['my-content'] })
     },
   })
 }
