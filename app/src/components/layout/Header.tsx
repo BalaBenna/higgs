@@ -11,7 +11,6 @@ import {
   Folder,
   Crown,
   ImageIcon,
-  ChevronDown,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -61,7 +60,7 @@ export function Header() {
       : ''
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-14 items-center px-4 gap-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 mr-4">
@@ -94,7 +93,6 @@ export function Header() {
                   >
                     <span className="flex items-center gap-1.5">
                       {tab.label}
-                      {hasDropdown && <ChevronDown className="h-3 w-3 opacity-50" />}
                       {tab.badge && (
                         <Badge variant="neon" className="text-[10px] px-1.5 py-0">
                           {tab.badge}
@@ -163,7 +161,6 @@ export function Header() {
                       {userInitial || <User className="h-4 w-4" />}
                     </AvatarFallback>
                   </Avatar>
-                  <ChevronDown className="h-3 w-3 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
