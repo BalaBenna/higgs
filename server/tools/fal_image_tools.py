@@ -16,6 +16,8 @@ class FalImageInputSchema(BaseModel):
     prompt: str = Field(description="The prompt describing the image to generate")
     aspect_ratio: str = Field(default="1:1", description="The aspect ratio of the image (1:1, 16:9, 9:16, 4:3, 3:4)")
     input_images: Optional[list[str]] = Field(default=None, description="Optional input images for editing or reference")
+    negative_prompt: Optional[str] = Field(default=None, description="What to avoid in the generated image")
+    guidance_scale: Optional[float] = Field(default=None, description="Guidance scale for generation (higher = more prompt adherence)")
 
 
 # ============================================
@@ -28,9 +30,16 @@ async def generate_image_by_fal(
     model: str,
     aspect_ratio: str = "1:1",
     input_images: Optional[list[str]] = None,
+    negative_prompt: Optional[str] = None,
+    guidance_scale: Optional[float] = None,
 ) -> str:
     """Generic Fal.ai image generation helper"""
     ctx = config.get("configurable", {})
+    kwargs = {}
+    if negative_prompt:
+        kwargs["negative_prompt"] = negative_prompt
+    if guidance_scale is not None:
+        kwargs["guidance_scale"] = guidance_scale
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
         session_id=ctx.get("session_id", ""),
@@ -39,6 +48,7 @@ async def generate_image_by_fal(
         prompt=prompt,
         aspect_ratio=aspect_ratio,
         input_images=input_images,
+        **kwargs,
     )
 
 
@@ -56,8 +66,10 @@ async def generate_image_by_nano_banana_fal(
     aspect_ratio: str,
     config: RunnableConfig,
     input_images: Optional[list[str]] = None,
+    negative_prompt: Optional[str] = None,
+    guidance_scale: Optional[float] = None,
 ) -> str:
-    return await generate_image_by_fal(prompt, config, "nano-banana-pro", aspect_ratio, input_images)
+    return await generate_image_by_fal(prompt, config, "nano-banana-pro", aspect_ratio, input_images, negative_prompt, guidance_scale)
 
 
 # ============================================
@@ -74,8 +86,10 @@ async def generate_image_by_seedream_fal(
     aspect_ratio: str,
     config: RunnableConfig,
     input_images: Optional[list[str]] = None,
+    negative_prompt: Optional[str] = None,
+    guidance_scale: Optional[float] = None,
 ) -> str:
-    return await generate_image_by_fal(prompt, config, "seedream-4.5", aspect_ratio, input_images)
+    return await generate_image_by_fal(prompt, config, "seedream-4.5", aspect_ratio, input_images, negative_prompt, guidance_scale)
 
 
 # ============================================
@@ -92,8 +106,10 @@ async def generate_image_by_flux2_fal(
     aspect_ratio: str,
     config: RunnableConfig,
     input_images: Optional[list[str]] = None,
+    negative_prompt: Optional[str] = None,
+    guidance_scale: Optional[float] = None,
 ) -> str:
-    return await generate_image_by_fal(prompt, config, "flux-2-pro", aspect_ratio, input_images)
+    return await generate_image_by_fal(prompt, config, "flux-2-pro", aspect_ratio, input_images, negative_prompt, guidance_scale)
 
 
 @tool(
@@ -106,8 +122,10 @@ async def generate_image_by_flux2_max_fal(
     aspect_ratio: str,
     config: RunnableConfig,
     input_images: Optional[list[str]] = None,
+    negative_prompt: Optional[str] = None,
+    guidance_scale: Optional[float] = None,
 ) -> str:
-    return await generate_image_by_fal(prompt, config, "flux-2-max", aspect_ratio, input_images)
+    return await generate_image_by_fal(prompt, config, "flux-2-max", aspect_ratio, input_images, negative_prompt, guidance_scale)
 
 
 @tool(
@@ -120,8 +138,10 @@ async def generate_image_by_flux_kontext_fal(
     aspect_ratio: str,
     config: RunnableConfig,
     input_images: Optional[list[str]] = None,
+    negative_prompt: Optional[str] = None,
+    guidance_scale: Optional[float] = None,
 ) -> str:
-    return await generate_image_by_fal(prompt, config, "flux-kontext-pro", aspect_ratio, input_images)
+    return await generate_image_by_fal(prompt, config, "flux-kontext-pro", aspect_ratio, input_images, negative_prompt, guidance_scale)
 
 
 @tool(
@@ -134,8 +154,10 @@ async def generate_image_by_flux_kontext_max_fal(
     aspect_ratio: str,
     config: RunnableConfig,
     input_images: Optional[list[str]] = None,
+    negative_prompt: Optional[str] = None,
+    guidance_scale: Optional[float] = None,
 ) -> str:
-    return await generate_image_by_fal(prompt, config, "flux-kontext-max", aspect_ratio, input_images)
+    return await generate_image_by_fal(prompt, config, "flux-kontext-max", aspect_ratio, input_images, negative_prompt, guidance_scale)
 
 
 # ============================================
@@ -152,8 +174,10 @@ async def generate_image_by_midjourney_fal(
     aspect_ratio: str,
     config: RunnableConfig,
     input_images: Optional[list[str]] = None,
+    negative_prompt: Optional[str] = None,
+    guidance_scale: Optional[float] = None,
 ) -> str:
-    return await generate_image_by_fal(prompt, config, "midjourney", aspect_ratio, input_images)
+    return await generate_image_by_fal(prompt, config, "midjourney", aspect_ratio, input_images, negative_prompt, guidance_scale)
 
 
 @tool(
@@ -166,8 +190,10 @@ async def generate_image_by_ideogram_fal(
     aspect_ratio: str,
     config: RunnableConfig,
     input_images: Optional[list[str]] = None,
+    negative_prompt: Optional[str] = None,
+    guidance_scale: Optional[float] = None,
 ) -> str:
-    return await generate_image_by_fal(prompt, config, "ideogram-3", aspect_ratio, input_images)
+    return await generate_image_by_fal(prompt, config, "ideogram-3", aspect_ratio, input_images, negative_prompt, guidance_scale)
 
 
 @tool(
@@ -180,8 +206,10 @@ async def generate_image_by_recraft_fal(
     aspect_ratio: str,
     config: RunnableConfig,
     input_images: Optional[list[str]] = None,
+    negative_prompt: Optional[str] = None,
+    guidance_scale: Optional[float] = None,
 ) -> str:
-    return await generate_image_by_fal(prompt, config, "recraft-v3", aspect_ratio, input_images)
+    return await generate_image_by_fal(prompt, config, "recraft-v3", aspect_ratio, input_images, negative_prompt, guidance_scale)
 
 
 @tool(
@@ -194,8 +222,10 @@ async def generate_image_by_reve_fal(
     aspect_ratio: str,
     config: RunnableConfig,
     input_images: Optional[list[str]] = None,
+    negative_prompt: Optional[str] = None,
+    guidance_scale: Optional[float] = None,
 ) -> str:
-    return await generate_image_by_fal(prompt, config, "reve", aspect_ratio, input_images)
+    return await generate_image_by_fal(prompt, config, "reve", aspect_ratio, input_images, negative_prompt, guidance_scale)
 
 
 @tool(
@@ -208,8 +238,10 @@ async def generate_image_by_higgsfield_soul_fal(
     aspect_ratio: str,
     config: RunnableConfig,
     input_images: Optional[list[str]] = None,
+    negative_prompt: Optional[str] = None,
+    guidance_scale: Optional[float] = None,
 ) -> str:
-    return await generate_image_by_fal(prompt, config, "higgsfield-soul", aspect_ratio, input_images)
+    return await generate_image_by_fal(prompt, config, "higgsfield-soul", aspect_ratio, input_images, negative_prompt, guidance_scale)
 
 
 @tool(
@@ -222,8 +254,10 @@ async def generate_image_by_z_image_fal(
     aspect_ratio: str,
     config: RunnableConfig,
     input_images: Optional[list[str]] = None,
+    negative_prompt: Optional[str] = None,
+    guidance_scale: Optional[float] = None,
 ) -> str:
-    return await generate_image_by_fal(prompt, config, "z-image", aspect_ratio, input_images)
+    return await generate_image_by_fal(prompt, config, "z-image", aspect_ratio, input_images, negative_prompt, guidance_scale)
 
 
 @tool(
@@ -236,8 +270,10 @@ async def generate_image_by_kling_image_fal(
     aspect_ratio: str,
     config: RunnableConfig,
     input_images: Optional[list[str]] = None,
+    negative_prompt: Optional[str] = None,
+    guidance_scale: Optional[float] = None,
 ) -> str:
-    return await generate_image_by_fal(prompt, config, "kling-q1-image", aspect_ratio, input_images)
+    return await generate_image_by_fal(prompt, config, "kling-q1-image", aspect_ratio, input_images, negative_prompt, guidance_scale)
 
 
 @tool(
@@ -250,5 +286,7 @@ async def generate_image_by_wan_image_fal(
     aspect_ratio: str,
     config: RunnableConfig,
     input_images: Optional[list[str]] = None,
+    negative_prompt: Optional[str] = None,
+    guidance_scale: Optional[float] = None,
 ) -> str:
-    return await generate_image_by_fal(prompt, config, "wan-2.2-image", aspect_ratio, input_images)
+    return await generate_image_by_fal(prompt, config, "wan-2.2-image", aspect_ratio, input_images, negative_prompt, guidance_scale)

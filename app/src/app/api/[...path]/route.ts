@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:57989'
 
@@ -11,9 +12,6 @@ async function proxyRequest(
 
   // Forward headers (excluding host and content-length for FormData)
   const headers = new Headers()
-  const contentType = request.headers.get('content-type') || ''
-  const isFormData = contentType.includes('multipart/form-data')
-  
   request.headers.forEach((value, key) => {
     const lowerKey = key.toLowerCase()
     // Skip host and content-length (will be recalculated)
@@ -21,6 +19,23 @@ async function proxyRequest(
       headers.set(key, value)
     }
   })
+
+  // If no Authorization header from the client, inject from server-side session.
+  // The middleware already refreshed the session via getUser(), so getSession()
+  // reads the fresh token from cookies that JS on the browser may not access.
+  if (!headers.has('authorization')) {
+    try {
+      const supabase = await createClient()
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (session?.access_token) {
+        headers.set('Authorization', `Bearer ${session.access_token}`)
+      }
+    } catch {
+      // Ignore — proceed without auth header
+    }
+  }
 
   // Get the request body for non-GET requests
   let body: BodyInit | null = null

@@ -60,8 +60,8 @@ export function Header() {
       : ''
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-14 items-center px-4 gap-4">
+    <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 overflow-visible">
+      <div className="flex h-14 items-center px-4 gap-4 relative overflow-visible">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 mr-4">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-neon">
@@ -71,8 +71,8 @@ export function Header() {
         </Link>
 
         {/* Navigation Tabs */}
-        <nav className="flex-1 flex items-center justify-center">
-          <div className="flex items-center gap-1">
+        <nav className="flex-1 flex items-center justify-center overflow-visible">
+          <div className="flex items-center gap-0.5 overflow-visible overflow-x-auto scrollbar-hide">
             {NAVIGATION_TABS.map((tab) => {
               const isActive =
                 pathname === tab.path || pathname.startsWith(tab.path + '/')
@@ -80,42 +80,40 @@ export function Header() {
                 tab.hasDropdown && TABS_WITH_DROPDOWN.includes(tab.id)
               const menu = hasDropdown ? NAVIGATION_MENUS[tab.id] : null
 
-              const tabContent = (
-                <Link href={tab.path}>
-                  <motion.div
-                    className={cn(
-                      'relative px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                      'hover:text-foreground hover:bg-accent/50',
-                      isActive ? 'text-foreground' : 'text-muted-foreground'
+              const tabVisual = (
+                <motion.div
+                  className={cn(
+                    'relative px-2 py-2 text-xs font-medium rounded-md transition-colors whitespace-nowrap cursor-pointer',
+                    'hover:text-foreground hover:bg-accent/50',
+                    isActive ? 'text-foreground' : 'text-muted-foreground'
+                  )}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <span className="flex items-center gap-1 whitespace-nowrap">
+                    {tab.label}
+                    {tab.badge && (
+                      <Badge variant="neon" className="text-[9px] px-1 py-0">
+                        {tab.badge}
+                      </Badge>
                     )}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <span className="flex items-center gap-1.5">
-                      {tab.label}
-                      {tab.badge && (
-                        <Badge variant="neon" className="text-[10px] px-1.5 py-0">
-                          {tab.badge}
-                        </Badge>
-                      )}
-                    </span>
-                    {isActive && (
-                      <motion.div
-                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-neon"
-                        layoutId="activeTab"
-                        initial={false}
-                        transition={{
-                          type: 'spring',
-                          stiffness: 500,
-                          damping: 30,
-                        }}
-                        style={{
-                          boxShadow: '0 0 8px #c8ff00',
-                        }}
-                      />
-                    )}
-                  </motion.div>
-                </Link>
+                  </span>
+                  {isActive && (
+                    <motion.div
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-neon"
+                      layoutId="activeTab"
+                      initial={false}
+                      transition={{
+                        type: 'spring',
+                        stiffness: 500,
+                        damping: 30,
+                      }}
+                      style={{
+                        boxShadow: '0 0 8px #c8ff00',
+                      }}
+                    />
+                  )}
+                </motion.div>
               )
 
               if (hasDropdown && menu) {
@@ -126,12 +124,18 @@ export function Header() {
                     tabId={tab.id}
                     isActive={isActive}
                   >
-                    {tabContent}
+                    {tabVisual}
                   </NavDropdownTrigger>
                 )
               }
 
-              return <div key={tab.id}>{tabContent}</div>
+              return (
+                <div key={tab.id}>
+                  <Link href={tab.path}>
+                    {tabVisual}
+                  </Link>
+                </div>
+              )
             })}
           </div>
         </nav>

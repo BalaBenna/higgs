@@ -56,37 +56,66 @@ class OpenAIImageProvider(ImageProviderBase):
                     )
             else:
                 # Image generation mode
-                # Map aspect ratio to size - DALL-E 3 only supports these sizes
-                size_map = {
-                    "1:1": "1024x1024",
-                    "16:9": "1792x1024",
-                    "9:16": "1024x1792",
-                    "4:3": "1024x1024",  # Use square as fallback
-                    "3:4": "1024x1024"   # Use square as fallback
-                }
+                # Model-aware size mapping
+                is_dalle3 = 'dall-e-3' in model
+                if is_dalle3:
+                    # DALL-E 3 supports: 1024x1024, 1792x1024, 1024x1792
+                    size_map = {
+                        "1:1": "1024x1024",
+                        "16:9": "1792x1024",
+                        "9:16": "1024x1792",
+                        "4:3": "1792x1024",   # landscape
+                        "3:4": "1024x1792",   # portrait
+                    }
+                else:
+                    # GPT Image 1 / 1.5 supports: 1024x1024, 1536x1024, 1024x1536
+                    size_map = {
+                        "1:1": "1024x1024",
+                        "16:9": "1536x1024",
+                        "9:16": "1024x1536",
+                        "4:3": "1536x1024",   # landscape
+                        "3:4": "1024x1536",   # portrait
+                    }
                 size = size_map.get(aspect_ratio, "1024x1024")
-                
+
                 num_images = kwargs.get("num_images", 1)
-                
+
+                # DALL-E 3 native style support (vivid / natural)
+                style_param = None
+                if is_dalle3:
+                    raw_style = kwargs.get("style", "")
+                    if raw_style:
+                        style_lower = raw_style.lower()
+                        if style_lower in ("vivid", "natural"):
+                            style_param = style_lower
+                        else:
+                            # Map common style names to DALL-E 3's "vivid" or "natural"
+                            style_param = "vivid"  # default for artistic styles
+
                 # result container
                 generated_data = []
-                
+
                 # DALL-E 3 only supports n=1
-                if 'dall-e-3' in model and num_images > 1:
+                if is_dalle3 and num_images > 1:
                     print(f"DALL-E 3 detected, generating {num_images} images in parallel")
-                    
+
                     import asyncio
                     from fastapi.concurrency import run_in_threadpool
-                    
+
                     async def generate_single(idx):
                         try:
                             print(f"Starting generation {idx+1}/{num_images}")
-                            res = await run_in_threadpool(
-                                self.client.images.generate,
+                            gen_kwargs = dict(
                                 model=model,
                                 prompt=prompt,
                                 n=1,
                                 size=size,
+                            )
+                            if style_param:
+                                gen_kwargs["style"] = style_param
+                            res = await run_in_threadpool(
+                                self.client.images.generate,
+                                **gen_kwargs,
                             )
                             return res.data if res.data else []
                         except Exception as e:
@@ -96,19 +125,21 @@ class OpenAIImageProvider(ImageProviderBase):
                     # Run all requests in parallel
                     tasks = [generate_single(i) for i in range(num_images)]
                     results_list = await asyncio.gather(*tasks)
-                    
+
                     for r in results_list:
                         generated_data.extend(r)
-                        
+
                 else:
                     # For other models or single image, try batching
-                    # Note: DALL-E 2 limit is 10, but we assume client handles sane limits or we just trust API for now
-                    result = self.client.images.generate(
+                    gen_kwargs = dict(
                         model=model,
                         prompt=prompt,
                         n=num_images,
                         size=size,
                     )
+                    if style_param:
+                        gen_kwargs["style"] = style_param
+                    result = self.client.images.generate(**gen_kwargs)
                     if result.data:
                         generated_data = result.data
 

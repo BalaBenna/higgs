@@ -117,6 +117,24 @@ export const IMAGE_MODEL_MAPPINGS: ModelMapping[] = [
     type: 'image',
     isAvailable: true,
   },
+  // Black Forest Labs FLUX (generic)
+  {
+    id: 'flux-2',
+    name: 'FLUX.2',
+    provider: 'Black Forest Labs',
+    toolId: 'generate_image_by_flux_kontext_max_fal',
+    type: 'image',
+    isAvailable: true,
+  },
+  // Alibaba Wan 2.2
+  {
+    id: 'wan-2.2-image',
+    name: 'Wan 2.2 Image',
+    provider: 'Alibaba',
+    toolId: 'generate_image_by_wan_image_fal',
+    type: 'image',
+    isAvailable: true,
+  },
   // Replicate Models
   {
     id: 'flux-2-pro-replicate',
@@ -407,6 +425,89 @@ export const VIDEO_MODEL_MAPPINGS: ModelMapping[] = [
     isAvailable: true,
   },
 ]
+
+// --- Image Model Capabilities ---
+
+export interface ImageModelCapabilities {
+  aspectRatios?: string[]
+  supportsStyle?: boolean
+  styleOptions?: string[]
+  supportsNegativePrompt?: boolean
+  supportsGuidanceScale?: boolean
+  defaultGuidanceScale?: number
+  minGuidanceScale?: number
+  maxGuidanceScale?: number
+  maxImages?: number
+}
+
+export const DEFAULT_ASPECT_RATIOS = ['1:1', '16:9', '9:16', '4:3', '3:4']
+export const DEFAULT_MAX_IMAGES = 8
+
+const FAL_CAPS: ImageModelCapabilities = {
+  supportsNegativePrompt: true,
+  supportsGuidanceScale: true,
+  defaultGuidanceScale: 7.5,
+  minGuidanceScale: 1,
+  maxGuidanceScale: 20,
+  maxImages: 8,
+}
+
+const REPLICATE_CAPS: ImageModelCapabilities = {
+  maxImages: 1,
+}
+
+const IMAGE_MODEL_CAPABILITIES: Record<string, ImageModelCapabilities> = {
+  // OpenAI
+  'dall-e-3': {
+    supportsStyle: true,
+    styleOptions: ['vivid', 'natural'],
+    maxImages: 4,
+  },
+  'gpt-image-1.5': {
+    maxImages: 8,
+  },
+  // Google
+  'imagen-3': {
+    maxImages: 4,
+  },
+  // Fal models
+  'nano-banana-pro': FAL_CAPS,
+  'seedream-4.5': FAL_CAPS,
+  'seedream-4.0': FAL_CAPS,
+  'flux-2-pro': FAL_CAPS,
+  'flux-2-max': FAL_CAPS,
+  'flux-kontext-pro': FAL_CAPS,
+  'flux-kontext-max': FAL_CAPS,
+  'midjourney': FAL_CAPS,
+  'ideogram-3': FAL_CAPS,
+  'recraft-v3': FAL_CAPS,
+  'flux-2': FAL_CAPS,
+  'wan-2.2-image': FAL_CAPS,
+  'reve': FAL_CAPS,
+  'z-image': FAL_CAPS,
+  'kling-q1-image': FAL_CAPS,
+  'wan-2.0-image': FAL_CAPS,
+  // Replicate models
+  'flux-2-pro-replicate': REPLICATE_CAPS,
+  'ideogram-v3-turbo': REPLICATE_CAPS,
+  'flux-1.1-pro': REPLICATE_CAPS,
+  // xAI
+  'grok-imagine-image': {
+    aspectRatios: ['1:1', '16:9', '9:16', '4:3', '3:4', '21:9', '9:21'],
+    maxImages: 8,
+  },
+  // Jaaz/Higgsfield
+  'higgsfield-soul': {
+    maxImages: 1,
+  },
+  'higgsfield-popcorn': {
+    maxImages: 1,
+  },
+}
+
+export function getImageModelCapabilities(modelId: string): ImageModelCapabilities {
+  return IMAGE_MODEL_CAPABILITIES[modelId] ?? {}
+}
 
 export const ALL_MODEL_MAPPINGS = [...IMAGE_MODEL_MAPPINGS, ...VIDEO_MODEL_MAPPINGS]
 

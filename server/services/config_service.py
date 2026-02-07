@@ -27,19 +27,6 @@ AppConfig = Dict[str, ProviderConfig]
 
 
 DEFAULT_PROVIDERS_CONFIG: AppConfig = {
-    'jaaz': {
-        'models': {
-            # text models
-            'gpt-4o': {'type': 'text'},
-            'gpt-4o-mini': {'type': 'text'},
-            'deepseek/deepseek-chat-v3-0324': {'type': 'text'},
-            'anthropic/claude-sonnet-4': {'type': 'text'},
-            'anthropic/claude-3.7-sonnet': {'type': 'text'},
-        },
-        'url': os.getenv('BASE_API_URL', 'https://jaaz.app').rstrip('/') + '/api/v1/',
-        'api_key': '',
-        'max_tokens': 8192,
-    },
     'comfyui': {
         'models': {},
         'url': 'http://127.0.0.1:8188',
@@ -76,7 +63,8 @@ DEFAULT_PROVIDERS_CONFIG: AppConfig = {
     'replicate': {
         'models': {},
         'url': 'https://api.replicate.com/v1/',
-        'api_key': os.getenv('REPLICATE_API_KEY', '') or os.getenv('REPLICATE_API_TOKEN', ''),
+        'api_key': os.getenv('REPLICATE_API_KEY', '')
+        or os.getenv('REPLICATE_API_TOKEN', ''),
     },
     'volces': {
         'models': {},
@@ -152,10 +140,6 @@ class ConfigService:
         )
         self.initialized = False
 
-    def _get_jaaz_url(self) -> str:
-        """Get the correct jaaz URL"""
-        return os.getenv('BASE_API_URL', 'https://jaaz.app').rstrip('/') + '/api/v1/'
-
     async def initialize(self) -> None:
         try:
             # Ensure the user_data directory exists
@@ -206,14 +190,17 @@ class ConfigService:
                     ):
                         env_val = os.getenv(env_key, '')
                         # For replicate, also check REPLICATE_API_TOKEN
-                        if not _is_valid_api_key(env_val) and provider_name == 'replicate':
+                        if (
+                            not _is_valid_api_key(env_val)
+                            and provider_name == 'replicate'
+                        ):
                             env_val = os.getenv('REPLICATE_API_TOKEN', '')
                         if _is_valid_api_key(env_val):
                             self.app_config[provider_name]['api_key'] = env_val
 
-            # Ensure jaaz URL is always correct
+            # Ensure removed providers are not present
             if 'jaaz' in self.app_config:
-                self.app_config['jaaz']['url'] = self._get_jaaz_url()
+                self.app_config.pop('jaaz', None)
         except Exception as e:
             print(f"Error loading config: {e}")
             traceback.print_exc()
@@ -222,13 +209,13 @@ class ConfigService:
 
     def get_config(self) -> AppConfig:
         if 'jaaz' in self.app_config:
-            self.app_config['jaaz']['url'] = self._get_jaaz_url()
+            self.app_config.pop('jaaz', None)
         return self.app_config
 
     async def update_config(self, data: AppConfig) -> Dict[str, str]:
         try:
             if 'jaaz' in data:
-                data['jaaz']['url'] = self._get_jaaz_url()
+                data.pop('jaaz', None)
 
             os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
             with open(self.config_file, "w") as f:

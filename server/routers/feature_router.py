@@ -27,47 +27,47 @@ def normalize_file_url(url: str) -> str:
 # {prompt} is replaced with user prompt, {direction} with params.light_direction, etc.
 FEATURE_DISPATCH = {
     "face_swap": {
-        "tool_id": "generate_image_by_gpt_image_1_jaaz",
+        "tool_id": "generate_image_by_gpt_image_openai",
         "prompt_template": "Swap the face from the first image onto the person in the second image. Keep the original pose, lighting, and background. {prompt}",
     },
     "character_swap": {
-        "tool_id": "generate_image_by_gpt_image_1_jaaz",
+        "tool_id": "generate_image_by_gpt_image_openai",
         "prompt_template": "Replace the character in the target image with the character from the reference image. Maintain the scene, pose, and lighting. {prompt}",
     },
     "inpaint": {
-        "tool_id": "generate_image_by_gpt_image_1_jaaz",
+        "tool_id": "generate_image_by_gpt_image_openai",
         "prompt_template": "{prompt}",
     },
     "relight": {
-        "tool_id": "generate_image_by_gpt_image_1_jaaz",
+        "tool_id": "generate_image_by_gpt_image_openai",
         "prompt_template": "Relight this image with {direction} lighting at {intensity} intensity. Use {quality} light quality. {prompt}",
     },
     "upscale": {
-        "tool_id": "generate_image_by_gpt_image_1_jaaz",
+        "tool_id": "generate_image_by_gpt_image_openai",
         "prompt_template": "Enhance and upscale this image to higher resolution. Improve fine details, textures, and sharpness while maintaining the original composition. Scale factor: {scale}x. {prompt}",
     },
     "skin_enhance": {
-        "tool_id": "generate_image_by_gpt_image_1_jaaz",
+        "tool_id": "generate_image_by_gpt_image_openai",
         "prompt_template": "Enhance the skin in this portrait. Smooth skin texture naturally, reduce blemishes, and improve skin tone while keeping it photorealistic. {prompt}",
     },
     "background_replace": {
-        "tool_id": "generate_image_by_gpt_image_1_jaaz",
+        "tool_id": "generate_image_by_gpt_image_openai",
         "prompt_template": "Replace the background of this image with: {prompt}. Keep the main subject perfectly intact.",
     },
     "remove_objects": {
-        "tool_id": "generate_image_by_gpt_image_1_jaaz",
+        "tool_id": "generate_image_by_gpt_image_openai",
         "prompt_template": "Remove the following from this image: {prompt}. Fill in the area naturally.",
     },
     "ai_enhance": {
-        "tool_id": "generate_image_by_gpt_image_1_jaaz",
+        "tool_id": "generate_image_by_gpt_image_openai",
         "prompt_template": "Enhance this image: improve color balance, contrast, sharpness, and overall quality. Strength: {strength}. {prompt}",
     },
     "style_transfer": {
-        "tool_id": "generate_image_by_flux_kontext_pro_jaaz",
+        "tool_id": "generate_image_by_flux_kontext_pro_replicate",
         "prompt_template": "Transform this image into {style} style. {prompt}",
     },
     "smart_crop": {
-        "tool_id": "generate_image_by_gpt_image_1_jaaz",
+        "tool_id": "generate_image_by_gpt_image_openai",
         "prompt_template": "Intelligently crop and reframe this image for {aspect_ratio} aspect ratio. Focus on the main subject. {prompt}",
     },
 }

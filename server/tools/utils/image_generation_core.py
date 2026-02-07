@@ -47,6 +47,7 @@ async def generate_image_with_provider(
     input_images: Optional[list[str]] = None,
     num_images: int = 1,
     user_id: str = "",
+    **kwargs: Any,
 ) -> str:
     """
     通用图像生成函数，支持不同的模型和提供商
@@ -86,6 +87,7 @@ async def generate_image_with_provider(
         "aspect_ratio": aspect_ratio,
         "input_images": input_images or [],
         "num_images": num_images,
+        **{k: v for k, v in kwargs.items() if v is not None},
     }
 
     # Generate image using the selected provider
@@ -96,6 +98,7 @@ async def generate_image_with_provider(
         input_images=processed_input_images,
         metadata=metadata,
         num_images=metadata.get('num_images', 1),
+        **kwargs,
     )
 
     # Handle both single tuple and list of tuples return types

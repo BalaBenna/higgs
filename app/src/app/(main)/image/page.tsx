@@ -27,20 +27,33 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { GeneratedImage } from '@/components/generation/GeneratedImage'
 import { useImageGeneration } from '@/hooks/use-generation'
+import {
+  IMAGE_MODEL_MAPPINGS,
+  MODEL_TO_TOOL_MAP,
+  getImageModelCapabilities,
+  DEFAULT_ASPECT_RATIOS,
+  DEFAULT_MAX_IMAGES,
+} from '@/config/model-mappings'
 
-const IMAGE_MODELS: { id: string; name: string; provider: string; toolId: string; isComingSoon?: boolean; badge?: string }[] = [
-  { id: 'gpt-image-1.5', name: 'GPT Image 1.5', provider: 'OpenAI', toolId: 'generate_image_by_gpt_image_openai' },
-  { id: 'dall-e-3', name: 'DALL-E 3', provider: 'OpenAI', toolId: 'generate_image_by_gpt_image_openai' },
-  { id: 'imagen-3', name: 'Imagen 3', provider: 'Google', toolId: 'generate_image_by_imagen_4_jaaz' },
-  { id: 'seedream-4.5', name: 'Seedream 4.5', provider: 'ByteDance', toolId: 'generate_image_by_doubao_seedream_3_jaaz' },
-  { id: 'flux-2', name: 'FLUX.2', provider: 'Black Forest Labs', toolId: 'generate_image_by_flux_kontext_max_jaaz' },
-  { id: 'midjourney', name: 'Midjourney', provider: 'Midjourney', toolId: 'generate_image_by_midjourney_jaaz' },
-  { id: 'ideogram-3', name: 'Ideogram 3', provider: 'Ideogram', toolId: 'generate_image_by_ideogram3_bal_jaaz' },
-  { id: 'recraft-v3', name: 'Recraft V3', provider: 'Recraft', toolId: 'generate_image_by_recraft_v3_jaaz' },
-  { id: 'flux-2-pro-replicate', name: 'FLUX 2 Pro (Replicate)', provider: 'Black Forest Labs', toolId: 'generate_image_by_flux_2_pro_replicate' },
-  { id: 'ideogram-v3-turbo', name: 'Ideogram V3 Turbo', provider: 'Ideogram', toolId: 'generate_image_by_ideogram_v3_turbo_replicate' },
-  { id: 'flux-1.1-pro', name: 'FLUX 1.1 Pro', provider: 'Black Forest Labs', toolId: 'generate_image_by_flux_1_1_pro_replicate' },
-]
+// Display-only extras (badge, isComingSoon) keyed by model id
+const MODEL_EXTRAS: Record<string, { badge?: string; isComingSoon?: boolean }> = {
+  'gpt-image-1.5': { badge: 'top' },
+  'flux-2': { badge: 'new' },
+  'seedream-4.5': { badge: 'new' },
+}
+
+// Derive IMAGE_MODELS from the single source of truth, filtering out utility tools
+const EXCLUDED_TOOL_IDS = new Set(['enhance_image_by_topaz'])
+
+const IMAGE_MODELS = IMAGE_MODEL_MAPPINGS
+  .filter((m) => m.isAvailable && !EXCLUDED_TOOL_IDS.has(m.toolId))
+  .map((m) => ({
+    id: m.id,
+    name: m.name,
+    provider: m.provider,
+    isComingSoon: MODEL_EXTRAS[m.id]?.isComingSoon,
+    badge: MODEL_EXTRAS[m.id]?.badge,
+  }))
 
 const ASPECT_RATIOS = [
   { id: '1:1', label: '1:1', width: 1024, height: 1024 },
@@ -48,19 +61,8 @@ const ASPECT_RATIOS = [
   { id: '9:16', label: '9:16', width: 768, height: 1344 },
   { id: '4:3', label: '4:3', width: 1152, height: 896 },
   { id: '3:4', label: '3:4', width: 896, height: 1152 },
-]
-
-const STYLES = [
-  'None',
-  'Cinematic',
-  'Anime',
-  'Digital Art',
-  'Photography',
-  'Oil Painting',
-  'Watercolor',
-  '3D Render',
-  'Pixel Art',
-  'Comic Book',
+  { id: '21:9', label: '21:9', width: 1344, height: 576 },
+  { id: '9:21', label: '9:21', width: 576, height: 1344 },
 ]
 
 interface GeneratedImageData {
@@ -101,9 +103,40 @@ function ImagePageContent() {
         } else {
           setModel(modelParam)
         }
+      } else if (MODEL_TO_TOOL_MAP[modelParam]) {
+        // Model exists in mappings but not in page list — still select it
+        setModel(modelParam)
       }
     }
   }, [modelParam])
+
+  const caps = getImageModelCapabilities(model)
+  const availableRatios = caps.aspectRatios ?? DEFAULT_ASPECT_RATIOS
+  const maxImages = caps.maxImages ?? DEFAULT_MAX_IMAGES
+  const hasAdvancedOptions = caps.supportsNegativePrompt || caps.supportsGuidanceScale
+
+  // Reset/clamp state when model changes
+  useEffect(() => {
+    const newCaps = getImageModelCapabilities(model)
+    const newRatios = newCaps.aspectRatios ?? DEFAULT_ASPECT_RATIOS
+    const newMax = newCaps.maxImages ?? DEFAULT_MAX_IMAGES
+
+    if (!newRatios.includes(aspectRatio)) {
+      setAspectRatio(newRatios[0])
+    }
+    if (numImages > newMax) {
+      setNumImages(newMax)
+    }
+    if (!newCaps.supportsStyle) {
+      setStyle('None')
+    }
+    if (!newCaps.supportsNegativePrompt) {
+      setNegativePrompt('')
+    }
+    if (newCaps.defaultGuidanceScale !== undefined) {
+      setGuidanceScale(newCaps.defaultGuidanceScale)
+    }
+  }, [model])
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return
@@ -117,12 +150,12 @@ function ImagePageContent() {
     try {
       const result = await imageGeneration.mutateAsync({
         model,
-        prompt: style !== 'None' ? `${prompt}, ${style} style` : prompt,
-        negativePrompt: negativePrompt || undefined,
+        prompt: caps.supportsStyle && style !== 'None' ? `${prompt}, ${style} style` : prompt,
+        negativePrompt: caps.supportsNegativePrompt ? negativePrompt || undefined : undefined,
         aspectRatio,
         numImages,
-        guidanceScale,
-        style: style !== 'None' ? style : undefined,
+        guidanceScale: caps.supportsGuidanceScale ? guidanceScale : undefined,
+        style: caps.supportsStyle && style !== 'None' ? style : undefined,
       })
 
       if (result?.images) {
@@ -208,40 +241,45 @@ function ImagePageContent() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Aspect Ratio</label>
               <div className="grid grid-cols-5 gap-2">
-                {ASPECT_RATIOS.map((ratio) => (
-                  <Button
-                    key={ratio.id}
-                    variant={aspectRatio === ratio.id ? 'secondary' : 'outline'}
-                    size="sm"
-                    className={
-                      aspectRatio === ratio.id
-                        ? 'border-neon/50 bg-neon/10'
-                        : ''
-                    }
-                    onClick={() => setAspectRatio(ratio.id)}
-                  >
-                    {ratio.label}
-                  </Button>
-                ))}
+                {ASPECT_RATIOS.filter((r) => availableRatios.includes(r.id)).map(
+                  (ratio) => (
+                    <Button
+                      key={ratio.id}
+                      variant={aspectRatio === ratio.id ? 'secondary' : 'outline'}
+                      size="sm"
+                      className={
+                        aspectRatio === ratio.id
+                          ? 'border-neon/50 bg-neon/10'
+                          : ''
+                      }
+                      onClick={() => setAspectRatio(ratio.id)}
+                    >
+                      {ratio.label}
+                    </Button>
+                  )
+                )}
               </div>
             </div>
 
-            {/* Style */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Style</label>
-              <Select value={style} onValueChange={setStyle}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {STYLES.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Style - only for models with native style support */}
+            {caps.supportsStyle && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Style</label>
+                <Select value={style} onValueChange={setStyle}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="None">None</SelectItem>
+                    {caps.styleOptions?.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Number of Images */}
             <div className="space-y-3">
@@ -253,61 +291,69 @@ function ImagePageContent() {
                 value={[numImages]}
                 onValueChange={([v]) => setNumImages(v)}
                 min={1}
-                max={8}
+                max={maxImages}
                 step={1}
               />
             </div>
 
-            {/* Advanced Settings Toggle */}
-            <Button
-              variant="ghost"
-              className="w-full justify-between"
-              onClick={() => setShowAdvanced(!showAdvanced)}
-            >
-              <span className="flex items-center gap-2">
-                <Settings2 className="h-4 w-4" />
-                Advanced Settings
-              </span>
-              <ChevronDown
-                className={`h-4 w-4 transition-transform ${
-                  showAdvanced ? 'rotate-180' : ''
-                }`}
-              />
-            </Button>
-
-            {/* Advanced Settings */}
-            {showAdvanced && (
-              <motion.div
-                className="space-y-4 pt-2"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-              >
-                {/* Negative Prompt */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Negative Prompt</label>
-                  <Textarea
-                    placeholder="What to avoid in the image..."
-                    value={negativePrompt}
-                    onChange={(e) => setNegativePrompt(e.target.value)}
-                    className="min-h-[80px] resize-none"
+            {/* Advanced Settings Toggle - only when model has advanced options */}
+            {hasAdvancedOptions && (
+              <>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-between"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                >
+                  <span className="flex items-center gap-2">
+                    <Settings2 className="h-4 w-4" />
+                    Advanced Settings
+                  </span>
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${
+                      showAdvanced ? 'rotate-180' : ''
+                    }`}
                   />
-                </div>
+                </Button>
 
-                {/* Guidance Scale */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium">Guidance Scale</label>
-                    <Badge variant="secondary">{guidanceScale}</Badge>
-                  </div>
-                  <Slider
-                    value={[guidanceScale]}
-                    onValueChange={([v]) => setGuidanceScale(v)}
-                    min={1}
-                    max={20}
-                    step={0.5}
-                  />
-                </div>
-              </motion.div>
+                {/* Advanced Settings */}
+                {showAdvanced && (
+                  <motion.div
+                    className="space-y-4 pt-2"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                  >
+                    {/* Negative Prompt */}
+                    {caps.supportsNegativePrompt && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Negative Prompt</label>
+                        <Textarea
+                          placeholder="What to avoid in the image..."
+                          value={negativePrompt}
+                          onChange={(e) => setNegativePrompt(e.target.value)}
+                          className="min-h-[80px] resize-none"
+                        />
+                      </div>
+                    )}
+
+                    {/* Guidance Scale */}
+                    {caps.supportsGuidanceScale && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium">Guidance Scale</label>
+                          <Badge variant="secondary">{guidanceScale}</Badge>
+                        </div>
+                        <Slider
+                          value={[guidanceScale]}
+                          onValueChange={([v]) => setGuidanceScale(v)}
+                          min={caps.minGuidanceScale ?? 1}
+                          max={caps.maxGuidanceScale ?? 20}
+                          step={0.5}
+                        />
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </>
             )}
           </div>
         </ScrollArea>

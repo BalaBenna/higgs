@@ -20,7 +20,7 @@ from utils.http_client import HttpClient
 from models.config_model import ModelInfo
 from typing import List, Optional
 from services.tool_service import TOOL_MAPPING
-from middleware.auth import get_current_user, optional_auth
+from middleware.auth import get_current_user
 
 router = APIRouter(prefix="/api")
 
@@ -141,7 +141,7 @@ class ImageGenerateRequest(BaseModel):
 
 
 @router.post("/generate/image")
-async def generate_image(req: ImageGenerateRequest, user_id: str = Depends(get_current_user)):
+async def generate_image(req: ImageGenerateRequest):
     """Direct image generation endpoint that invokes a tool by name."""
     tool_info = TOOL_MAPPING.get(req.tool) or tool_service.tools.get(req.tool)
     if not tool_info:
@@ -161,7 +161,7 @@ async def generate_image(req: ImageGenerateRequest, user_id: str = Depends(get_c
         )
 
     session_id = f"direct_{uuid.uuid4().hex[:8]}"
-    config = {"configurable": {"canvas_id": "", "session_id": session_id, "user_id": user_id}}
+    config = {"configurable": {"canvas_id": "", "session_id": session_id}}
 
     # Check if this tool accepts input_images
     sig = inspect.signature(tool_fn.coroutine) if hasattr(tool_fn, 'coroutine') else None
@@ -176,6 +176,28 @@ async def generate_image(req: ImageGenerateRequest, user_id: str = Depends(get_c
         if 'num_images' in schema.__fields__:
             has_num_images = True
 
+    # Check if this tool natively accepts negative_prompt, guidance_scale, style
+    params = sig.parameters if sig else {}
+    has_negative_prompt = 'negative_prompt' in params
+    has_guidance_scale = 'guidance_scale' in params
+    has_style = 'style' in params
+    # Also check args_schema for these fields
+    if hasattr(tool_fn, 'args_schema') and tool_fn.args_schema:
+        schema_fields = tool_fn.args_schema.__fields__
+        if not has_negative_prompt and 'negative_prompt' in schema_fields:
+            has_negative_prompt = True
+        if not has_guidance_scale and 'guidance_scale' in schema_fields:
+            has_guidance_scale = True
+        if not has_style and 'style' in schema_fields:
+            has_style = True
+
+    # Build effective prompt with fallbacks for params the tool doesn't natively support
+    effective_prompt = req.prompt
+    if req.negative_prompt and not has_negative_prompt:
+        effective_prompt = f"{effective_prompt}. Avoid: {req.negative_prompt}"
+    if req.style and not has_style:
+        effective_prompt = f"{effective_prompt}, {req.style} style"
+
     try:
         results = []
         
@@ -183,12 +205,18 @@ async def generate_image(req: ImageGenerateRequest, user_id: str = Depends(get_c
         if has_num_images and (req.num_images or 1) > 1:
             call_id = f"call_{uuid.uuid4().hex[:8]}"
             invoke_args = {
-                "prompt": req.prompt,
+                "prompt": effective_prompt,
                 "aspect_ratio": req.aspect_ratio or "1:1",
                 "num_images": req.num_images,
             }
             if has_input_images and req.input_images:
                 invoke_args["input_images"] = req.input_images
+            if has_negative_prompt and req.negative_prompt:
+                invoke_args["negative_prompt"] = req.negative_prompt
+            if has_guidance_scale and req.guidance_scale is not None:
+                invoke_args["guidance_scale"] = req.guidance_scale
+            if has_style and req.style:
+                invoke_args["style"] = req.style
                 
             try:
                 result = await tool_fn.ainvoke(
@@ -226,11 +254,17 @@ async def generate_image(req: ImageGenerateRequest, user_id: str = Depends(get_c
             for i in range(req.num_images or 1):
                 call_id = f"call_{uuid.uuid4().hex[:8]}"
                 invoke_args = {
-                    "prompt": req.prompt,
+                    "prompt": effective_prompt,
                     "aspect_ratio": req.aspect_ratio or "1:1",
                 }
                 if has_input_images and req.input_images:
                     invoke_args["input_images"] = req.input_images
+                if has_negative_prompt and req.negative_prompt:
+                    invoke_args["negative_prompt"] = req.negative_prompt
+                if has_guidance_scale and req.guidance_scale is not None:
+                    invoke_args["guidance_scale"] = req.guidance_scale
+                if has_style and req.style:
+                    invoke_args["style"] = req.style
                 try:
                     result = await tool_fn.ainvoke(
                         invoke_args,
@@ -286,7 +320,6 @@ async def generate_video(
     voice_id: Optional[str] = Form(None),
     voice_speed: Optional[str] = Form(None),
     lip_sync_text: Optional[str] = Form(None),
-    user_id: str = Depends(get_current_user),
 ):
     """Direct video generation endpoint that invokes a tool by name."""
     tool_info = TOOL_MAPPING.get(tool) or tool_service.tools.get(tool)
@@ -307,7 +340,7 @@ async def generate_video(
         )
 
     session_id = f"direct_{uuid.uuid4().hex[:8]}"
-    config = {"configurable": {"canvas_id": "", "session_id": session_id, "user_id": user_id}}
+    config = {"configurable": {"canvas_id": "", "session_id": session_id}}
 
     try:
         call_id = f"call_{uuid.uuid4().hex[:8]}"

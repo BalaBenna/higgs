@@ -115,6 +115,10 @@ class ReplicateImageProvider(ImageProviderBase):
                     print(
                         "Warning: Replicate format only supports single image input. Using first image.")
 
+            # Forward supported kwargs to Replicate input
+            if kwargs.get("negative_prompt"):
+                data["input"]["negative_prompt"] = kwargs["negative_prompt"]
+
             # Make request
             res = await self._make_request(url, headers, data)
 

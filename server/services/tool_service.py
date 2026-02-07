@@ -5,8 +5,6 @@ from langchain_core.tools import BaseTool
 from models.tool_model import ToolInfo
 from tools.comfy_dynamic import build_tool
 from tools.write_plan import write_plan_tool
-from tools.generate_image_by_gpt_image_1_jaaz import generate_image_by_gpt_image_1_jaaz
-from tools.generate_image_by_imagen_4_jaaz import generate_image_by_imagen_4_jaaz
 from tools.generate_image_by_imagen_4_replicate import (
     generate_image_by_imagen_4_replicate,
 )
@@ -19,25 +17,11 @@ from tools.generate_image_by_ideogram_v3_turbo_replicate import (
 from tools.generate_image_by_flux_1_1_pro_replicate import (
     generate_image_by_flux_1_1_pro_replicate,
 )
-from tools.generate_image_by_ideogram3_bal_jaaz import (
-    generate_image_by_ideogram3_bal_jaaz,
-)
-
-# from tools.generate_image_by_flux_1_1_pro import generate_image_by_flux_1_1_pro
-from tools.generate_image_by_flux_kontext_pro_jaaz import (
-    generate_image_by_flux_kontext_pro_jaaz,
-)
 from tools.generate_image_by_flux_kontext_pro_replicate import (
     generate_image_by_flux_kontext_pro_replicate,
 )
-from tools.generate_image_by_flux_kontext_max_jaaz import (
-    generate_image_by_flux_kontext_max,
-)
 from tools.generate_image_by_flux_kontext_max_replicate import (
     generate_image_by_flux_kontext_max_replicate,
-)
-from tools.generate_image_by_doubao_seedream_3_jaaz import (
-    generate_image_by_doubao_seedream_3_jaaz,
 )
 from tools.generate_image_by_doubao_seedream_3_volces import (
     generate_image_by_doubao_seedream_3_volces,
@@ -45,7 +29,6 @@ from tools.generate_image_by_doubao_seedream_3_volces import (
 from tools.generate_image_by_doubao_seededit_3_volces import (
     edit_image_by_doubao_seededit_3_volces,
 )
-from tools.generate_video_by_seedance_v1_jaaz import generate_video_by_seedance_v1_jaaz
 from tools.generate_video_by_seedance_v1_pro_volces import (
     generate_video_by_seedance_v1_pro_volces,
 )
@@ -53,14 +36,9 @@ from tools.generate_video_by_seedance_v1_lite_volces import (
     generate_video_by_seedance_v1_lite_t2v,
     generate_video_by_seedance_v1_lite_i2v,
 )
-from tools.generate_video_by_kling_v2_jaaz import generate_video_by_kling_v2_jaaz
-from tools.generate_image_by_recraft_v3_jaaz import generate_image_by_recraft_v3_jaaz
 from tools.generate_image_by_recraft_v3_replicate import (
     generate_image_by_recraft_v3_replicate,
 )
-from tools.generate_video_by_hailuo_02_jaaz import generate_video_by_hailuo_02_jaaz
-from tools.generate_video_by_veo3_fast_jaaz import generate_video_by_veo3_fast_jaaz
-from tools.generate_image_by_midjourney_jaaz import generate_image_by_midjourney_jaaz
 from tools.generate_image_by_grok_imagine_xai import generate_image_by_grok_imagine_xai
 from tools.generate_video_by_grok_imagine_xai import generate_video_by_grok_imagine_xai
 from tools.stub_image_tools import (
@@ -102,20 +80,6 @@ from tools.kling_replicate_tools import (
     generate_video_by_kling_avatar_v2_replicate,
     generate_video_by_kling_lip_sync_replicate,
 )
-from tools.feature_tools import (
-    feature_face_swap_jaaz,
-    feature_character_swap_jaaz,
-    feature_video_face_swap_jaaz,
-    feature_inpaint_jaaz,
-    feature_relight_jaaz,
-    feature_upscale_jaaz,
-    feature_skin_enhancer_jaaz,
-    feature_ai_stylist_jaaz,
-    feature_draw_to_edit_jaaz,
-    feature_lipsync_jaaz,
-    feature_soul_id_character_jaaz,
-)
-
 # Fal.ai Image Tools
 from tools.fal_image_tools import (
     generate_image_by_nano_banana_fal,
@@ -161,67 +125,14 @@ from tools.direct_image_tools import (
 from tools.google_veo_tools import generate_video_by_veo_google
 from services.config_service import config_service
 from services.db_service import db_service
+from services.supabase_service import is_supabase_configured
 
 TOOL_MAPPING: Dict[str, ToolInfo] = {
-    "generate_image_by_gpt_image_1_jaaz": {
-        "display_name": "GPT Image 1",
-        "type": "image",
-        "provider": "jaaz",
-        "tool_function": generate_image_by_gpt_image_1_jaaz,
-    },
-    "generate_image_by_imagen_4_jaaz": {
-        "display_name": "Imagen 4",
-        "type": "image",
-        "provider": "jaaz",
-        "tool_function": generate_image_by_imagen_4_jaaz,
-    },
-    "generate_image_by_recraft_v3_jaaz": {
-        "display_name": "Recraft v3",
-        "type": "image",
-        "provider": "jaaz",
-        "tool_function": generate_image_by_recraft_v3_jaaz,
-    },
-    "generate_image_by_ideogram3_bal_jaaz": {
-        "display_name": "Ideogram 3 Balanced",
-        "type": "image",
-        "provider": "jaaz",
-        "tool_function": generate_image_by_ideogram3_bal_jaaz,
-    },
-    # "generate_image_by_flux_1_1_pro_jaaz": {
-    #     "display_name": "Flux 1.1 Pro",
-    #     "type": "image",
-    #     "provider": "jaaz",
-    #     "tool_function": generate_image_by_flux_1_1_pro,
-    # },
-    "generate_image_by_flux_kontext_pro_jaaz": {
-        "display_name": "Flux Kontext Pro",
-        "type": "image",
-        "provider": "jaaz",
-        "tool_function": generate_image_by_flux_kontext_pro_jaaz,
-    },
-    "generate_image_by_flux_kontext_max_jaaz": {
-        "display_name": "Flux Kontext Max",
-        "type": "image",
-        "provider": "jaaz",
-        "tool_function": generate_image_by_flux_kontext_max,
-    },
-    "generate_image_by_midjourney_jaaz": {
-        "display_name": "Midjourney",
-        "type": "image",
-        "provider": "jaaz",
-        "tool_function": generate_image_by_midjourney_jaaz,
-    },
     "generate_image_by_grok_imagine_xai": {
         "display_name": "Grok Imagine",
         "type": "image",
         "provider": "xai",
         "tool_function": generate_image_by_grok_imagine_xai,
-    },
-    "generate_image_by_doubao_seedream_3_jaaz": {
-        "display_name": "Doubao Seedream 3",
-        "type": "image",
-        "provider": "jaaz",
-        "tool_function": generate_image_by_doubao_seedream_3_jaaz,
     },
     "generate_image_by_doubao_seedream_3_volces": {
         "display_name": "Doubao Seedream 3 by volces",
@@ -234,24 +145,6 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
         "type": "image",
         "provider": "volces",
         "tool_function": edit_image_by_doubao_seededit_3_volces,
-    },
-    "generate_video_by_seedance_v1_jaaz": {
-        "display_name": "Doubao Seedance v1",
-        "type": "video",
-        "provider": "jaaz",
-        "tool_function": generate_video_by_seedance_v1_jaaz,
-    },
-    "generate_video_by_hailuo_02_jaaz": {
-        "display_name": "Hailuo 02",
-        "type": "video",
-        "provider": "jaaz",
-        "tool_function": generate_video_by_hailuo_02_jaaz,
-    },
-    "generate_video_by_kling_v2_jaaz": {
-        "display_name": "Kling v2.1 Standard",
-        "type": "video",
-        "provider": "jaaz",
-        "tool_function": generate_video_by_kling_v2_jaaz,
     },
     "generate_video_by_seedance_v1_pro_volces": {
         "display_name": "Doubao Seedance v1 by volces",
@@ -270,12 +163,6 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
         "type": "video",
         "provider": "volces",
         "tool_function": generate_video_by_seedance_v1_lite_i2v,
-    },
-    "generate_video_by_veo3_fast_jaaz": {
-        "display_name": "Veo3 Fast",
-        "type": "video",
-        "provider": "jaaz",
-        "tool_function": generate_video_by_veo3_fast_jaaz,
     },
     # ---------------
     # Replicate Tools
@@ -536,75 +423,6 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
         "tool_function": generate_video_by_kling_lip_sync_replicate,
     },
     # ---------------
-    # Feature Tools
-    # ---------------
-    "feature_face_swap_jaaz": {
-        "display_name": "Face Swap",
-        "type": "image",
-        "provider": "jaaz",
-        "tool_function": feature_face_swap_jaaz,
-    },
-    "feature_character_swap_jaaz": {
-        "display_name": "Character Swap",
-        "type": "image",
-        "provider": "jaaz",
-        "tool_function": feature_character_swap_jaaz,
-    },
-    "feature_video_face_swap_jaaz": {
-        "display_name": "Video Face Swap",
-        "type": "video",
-        "provider": "jaaz",
-        "tool_function": feature_video_face_swap_jaaz,
-    },
-    "feature_inpaint_jaaz": {
-        "display_name": "Inpaint",
-        "type": "image",
-        "provider": "jaaz",
-        "tool_function": feature_inpaint_jaaz,
-    },
-    "feature_relight_jaaz": {
-        "display_name": "Relight",
-        "type": "image",
-        "provider": "jaaz",
-        "tool_function": feature_relight_jaaz,
-    },
-    "feature_upscale_jaaz": {
-        "display_name": "Upscale",
-        "type": "image",
-        "provider": "jaaz",
-        "tool_function": feature_upscale_jaaz,
-    },
-    "feature_skin_enhancer_jaaz": {
-        "display_name": "Skin Enhancer",
-        "type": "image",
-        "provider": "jaaz",
-        "tool_function": feature_skin_enhancer_jaaz,
-    },
-    "feature_ai_stylist_jaaz": {
-        "display_name": "AI Stylist",
-        "type": "image",
-        "provider": "jaaz",
-        "tool_function": feature_ai_stylist_jaaz,
-    },
-    "feature_draw_to_edit_jaaz": {
-        "display_name": "Draw to Edit",
-        "type": "image",
-        "provider": "jaaz",
-        "tool_function": feature_draw_to_edit_jaaz,
-    },
-    "feature_lipsync_jaaz": {
-        "display_name": "Lipsync",
-        "type": "video",
-        "provider": "jaaz",
-        "tool_function": feature_lipsync_jaaz,
-    },
-    "feature_soul_id_character_jaaz": {
-        "display_name": "Soul ID Character",
-        "type": "image",
-        "provider": "jaaz",
-        "tool_function": feature_soul_id_character_jaaz,
-    },
-    # ---------------
     # Fal.ai Image Tools
     # ---------------
     "generate_image_by_nano_banana_fal": {
@@ -829,34 +647,20 @@ class ToolService:
                 if self._has_valid_key(provider_name):
                     active_providers.add(provider_name)
 
-            # "jaaz" provider tools are wrappers that route to real providers.
-            # Register them if ANY real generation provider is available.
-            has_any_generation_provider = bool(
-                active_providers
-                & {
-                    'openai',
-                    'fal',
-                    'google-ai',
-                    'vertex-ai',
-                    'replicate',
-                    'wavespeed',
-                    'xai',
-                }
-            )
-            if has_any_generation_provider:
-                active_providers.add('jaaz')
-
             for provider_name in active_providers:
                 for tool_id, tool_info in TOOL_MAPPING.items():
                     if tool_info.get("provider") == provider_name:
                         self.register_tool(tool_id, tool_info)
 
-            # Register comfyui workflow tools
-            if config_service.app_config.get("comfyui", {}).get("url", ""):
+            # Register comfyui workflow tools (requires Supabase config)
+            if (
+                config_service.app_config.get("comfyui", {}).get("url", "")
+                and is_supabase_configured()
+            ):
                 await register_comfy_tools()
         except Exception as e:
             print(f"❌ Failed to initialize tool service: {e}")
-            traceback.print_stack()
+            traceback.print_exc()
 
     def get_tool(self, tool_name: str) -> BaseTool | None:
         tool_info = self.tools.get(tool_name)
@@ -882,12 +686,15 @@ async def register_comfy_tools() -> Dict[str, BaseTool]:
     Fetch all workflows from DB and build tool callables.
     Run inside the current event loop.
     """
+    if not is_supabase_configured():
+        print("[comfy_dynamic] Supabase not configured; skipping comfy tools.")
+        return {}
     dynamic_comfy_tools: Dict[str, BaseTool] = {}
     try:
         workflows = await db_service.list_comfy_workflows()
     except Exception as exc:  # pragma: no cover
         print("[comfy_dynamic] Failed to list comfy workflows:", exc)
-        traceback.print_stack()
+        traceback.print_exc()
         return {}
 
     for wf in workflows:
@@ -910,6 +717,6 @@ async def register_comfy_tools() -> Dict[str, BaseTool]:
             print(
                 f"[comfy_dynamic] Failed to create tool for workflow {wf.get('id')}: {exc}"
             )
-            print(traceback.print_stack())
+            traceback.print_exc()
 
     return dynamic_comfy_tools
