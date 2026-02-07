@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:57989'
+const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:57988'
 
 async function proxyRequest(
   request: NextRequest,
@@ -61,6 +61,16 @@ async function proxyRequest(
     response.headers.forEach((value, key) => {
       responseHeaders.set(key, value)
     })
+
+    // Stream SSE responses directly without buffering
+    const contentType = response.headers.get('content-type') || ''
+    if (contentType.includes('text/event-stream')) {
+      return new NextResponse(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: responseHeaders,
+      })
+    }
 
     const responseBody = await response.arrayBuffer()
 

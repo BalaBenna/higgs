@@ -30,11 +30,14 @@ class GoogleAIImageProvider(ImageProviderBase):
         except ImportError:
             raise ImportError("Please install google-genai: pip install google-genai")
 
-        config = config_service.app_config.get('vertex-ai', {})
+        config = config_service.app_config.get('google-ai', {})
         api_key = str(config.get("api_key", ""))
+        if not api_key:
+            config = config_service.app_config.get('vertex-ai', {})
+            api_key = str(config.get("api_key", ""))
 
         if not api_key:
-            raise ValueError("Google AI Studio API key is not configured. Set GOOGLE_VERTEX_AI_API_KEY in .env")
+            raise ValueError("Google AI API key is not configured. Set GOOGLE_API_KEY or GOOGLE_VERTEX_AI_API_KEY in .env")
 
         try:
             client = genai.Client(api_key=api_key)

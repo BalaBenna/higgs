@@ -116,11 +116,14 @@ export default function FashionPage() {
         if (!response.ok) {
           let errorMsg = 'Generation failed'
           try {
-            const errorData = await response.json()
-            errorMsg = errorData.detail || errorData.message || errorMsg
-          } catch {
-            errorMsg = await response.text() || errorMsg
-          }
+            const errorText = await response.text()
+            try {
+              const errorData = JSON.parse(errorText)
+              errorMsg = errorData.detail || errorData.message || errorMsg
+            } catch {
+              errorMsg = errorText || errorMsg
+            }
+          } catch {}
           throw new Error(errorMsg)
         }
 

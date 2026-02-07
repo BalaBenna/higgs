@@ -45,6 +45,8 @@ interface ModelCapabilities {
   requiresVideo?: boolean
   requiresAudio?: boolean
   isKlingReplicate?: boolean
+  supportedDurations?: number[]
+  supportedAspectRatios?: string[]
 }
 
 const MODEL_CAPABILITIES: Record<string, ModelCapabilities> = {
@@ -107,6 +109,12 @@ const MODEL_CAPABILITIES: Record<string, ModelCapabilities> = {
     requiresAudio: true,
     isKlingReplicate: true,
   },
+  'sora-2': {
+    supportedDurations: [5, 10, 20],
+  },
+  'veo-3.1': {
+    supportedAspectRatios: ['16:9', '9:16'],
+  },
 }
 
 interface VideoModelDef {
@@ -127,39 +135,32 @@ const VIDEO_MODELS: VideoModelDef[] = [
     toolId: 'generate_video_by_higgsfield_dop_jaaz',
   },
   {
-    id: 'kling-2.6',
-    name: 'Kling 2.6',
-    provider: 'Kuaishou',
-    quality: 'High',
-    toolId: 'generate_video_by_kling_v2_jaaz',
-  },
-  {
     id: 'veo-3.1',
     name: 'Google Veo 3.1',
     provider: 'Google',
     quality: 'Ultra',
-    toolId: 'generate_video_by_veo3_fast_jaaz',
+    toolId: 'generate_video_by_veo_google',
   },
   {
     id: 'seedance-1.5-pro',
     name: 'Seedance 1.5 Pro',
     provider: 'ByteDance',
     quality: 'High',
-    toolId: 'generate_video_by_seedance_v1_jaaz',
+    toolId: 'generate_video_by_seedance_v1_pro_volces',
   },
   {
     id: 'hailuo-o2',
     name: 'Minimax Hailuo O2',
     provider: 'MiniMax',
     quality: 'High',
-    toolId: 'generate_video_by_hailuo_02_jaaz',
+    toolId: 'generate_video_by_hailuo_o2_replicate',
   },
   {
     id: 'grok-imagine',
     name: 'Grok Imagine',
     provider: 'xAI',
     badge: 'new',
-    toolId: 'generate_video_by_grok_imagine_jaaz',
+    toolId: 'generate_video_by_grok_imagine_xai',
   },
   {
     id: 'kling-3.0',
@@ -169,29 +170,16 @@ const VIDEO_MODELS: VideoModelDef[] = [
     toolId: 'generate_video_by_kling_3_jaaz',
   },
   {
-    id: 'kling-motion-control',
-    name: 'Kling Motion Control',
-    provider: 'Kuaishou',
-    badge: 'new',
-    toolId: 'generate_video_by_kling_motion_control_jaaz',
-  },
-  {
     id: 'sora-2',
     name: 'Sora 2',
     provider: 'OpenAI',
-    toolId: 'generate_video_by_sora_2_jaaz',
+    toolId: 'generate_video_by_sora_openai',
   },
   {
     id: 'wan-2.6',
     name: 'Wan 2.6',
     provider: 'Alibaba',
     toolId: 'generate_video_by_wan_2_6_jaaz',
-  },
-  {
-    id: 'kling-avatars-2.0',
-    name: 'Kling Avatars 2.0',
-    provider: 'Kuaishou',
-    toolId: 'generate_video_by_kling_avatars_2_jaaz',
   },
   // Kling Replicate models
   {
@@ -261,9 +249,10 @@ const VIDEO_MODELS: VideoModelDef[] = [
   },
 ]
 
-const DURATIONS = [
+const ALL_DURATIONS = [
   { id: '5', label: '5 seconds' },
   { id: '10', label: '10 seconds' },
+  { id: '20', label: '20 seconds' },
 ]
 
 const RESOLUTIONS = [
@@ -304,7 +293,7 @@ function VideoPageContent() {
 
   const [mode, setMode] = useState<'text' | 'image'>('text')
   const [prompt, setPrompt] = useState('')
-  const [model, setModel] = useState('kling-2.6')
+  const [model, setModel] = useState('kling-v2.6-replicate')
   const [duration, setDuration] = useState('5')
   const [resolution, setResolution] = useState('720p')
   const [aspectRatio, setAspectRatio] = useState('16:9')
@@ -684,7 +673,10 @@ function VideoPageContent() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Duration</label>
               <div className="grid grid-cols-2 gap-2">
-                {DURATIONS.map((d) => (
+                {ALL_DURATIONS.filter((d) => {
+                  const supported = caps.supportedDurations || [5, 10]
+                  return supported.includes(parseInt(d.id))
+                }).map((d) => (
                   <Button
                     key={d.id}
                     variant={duration === d.id ? 'secondary' : 'outline'}
@@ -723,7 +715,10 @@ function VideoPageContent() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Aspect Ratio</label>
               <div className="grid grid-cols-3 gap-2">
-                {ASPECT_RATIOS.map((a) => (
+                {ASPECT_RATIOS.filter((a) => {
+                  const supported = caps.supportedAspectRatios
+                  return !supported || supported.includes(a.id)
+                }).map((a) => (
                   <Button
                     key={a.id}
                     variant={aspectRatio === a.id ? 'secondary' : 'outline'}

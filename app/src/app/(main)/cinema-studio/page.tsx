@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -42,6 +42,24 @@ import {
   type AspectRatio,
   type Duration,
 } from '@/stores/cinema-studio-store'
+import { useImageGeneration, useVideoGeneration } from '@/hooks/use-generation'
+import { useUpload } from '@/hooks/use-upload'
+import { toast } from 'sonner'
+
+const IMAGE_MODELS = [
+  { id: 'gpt-image-1.5', name: 'GPT Image 1.5' },
+  { id: 'imagen-4', name: 'Imagen 4' },
+  { id: 'flux-2-pro-replicate', name: 'FLUX 2 Pro' },
+  { id: 'ideogram-v3-turbo', name: 'Ideogram V3 Turbo' },
+]
+
+const VIDEO_MODELS_CINEMA = [
+  { id: 'kling-v2.6-replicate', name: 'Kling v2.6' },
+  { id: 'veo-3.1', name: 'Google Veo 3.1' },
+  { id: 'sora-2', name: 'Sora 2' },
+  { id: 'hailuo-o2', name: 'Hailuo O2' },
+  { id: 'seedance-1.5-pro', name: 'Seedance 1.5 Pro' },
+]
 
 const ASPECT_RATIO_OPTIONS: { value: AspectRatio; label: string; icon: string }[] = [
   { value: '16:9', label: '16:9', icon: '⬜' },
@@ -57,6 +75,11 @@ const DURATION_OPTIONS: { value: Duration; label: string }[] = [
 export default function CinemaStudioPage() {
   const startFrameRef = useRef<HTMLInputElement>(null)
   const endFrameRef = useRef<HTMLInputElement>(null)
+  const [selectedModel, setSelectedModel] = useState('kling-v2.6-replicate')
+
+  const imageGeneration = useImageGeneration()
+  const videoGeneration = useVideoGeneration()
+  const { upload: uploadFile } = useUpload()
 
   const {
     mode,
@@ -83,6 +106,7 @@ export default function CinemaStudioPage() {
     sidebarVisible,
     setSidebarVisible,
     generatedContent,
+    addGeneratedContent,
   } = useCinemaStudioStore()
 
   const handleStartFrameChange = useCallback(
@@ -101,12 +125,75 @@ export default function CinemaStudioPage() {
     [setEndFrame]
   )
 
-  const handleGenerate = useCallback(() => {
+  const handleGenerate = useCallback(async () => {
     if (!prompt.trim() && !startFrame) return
     setIsGenerating(true)
-    // Simulate generation
-    setTimeout(() => setIsGenerating(false), 5000)
-  }, [prompt, startFrame, setIsGenerating])
+
+    const cameraPrompt = `Shot on ${camera.name}, ${camera.lens} lens, f/${camera.focalLength}. ${prompt}`
+
+    try {
+      if (mode === 'image') {
+        const modelId = IMAGE_MODELS.find((m) => m.id === selectedModel)
+          ? selectedModel
+          : IMAGE_MODELS[0].id
+
+        const inputImages: string[] = []
+        if (startFrame) {
+          const uploadResult = await uploadFile(startFrame)
+          if (uploadResult?.url) inputImages.push(uploadResult.url)
+        }
+
+        const result = await imageGeneration.mutateAsync({
+          model: modelId,
+          prompt: cameraPrompt,
+          aspectRatio: aspectRatio,
+          numImages: frameCount,
+          inputImages: inputImages.length > 0 ? inputImages : undefined,
+        })
+
+        if (result?.images) {
+          for (const img of result.images) {
+            addGeneratedContent({
+              type: 'image',
+              url: img.url || img.src || '',
+              prompt,
+            })
+          }
+          toast.success('Images generated!')
+        }
+      } else {
+        const modelId = VIDEO_MODELS_CINEMA.find((m) => m.id === selectedModel)
+          ? selectedModel
+          : VIDEO_MODELS_CINEMA[0].id
+
+        const result = await videoGeneration.mutateAsync({
+          model: modelId,
+          prompt: cameraPrompt,
+          duration: duration,
+          aspectRatio: aspectRatio,
+          sourceImage: startFrame,
+        })
+
+        if (result?.url) {
+          addGeneratedContent({
+            type: 'video',
+            url: result.url,
+            prompt,
+          })
+          toast.success('Video generated!')
+        }
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Generation failed'
+      toast.error(message)
+    } finally {
+      setIsGenerating(false)
+    }
+  }, [
+    prompt, startFrame, mode, selectedModel, camera, aspectRatio,
+    frameCount, duration, setIsGenerating, addGeneratedContent,
+    imageGeneration, videoGeneration, uploadFile,
+  ])
 
   const creditCost = mode === 'video' ? (duration === 5 ? 2 : 8) : 1
 
@@ -295,6 +382,25 @@ export default function CinemaStudioPage() {
                     Video
                   </Button>
                 </div>
+
+                {/* Model Selector */}
+                <Select
+                  value={selectedModel}
+                  onValueChange={setSelectedModel}
+                >
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="Select model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(mode === 'image' ? IMAGE_MODELS : VIDEO_MODELS_CINEMA).map(
+                      (m) => (
+                        <SelectItem key={m.id} value={m.id}>
+                          {m.name}
+                        </SelectItem>
+                      )
+                    )}
+                  </SelectContent>
+                </Select>
 
                 {/* Settings Grid */}
                 <div className="grid grid-cols-2 gap-2">

@@ -28,10 +28,11 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { useVideoGeneration } from '@/hooks/use-generation'
 
 const VIDEO_MODELS = [
-  { id: 'kling-2.6', name: 'Kling 2.6', provider: 'Kuaishou', quality: 'High' },
+  { id: 'kling-v2.6-replicate', name: 'Kling v2.6', provider: 'Kuaishou', quality: 'High' },
   { id: 'veo-3.1', name: 'Google Veo 3.1', provider: 'Google', quality: 'Ultra' },
   { id: 'seedance-1.5-pro', name: 'Seedance 1.5 Pro', provider: 'ByteDance', quality: 'High' },
   { id: 'hailuo-o2', name: 'Minimax Hailuo O2', provider: 'MiniMax', quality: 'High' },
+  { id: 'sora-2', name: 'Sora 2', provider: 'OpenAI', quality: 'High' },
 ]
 
 const TRANSITIONS = [
@@ -66,7 +67,7 @@ export default function MixedMediaPage() {
   const [textOverlay, setTextOverlay] = useState('')
   const [description, setDescription] = useState('')
   const [transition, setTransition] = useState('smooth')
-  const [model, setModel] = useState('kling-2.6')
+  const [model, setModel] = useState('kling-v2.6-replicate')
   const [duration, setDuration] = useState('5')
   const [aspectRatio, setAspectRatio] = useState('16:9')
   const [sourceImage, setSourceImage] = useState<File | null>(null)

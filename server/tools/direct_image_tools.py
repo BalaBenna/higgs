@@ -23,6 +23,16 @@ class DirectImageInputSchema(BaseModel):
     prompt: str = Field(description="The prompt describing the image to generate")
     aspect_ratio: str = Field(default="1:1", description="The aspect ratio (1:1, 16:9, 9:16, 4:3)")
     input_images: Optional[list[str]] = Field(default=None, description="Optional input images for editing")
+    num_images: int = Field(default=1, description="Number of images to generate (1-8)")
+
+
+class DirectImageDalle3Schema(BaseModel):
+    """Input schema for DALL-E 3 image generation"""
+    prompt: str = Field(description="The prompt describing the image to generate")
+    aspect_ratio: str = Field(default="1:1", description="The aspect ratio (1:1, 16:9, 9:16)")
+    input_images: Optional[list[str]] = Field(default=None, description="Optional input images for editing")
+    num_images: int = Field(default=1, description="Number of images to generate (1-4)")
+    style: Optional[str] = Field(default=None, description="Image style: 'vivid' or 'natural'")
 
 
 # ============================================
@@ -31,7 +41,7 @@ class DirectImageInputSchema(BaseModel):
 
 @tool(
     "generate_image_by_gpt_image_openai",
-    description="Generate images using OpenAI GPT Image / DALL-E 3. High-quality, instruction-following.",
+    description="Generate images using OpenAI GPT Image 1. High-quality, instruction-following.",
     args_schema=DirectImageInputSchema,
 )
 async def generate_image_by_gpt_image_openai(
@@ -39,8 +49,9 @@ async def generate_image_by_gpt_image_openai(
     aspect_ratio: str,
     config: RunnableConfig,
     input_images: Optional[list[str]] = None,
+    num_images: int = 1,
 ) -> str:
-    """Generate image using OpenAI API directly"""
+    """Generate image using OpenAI GPT Image 1 API directly"""
     ctx = config.get("configurable", {})
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
@@ -50,6 +61,38 @@ async def generate_image_by_gpt_image_openai(
         prompt=prompt,
         aspect_ratio=aspect_ratio,
         input_images=input_images,
+        num_images=num_images,
+    )
+
+
+@tool(
+    "generate_image_by_dalle3_openai",
+    description="Generate images using OpenAI DALL-E 3. Supports vivid/natural style.",
+    args_schema=DirectImageDalle3Schema,
+)
+async def generate_image_by_dalle3_openai(
+    prompt: str,
+    aspect_ratio: str,
+    config: RunnableConfig,
+    input_images: Optional[list[str]] = None,
+    num_images: int = 1,
+    style: Optional[str] = None,
+) -> str:
+    """Generate image using OpenAI DALL-E 3 API directly"""
+    ctx = config.get("configurable", {})
+    kwargs = {}
+    if style:
+        kwargs["style"] = style
+    return await generate_image_with_provider(
+        canvas_id=ctx.get("canvas_id", ""),
+        session_id=ctx.get("session_id", ""),
+        provider="openai",
+        model="dall-e-3",
+        prompt=prompt,
+        aspect_ratio=aspect_ratio,
+        input_images=input_images,
+        num_images=num_images,
+        **kwargs,
     )
 
 
@@ -67,6 +110,7 @@ async def generate_image_by_imagen_google(
     aspect_ratio: str,
     config: RunnableConfig,
     input_images: Optional[list[str]] = None,
+    num_images: int = 1,
 ) -> str:
     """Generate image using Google AI API directly"""
     ctx = config.get("configurable", {})
@@ -78,6 +122,7 @@ async def generate_image_by_imagen_google(
         prompt=prompt,
         aspect_ratio=aspect_ratio,
         input_images=input_images,
+        num_images=num_images,
     )
 
 
@@ -95,6 +140,7 @@ async def generate_image_by_imagen_4_fast_google(
     aspect_ratio: str,
     config: RunnableConfig,
     input_images: Optional[list[str]] = None,
+    num_images: int = 1,
 ) -> str:
     """Generate image using Google Imagen 4 Fast"""
     ctx = config.get("configurable", {})
@@ -106,6 +152,7 @@ async def generate_image_by_imagen_4_fast_google(
         prompt=prompt,
         aspect_ratio=aspect_ratio,
         input_images=input_images,
+        num_images=num_images,
     )
 
 
@@ -123,6 +170,7 @@ async def generate_image_by_imagen_4_ultra_google(
     aspect_ratio: str,
     config: RunnableConfig,
     input_images: Optional[list[str]] = None,
+    num_images: int = 1,
 ) -> str:
     """Generate image using Google Imagen 4 Ultra"""
     ctx = config.get("configurable", {})
@@ -134,6 +182,7 @@ async def generate_image_by_imagen_4_ultra_google(
         prompt=prompt,
         aspect_ratio=aspect_ratio,
         input_images=input_images,
+        num_images=num_images,
     )
 
 

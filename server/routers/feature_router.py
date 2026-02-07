@@ -70,6 +70,14 @@ FEATURE_DISPATCH = {
         "tool_id": "generate_image_by_gpt_image_openai",
         "prompt_template": "Intelligently crop and reframe this image for {aspect_ratio} aspect ratio. Focus on the main subject. {prompt}",
     },
+    "video_face_swap": {
+        "tool_id": "generate_image_by_gpt_image_openai",
+        "prompt_template": "Generate a video with this person's face applied naturally. Maintain expressions and lip movement. {prompt}",
+    },
+    "soul_id_character": {
+        "tool_id": "generate_image_by_gpt_image_openai",
+        "prompt_template": "Generate a consistent character based on the reference image. Maintain the same face, features, and identity. {prompt}",
+    },
 }
 
 

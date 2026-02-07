@@ -16,14 +16,15 @@ from services.config_service import config_service, FILES_DIR
 # Model mapping: friendly name -> Replicate owner/model
 REPLICATE_VIDEO_MODELS = {
     # Legacy mappings (backward compat)
-    "kling-3.0": "kuaishou/kling",
-    "kling-motion-control": "kuaishou/kling",
-    "kling-avatars-2.0": "kuaishou/kling",
+    "kling-3.0": "kwaivgi/kling-v2.6",
+    "kling-motion-control": "kwaivgi/kling-v2.6-motion-control",
+    "kling-avatars-2.0": "kwaivgi/kling-avatar-v2",
     "grok-imagine": "minimax/video-01",
     "sora-2": "minimax/video-01",
     "wan-2.6": "wan-ai/wan2.1-t2v-turbo",
     "higgsfield-dop": "luma/ray",
     "seedance-1.0-lite": "wan-ai/wan2.1-t2v-turbo",
+    "hailuo-o2": "minimax/video-01-live",
     # Kling models via kwaivgi
     "kling-v2.6": "kwaivgi/kling-v2.6",
     "kling-v2.5-turbo": "kwaivgi/kling-v2.5-turbo-pro",

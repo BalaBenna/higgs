@@ -66,6 +66,7 @@ from tools.stub_video_tools import (
     generate_video_by_grok_imagine_edit_jaaz,
     generate_video_by_seedance_v1_lite_jaaz,
 )
+from tools.hailuo_replicate_tools import generate_video_by_hailuo_o2_replicate
 from tools.kling_replicate_tools import (
     generate_video_by_kling_v26_replicate,
     generate_video_by_kling_v25_turbo_replicate,
@@ -86,6 +87,7 @@ from tools.sora_video_tools import generate_video_by_sora_openai, generate_video
 # Direct API Image Tools
 from tools.direct_image_tools import (
     generate_image_by_gpt_image_openai,
+    generate_image_by_dalle3_openai,
     generate_image_by_imagen_google,
     generate_image_by_imagen_4_fast_google,
     generate_image_by_imagen_4_ultra_google,
@@ -325,6 +327,15 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
         "tool_function": generate_video_by_seedance_v1_lite_jaaz,
     },
     # ---------------
+    # Hailuo (MiniMax) Replicate Tool
+    # ---------------
+    "generate_video_by_hailuo_o2_replicate": {
+        "display_name": "Hailuo O2",
+        "type": "video",
+        "provider": "replicate",
+        "tool_function": generate_video_by_hailuo_o2_replicate,
+    },
+    # ---------------
     # Kling Replicate Tools (kwaivgi/*)
     # ---------------
     "generate_video_by_kling_v26_replicate": {
@@ -412,10 +423,16 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
     # Direct API Image Tools
     # ---------------
     "generate_image_by_gpt_image_openai": {
-        "display_name": "GPT Image / DALL-E 3",
+        "display_name": "GPT Image 1",
         "type": "image",
         "provider": "openai",
         "tool_function": generate_image_by_gpt_image_openai,
+    },
+    "generate_image_by_dalle3_openai": {
+        "display_name": "DALL-E 3",
+        "type": "image",
+        "provider": "openai",
+        "tool_function": generate_image_by_dalle3_openai,
     },
     "generate_image_by_imagen_google": {
         "display_name": "Google Imagen 3",

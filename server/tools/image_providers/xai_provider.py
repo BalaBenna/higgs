@@ -19,22 +19,24 @@ class XAIImageProvider(ImageProviderBase):
 
     def __init__(self):
         """Initialize the xAI provider"""
-        config = config_service.app_config.get('xai', {})
-        self.api_key = str(config.get("api_key", ""))
-
-        if not self.api_key:
-            # Fallback to environment variable
-            self.api_key = os.environ.get("XAI_API_KEY", "")
-
         self.base_url = "https://api.x.ai/v1"
+
+    def _get_api_key(self) -> str:
+        """Get the API key, re-reading config each time to pick up changes."""
+        config = config_service.app_config.get('xai', {})
+        api_key = str(config.get("api_key", ""))
+        if not api_key:
+            api_key = os.environ.get("XAI_API_KEY", "")
+        return api_key
 
     def _build_headers(self) -> Dict[str, str]:
         """Build request headers"""
-        if not self.api_key:
+        api_key = self._get_api_key()
+        if not api_key:
             raise ValueError("xAI API key is not configured")
 
         return {
-            'Authorization': f'Bearer {self.api_key}',
+            'Authorization': f'Bearer {api_key}',
             'Content-Type': 'application/json',
         }
 

@@ -29,10 +29,11 @@ import { useVideoGeneration } from '@/hooks/use-generation'
 import { useUpload } from '@/hooks/use-upload'
 
 const VIDEO_MODELS = [
-  { id: 'kling-2.6', name: 'Kling 2.6', provider: 'Kuaishou', quality: 'High' },
+  { id: 'kling-v2.6-replicate', name: 'Kling v2.6', provider: 'Kuaishou', quality: 'High' },
   { id: 'veo-3.1', name: 'Google Veo 3.1', provider: 'Google', quality: 'Ultra' },
   { id: 'seedance-1.5-pro', name: 'Seedance 1.5 Pro', provider: 'ByteDance', quality: 'High' },
   { id: 'hailuo-o2', name: 'Minimax Hailuo O2', provider: 'MiniMax', quality: 'High' },
+  { id: 'sora-2', name: 'Sora 2', provider: 'OpenAI', quality: 'High' },
 ]
 
 const PEN_COLORS = [
@@ -60,7 +61,7 @@ export default function DrawToVideoPage() {
   const isDrawingRef = useRef(false)
 
   const [prompt, setPrompt] = useState('')
-  const [model, setModel] = useState('kling-2.6')
+  const [model, setModel] = useState('kling-v2.6-replicate')
   const [duration, setDuration] = useState('5')
   const [penColor, setPenColor] = useState('#000000')
   const [lineWidth, setLineWidth] = useState(3)

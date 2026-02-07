@@ -20,7 +20,7 @@ from utils.http_client import HttpClient
 from models.config_model import ModelInfo
 from typing import Any, List, Optional
 from services.tool_service import TOOL_MAPPING
-from middleware.auth import get_current_user
+from middleware.auth import get_current_user, optional_auth
 
 router = APIRouter(prefix="/api")
 
@@ -230,7 +230,7 @@ class ImageGenerateRequest(BaseModel):
 
 
 @router.post("/generate/image")
-async def generate_image(req: ImageGenerateRequest):
+async def generate_image(req: ImageGenerateRequest, user_id: Optional[str] = Depends(optional_auth)):
     """Direct image generation endpoint that invokes a tool by name."""
     tool_info = TOOL_MAPPING.get(req.tool) or tool_service.tools.get(req.tool)
     if not tool_info:
@@ -250,7 +250,7 @@ async def generate_image(req: ImageGenerateRequest):
         )
 
     session_id = f"direct_{uuid.uuid4().hex[:8]}"
-    config = {"configurable": {"canvas_id": "", "session_id": session_id}}
+    config = {"configurable": {"canvas_id": "", "session_id": session_id, "user_id": user_id or ""}}
 
     # Check if this tool accepts input_images
     sig = inspect.signature(tool_fn.coroutine) if hasattr(tool_fn, 'coroutine') else None
@@ -287,9 +287,12 @@ async def generate_image(req: ImageGenerateRequest):
     if req.style and not has_style:
         effective_prompt = f"{effective_prompt}, {req.style} style"
 
+    # Determine if this tool needs a ToolCall envelope (InjectedToolCallId)
+    use_envelope = _requires_tool_call_envelope(tool_fn, sig)
+
     try:
         results = []
-        
+
         # If tool supports batch generation, call it once
         if has_num_images and (req.num_images or 1) > 1:
             call_id = f"call_{uuid.uuid4().hex[:8]}"
@@ -306,11 +309,10 @@ async def generate_image(req: ImageGenerateRequest):
                 invoke_args["guidance_scale"] = req.guidance_scale
             if has_style and req.style:
                 invoke_args["style"] = req.style
-                
+
             try:
-                result = await tool_fn.ainvoke(
-                    invoke_args,
-                    config=config,
+                result = await _invoke_tool(
+                    tool_fn, req.tool, call_id, invoke_args, config, use_envelope
                 )
                 print(f"🖼️ Batch tool result: {str(result)[:200]}")
             except Exception as tool_error:
@@ -318,26 +320,25 @@ async def generate_image(req: ImageGenerateRequest):
                 traceback.print_exc()
                 raise
 
+            # Normalize result (handles both str and ToolMessage)
+            result_text = _tool_result_to_text(result)
+
             # Parse multiple image URLs from the tool result string
-            # The result string format is: "image generated successfully ![id](url) ![id](url) ..."
-            url_matches = re.finditer(r'!\[.*?\]\((http[^\s\)]+)\)', str(result))
-            
-            for match in url_matches:
-                image_url = normalize_file_url(match.group(1))
+            for url in _extract_media_urls(result_text):
                 results.append({
                     "id": f"gen_{uuid.uuid4().hex[:8]}",
                     "type": "image",
-                    "url": image_url,
-                    "src": image_url,
+                    "url": url,
+                    "src": url,
                     "prompt": req.prompt,
                     "model": req.model_name or req.tool,
                     "createdAt": datetime.now().isoformat(),
                 })
-                
+
             # Fallback if no URLs found but result is not empty (error handling)
-            if not results and str(result):
-                print(f"Warning: No image URLs found in result: {result}")
-                
+            if not results and result_text:
+                print(f"Warning: No image URLs found in result: {result_text}")
+
         else:
             # Legacy loop for tools that don't support batching
             for i in range(req.num_images or 1):
@@ -355,23 +356,21 @@ async def generate_image(req: ImageGenerateRequest):
                 if has_style and req.style:
                     invoke_args["style"] = req.style
                 try:
-                    result = await tool_fn.ainvoke(
-                        invoke_args,
-                        config=config,
+                    result = await _invoke_tool(
+                        tool_fn, req.tool, call_id, invoke_args, config, use_envelope
                     )
                     print(f"🖼️ Tool result: {str(result)[:200]}")
                 except Exception as tool_error:
                     print(f"🖼️ Tool invocation error: {tool_error}")
                     traceback.print_exc()
                     raise
+
+                # Normalize result (handles both str and ToolMessage)
+                result_text = _tool_result_to_text(result)
+
                 # Parse the image URL from the tool result string
-                url_match = re.search(r'(http[^\s\)]+)', str(result))
-                if not url_match:
-                    # Fallback: look for /api/file/ pattern directly
-                    alt_match = re.search(r'(/api/file/[^\s\)]+)', str(result))
-                    image_url = alt_match.group(1) if alt_match else ""
-                else:
-                    image_url = normalize_file_url(url_match.group(1))
+                urls = _extract_media_urls(result_text)
+                image_url = urls[0] if urls else ""
                 results.append({
                     "id": f"gen_{uuid.uuid4().hex[:8]}",
                     "type": "image",
@@ -381,6 +380,42 @@ async def generate_image(req: ImageGenerateRequest):
                     "model": req.model_name or req.tool,
                     "createdAt": datetime.now().isoformat(),
                 })
+        # Persist to Supabase if user is authenticated
+        if user_id and results:
+            try:
+                from services import storage_service
+                for img in results:
+                    local_url = img.get("url", "")
+                    if not local_url or not local_url.startswith("/api/file/"):
+                        continue
+                    filename = local_url.split("/api/file/")[-1]
+                    file_path = os.path.join(FILES_DIR, filename)
+                    if not os.path.exists(file_path):
+                        continue
+                    with open(file_path, "rb") as f:
+                        image_bytes = f.read()
+                    public_url = await storage_service.upload_file(
+                        user_id=user_id,
+                        file_bytes=image_bytes,
+                        filename=filename,
+                    )
+                    await db_service.insert_generated_content({
+                        "user_id": user_id,
+                        "type": "image",
+                        "storage_path": f"{user_id}/{filename}",
+                        "prompt": req.prompt,
+                        "model": req.model_name or req.tool,
+                        "metadata": {
+                            "public_url": public_url,
+                            "aspect_ratio": req.aspect_ratio or "1:1",
+                        },
+                    })
+                    img["url"] = public_url
+                    img["src"] = public_url
+            except Exception as persist_err:
+                print(f"Warning: Failed to persist images to Supabase: {persist_err}")
+                traceback.print_exc()
+
         return {"images": results}
     except Exception as e:
         traceback.print_exc()
@@ -523,25 +558,26 @@ async def generate_video(
 
         asyncio.create_task(_auto_confirm(call_id))
 
+        # Determine if this tool needs a ToolCall envelope
+        video_sig = inspect.signature(tool_fn.coroutine) if hasattr(tool_fn, 'coroutine') else None
+        video_use_envelope = _requires_tool_call_envelope(tool_fn, video_sig)
+
         try:
-            result = await tool_fn.ainvoke(invoke_args, config=config)
+            result = await _invoke_tool(
+                tool_fn, tool, call_id, invoke_args, config, video_use_envelope
+            )
             print(f"🎬 Video tool result: {str(result)[:200]}")
         except Exception as tool_error:
             print(f"🎬 Video tool invocation error: {tool_error}")
             traceback.print_exc()
             raise
 
-        result_str = str(result)
+        result_str = _tool_result_to_text(result)
         if result_str.startswith("Failed") or "API key not configured" in result_str:
             raise HTTPException(status_code=400, detail=result_str)
 
-        url_match = re.search(r'(http[^\s\)]+)', result_str)
-        if not url_match:
-            # Fallback: look for /api/file/ pattern directly
-            alt_match = re.search(r'(/api/file/[^\s\)]+)', result_str)
-            video_url = alt_match.group(1) if alt_match else ""
-        else:
-            video_url = normalize_file_url(url_match.group(1))
+        urls = _extract_media_urls(result_str)
+        video_url = urls[0] if urls else ""
 
         return {
             "id": f"gen_{uuid.uuid4().hex[:8]}",

@@ -30,11 +30,14 @@ export function useProductScraper() {
       if (!response.ok) {
         let errorMsg = 'Failed to scrape product'
         try {
-          const errorData = await response.json()
-          errorMsg = errorData.detail || errorMsg
-        } catch {
-          errorMsg = (await response.text()) || errorMsg
-        }
+          const errorText = await response.text()
+          try {
+            const errorData = JSON.parse(errorText)
+            errorMsg = errorData.detail || errorMsg
+          } catch {
+            errorMsg = errorText || errorMsg
+          }
+        } catch {}
         throw new Error(errorMsg)
       }
 

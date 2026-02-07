@@ -27,9 +27,10 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { useVideoGeneration } from '@/hooks/use-generation'
 
 const VIDEO_MODELS = [
-  { id: 'kling-2.6', name: 'Kling 2.6', provider: 'Kuaishou', quality: 'High' },
+  { id: 'kling-lip-sync-replicate', name: 'Kling Lip Sync', provider: 'Kuaishou', quality: 'High' },
+  { id: 'kling-avatar-v2-replicate', name: 'Kling Avatar v2', provider: 'Kuaishou', quality: 'High' },
+  { id: 'kling-v2.6-replicate', name: 'Kling v2.6', provider: 'Kuaishou', quality: 'High' },
   { id: 'veo-3.1', name: 'Google Veo 3.1', provider: 'Google', quality: 'Ultra' },
-  { id: 'seedance-1.5-pro', name: 'Seedance 1.5 Pro', provider: 'ByteDance', quality: 'High' },
   { id: 'hailuo-o2', name: 'Minimax Hailuo O2', provider: 'MiniMax', quality: 'High' },
 ]
 
@@ -61,7 +62,7 @@ export default function LipsyncPage() {
 
   const [speechText, setSpeechText] = useState('')
   const [language, setLanguage] = useState('english')
-  const [model, setModel] = useState('kling-2.6')
+  const [model, setModel] = useState('kling-lip-sync-replicate')
   const [duration, setDuration] = useState('5')
   const [sourceImage, setSourceImage] = useState<File | null>(null)
   const [sourceImagePreview, setSourceImagePreview] = useState<string | null>(null)

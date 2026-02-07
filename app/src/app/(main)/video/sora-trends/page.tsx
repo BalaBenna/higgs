@@ -28,7 +28,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { useVideoGeneration } from '@/hooks/use-generation'
 
 const VIDEO_MODELS = [
-  { id: 'kling-2.6', name: 'Kling 2.6', provider: 'Kuaishou', quality: 'High' },
+  { id: 'sora-2', name: 'Sora 2', provider: 'OpenAI', quality: 'High' },
+  { id: 'kling-v2.6-replicate', name: 'Kling v2.6', provider: 'Kuaishou', quality: 'High' },
   { id: 'veo-3.1', name: 'Google Veo 3.1', provider: 'Google', quality: 'Ultra' },
   { id: 'seedance-1.5-pro', name: 'Seedance 1.5 Pro', provider: 'ByteDance', quality: 'High' },
   { id: 'hailuo-o2', name: 'Minimax Hailuo O2', provider: 'MiniMax', quality: 'High' },
@@ -133,7 +134,7 @@ interface GeneratedVideoData {
 export default function SoraTrendsPage() {
   const [selectedTrend, setSelectedTrend] = useState<typeof TRENDING_PROMPTS[0] | null>(null)
   const [customPrompt, setCustomPrompt] = useState('')
-  const [model, setModel] = useState('kling-2.6')
+  const [model, setModel] = useState('sora-2')
   const [generatedVideos, setGeneratedVideos] = useState<GeneratedVideoData[]>([])
 
   const videoGeneration = useVideoGeneration()
