@@ -5,6 +5,7 @@ import {
   interpolate,
   spring,
   Sequence,
+  Series,
   AbsoluteFill,
   Easing,
   Img,
@@ -32,12 +33,16 @@ import {
 import { fade } from '@remotion/transitions/fade'
 import { slide } from '@remotion/transitions/slide'
 import { wipe } from '@remotion/transitions/wipe'
+import { flip } from '@remotion/transitions/flip'
+import { clockWipe } from '@remotion/transitions/clock-wipe'
 
 import {
   evolvePath,
   getLength,
   getPointAtLength,
 } from '@remotion/paths'
+
+import { noise3D } from '@remotion/noise'
 
 /**
  * Map of module specifiers to their exports.
@@ -61,6 +66,7 @@ export const AVAILABLE_MODULES: Record<string, Record<string, unknown>> = {
     interpolate,
     spring,
     Sequence,
+    Series,
     AbsoluteFill,
     Easing,
     Img,
@@ -86,10 +92,15 @@ export const AVAILABLE_MODULES: Record<string, Record<string, unknown>> = {
   '@remotion/transitions/fade': { fade },
   '@remotion/transitions/slide': { slide },
   '@remotion/transitions/wipe': { wipe },
+  '@remotion/transitions/flip': { flip },
+  '@remotion/transitions/clock-wipe': { clockWipe },
   '@remotion/paths': {
     evolvePath,
     getLength,
     getPointAtLength,
+  },
+  '@remotion/noise': {
+    noise3D,
   },
 }
 

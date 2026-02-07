@@ -50,7 +50,7 @@ export default function ImageUpscalePage() {
           preset: settings.preset,
           sharpness: settings.sharpness / 100,
           denoise: settings.denoise / 100,
-          face_enhancement: settings.faceEnhancement,
+          face_enhancement: settings.faceEnhancement ? 'true' : 'false',
         },
       })
 

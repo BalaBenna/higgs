@@ -9,6 +9,10 @@ import {
   Plus,
   Sparkles,
   ArrowRight,
+  Megaphone,
+  Fingerprint,
+  ShoppingBag,
+  Timer,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -50,6 +54,34 @@ const TEMPLATES: {
     gradient: 'from-green-500/20 to-emerald-500/20',
   },
   {
+    id: 'social-media-ad',
+    title: 'Social Media Ad',
+    description: 'Bold, attention-grabbing ads for social platforms',
+    icon: Megaphone,
+    gradient: 'from-orange-500/20 to-red-500/20',
+  },
+  {
+    id: 'logo-animation',
+    title: 'Logo Animation',
+    description: 'Professional logo reveals and brand intros',
+    icon: Fingerprint,
+    gradient: 'from-blue-500/20 to-cyan-500/20',
+  },
+  {
+    id: 'product-showcase',
+    title: 'Product Showcase',
+    description: 'Highlight features with animated callouts',
+    icon: ShoppingBag,
+    gradient: 'from-green-500/20 to-emerald-500/20',
+  },
+  {
+    id: 'countdown',
+    title: 'Countdown',
+    description: 'Engaging countdown timers and launch sequences',
+    icon: Timer,
+    gradient: 'from-purple-500/20 to-pink-500/20',
+  },
+  {
     id: 'scratch',
     title: 'From Scratch',
     description: 'Start with a blank canvas and build any motion you want',
@@ -85,7 +117,7 @@ export function VibeMotionLanding({ onSelectTemplate }: VibeMotionLandingProps) 
 
       {/* Template Cards */}
       <motion.div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-16"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-16"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}

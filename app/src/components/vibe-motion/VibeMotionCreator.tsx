@@ -13,15 +13,18 @@ import { ModelSelector } from './ModelSelector'
 import { StyleSelector } from './StyleSelector'
 import { ThemeSelector } from './ThemeSelector'
 import { DurationSelector } from './DurationSelector'
+import { AspectRatioSelector } from './AspectRatioSelector'
 import { MediaUploader, type MediaFile } from './MediaUploader'
 import { RemotionPreview } from './RemotionPreview'
 
 import { useVibeMotionGeneration, useMotionMediaUpload } from '@/hooks/use-vibe-motion'
 import {
+  ASPECT_RATIO_DATA,
   MODEL_DATA,
   PRESET_LABELS,
   QUICK_PROMPTS,
   THEME_DATA,
+  type AspectRatioId,
   type ModelId,
   type PresetId,
   type StyleId,
@@ -39,9 +42,12 @@ export function VibeMotionCreator({ preset, onBack }: VibeMotionCreatorProps) {
   const [style, setStyle] = useState<StyleId | undefined>()
   const [theme, setTheme] = useState<ThemeId | undefined>()
   const [duration, setDuration] = useState(10)
+  const [aspectRatio, setAspectRatio] = useState<AspectRatioId>('16:9')
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([])
   const [generatedCode, setGeneratedCode] = useState('')
   const [previewDuration, setPreviewDuration] = useState(10)
+
+  const ratioData = ASPECT_RATIO_DATA.find((r) => r.id === aspectRatio) ?? ASPECT_RATIO_DATA[0]
 
   const mediaUpload = useMotionMediaUpload()
 
@@ -79,6 +85,7 @@ export function VibeMotionCreator({ preset, onBack }: VibeMotionCreatorProps) {
         duration: effectiveDuration,
         mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
         model,
+        aspectRatio,
       })
     } catch (error) {
       const message =
@@ -122,6 +129,8 @@ export function VibeMotionCreator({ preset, onBack }: VibeMotionCreatorProps) {
           code={generatedCode}
           durationInSeconds={previewDuration}
           isGenerating={generation.isPending}
+          width={ratioData.width}
+          height={ratioData.height}
         />
       </motion.div>
 
@@ -139,6 +148,9 @@ export function VibeMotionCreator({ preset, onBack }: VibeMotionCreatorProps) {
           onUpload={handleMediaUpload}
           isUploading={mediaUpload.isPending}
         />
+
+        {/* Aspect Ratio */}
+        <AspectRatioSelector value={aspectRatio} onChange={setAspectRatio} />
 
         {/* Prompt */}
         <div className="space-y-2">

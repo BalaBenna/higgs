@@ -21,6 +21,7 @@ class MotionGenerateRequest(BaseModel):
     duration: Optional[int] = 10
     media_urls: Optional[List[str]] = None
     model: Optional[str] = "gpt-4o"
+    aspect_ratio: Optional[str] = "16:9"
 
 
 def _get_openai_client() -> AsyncOpenAI:
@@ -65,7 +66,7 @@ async def _openai_event_stream(client: AsyncOpenAI, req: MotionGenerateRequest):
             ],
             stream=True,
             temperature=0.7,
-            max_tokens=8192,
+            max_tokens=16384,
         )
         async for chunk in stream:
             delta = chunk.choices[0].delta if chunk.choices else None
@@ -89,7 +90,7 @@ async def _gemini_event_stream(client, req: MotionGenerateRequest):
             config=types.GenerateContentConfig(
                 system_instruction=req.system_prompt,
                 temperature=0.7,
-                max_output_tokens=8192,
+                max_output_tokens=16384,
             ),
         )
         async for chunk in response:

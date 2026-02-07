@@ -3,7 +3,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { buildSystemPrompt } from '@/lib/remotion/system-prompt'
 import type { MotionGenerationParams } from '@/lib/remotion/types'
-import { THEME_DATA } from '@/lib/remotion/types'
+import { ASPECT_RATIO_DATA, THEME_DATA } from '@/lib/remotion/types'
 
 interface GenerationCallbacks {
   onCodeUpdate?: (code: string) => void
@@ -16,12 +16,17 @@ export function useVibeMotionGeneration(callbacks?: GenerationCallbacks) {
         params.themeColors ??
         THEME_DATA.find((t) => t.id === params.theme)?.colors
 
+      const ratioData = ASPECT_RATIO_DATA.find((r) => r.id === params.aspectRatio)
+
       const systemPrompt = buildSystemPrompt({
         preset: params.preset,
         style: params.style,
         themeColors,
         duration: params.duration,
         mediaUrls: params.mediaUrls,
+        width: ratioData?.width,
+        height: ratioData?.height,
+        aspectRatio: params.aspectRatio,
       })
 
       const response = await fetch('/api/generate/motion', {
@@ -36,17 +41,21 @@ export function useVibeMotionGeneration(callbacks?: GenerationCallbacks) {
           duration: params.duration,
           media_urls: params.mediaUrls,
           model: params.model,
+          aspect_ratio: params.aspectRatio,
         }),
       })
 
       if (!response.ok) {
         let errorMsg = 'Motion generation failed'
         try {
-          const errorData = await response.json()
-          errorMsg = errorData.detail || errorData.message || errorMsg
-        } catch {
-          errorMsg = (await response.text()) || errorMsg
-        }
+          const errorText = await response.text()
+          try {
+            const errorData = JSON.parse(errorText)
+            errorMsg = errorData.detail || errorData.message || errorMsg
+          } catch {
+            errorMsg = errorText || errorMsg
+          }
+        } catch {}
         throw new Error(errorMsg)
       }
 
@@ -121,11 +130,14 @@ export function useMotionMediaUpload() {
       if (!response.ok) {
         let errorMsg = 'File upload failed'
         try {
-          const errorData = await response.json()
-          errorMsg = errorData.detail || errorMsg
-        } catch {
-          errorMsg = (await response.text()) || errorMsg
-        }
+          const errorText = await response.text()
+          try {
+            const errorData = JSON.parse(errorText)
+            errorMsg = errorData.detail || errorMsg
+          } catch {
+            errorMsg = errorText || errorMsg
+          }
+        } catch {}
         throw new Error(errorMsg)
       }
 

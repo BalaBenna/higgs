@@ -4,12 +4,31 @@ export type PresetId =
   | 'posters'
   | 'presentation'
   | 'scratch'
+  | 'social-media-ad'
+  | 'logo-animation'
+  | 'product-showcase'
+  | 'countdown'
 
 export type StyleId = 'minimal' | 'corporate' | 'fashion' | 'marketing'
 
 export type ThemeId = 'prism' | 'mosaic' | 'candy' | 'custom'
 
 export type ModelId = 'gpt-4o' | 'gemini-2.5-pro'
+
+export type AspectRatioId = '16:9' | '9:16' | '1:1' | '4:5'
+
+export const ASPECT_RATIO_DATA: {
+  id: AspectRatioId
+  label: string
+  width: number
+  height: number
+  description: string
+}[] = [
+  { id: '16:9', label: 'Landscape', width: 1920, height: 1080, description: 'YouTube, presentations' },
+  { id: '9:16', label: 'Portrait', width: 1080, height: 1920, description: 'Reels, TikTok, Stories' },
+  { id: '1:1', label: 'Square', width: 1080, height: 1080, description: 'Instagram, social posts' },
+  { id: '4:5', label: 'Vertical', width: 1080, height: 1350, description: 'Instagram feed, Pinterest' },
+]
 
 export const MODEL_DATA: { id: ModelId; label: string; provider: string; description: string }[] = [
   { id: 'gpt-4o', label: 'GPT-4o', provider: 'OpenAI', description: 'Fast, reliable code generation' },
@@ -37,6 +56,7 @@ export interface MotionGenerationParams {
   duration: number
   mediaUrls?: string[]
   model?: ModelId
+  aspectRatio?: AspectRatioId
 }
 
 export interface CompilationResult {
@@ -50,6 +70,10 @@ export const PRESET_LABELS: Record<PresetId, string> = {
   posters: 'Posters',
   presentation: 'Presentation',
   scratch: 'From Scratch',
+  'social-media-ad': 'Social Media Ad',
+  'logo-animation': 'Logo Animation',
+  'product-showcase': 'Product Showcase',
+  countdown: 'Countdown',
 }
 
 export const STYLE_DATA: { id: StyleId; label: string }[] = [
@@ -114,4 +138,24 @@ export const QUICK_PROMPTS: Record<PresetId, string[]> = {
     'Team intro',
   ],
   scratch: ['Logo animation', 'Abstract motion', 'Social media post'],
+  'social-media-ad': [
+    'Flash sale banner',
+    'New product launch',
+    'Limited time offer',
+  ],
+  'logo-animation': [
+    'Logo intro reveal',
+    'Brand identity motion',
+    'Animated monogram',
+  ],
+  'product-showcase': [
+    'Feature highlight reel',
+    'Before and after',
+    'Product comparison',
+  ],
+  countdown: [
+    'Event countdown',
+    'New year countdown',
+    'Launch countdown',
+  ],
 }
