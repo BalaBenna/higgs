@@ -20,3 +20,9 @@ user_data/
 .continue
 
 .env
+
+# Windows artifacts
+nul
+
+# Log files
+server/log.txt
