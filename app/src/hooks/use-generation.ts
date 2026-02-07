@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { MODEL_TO_TOOL_MAP, getModelById } from '@/config/model-mappings'
-import { createClient } from '@/lib/supabase/client'
+import { getAuthHeaders } from '@/lib/auth-headers'
 
 interface GenerationParams {
   model: string
@@ -48,17 +48,6 @@ interface GenerationResult {
 
 interface ImageGenerationResponse {
   images: GenerationResult[]
-}
-
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  const supabase = createClient()
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  if (session?.access_token) {
-    return { Authorization: `Bearer ${session.access_token}` }
-  }
-  return {}
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

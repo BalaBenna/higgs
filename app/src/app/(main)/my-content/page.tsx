@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { createClient } from '@/lib/supabase/client'
+import { getAuthHeaders } from '@/lib/auth-headers'
 
 interface ContentItem {
   id: string
@@ -21,17 +21,6 @@ interface ContentItem {
   width: number
   height: number
   created_at: string
-}
-
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  const supabase = createClient()
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  if (session?.access_token) {
-    return { Authorization: `Bearer ${session.access_token}` }
-  }
-  return {}
 }
 
 export default function MyContentPage() {

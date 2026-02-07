@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { getAuthHeaders } from '@/lib/auth-headers'
 
 interface UploadResult {
   filename: string
@@ -17,13 +17,7 @@ export function useUpload() {
   const upload = useCallback(async (file: File): Promise<UploadResult | null> => {
     setIsUploading(true)
     try {
-      const supabase = createClient()
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      const authHeaders: Record<string, string> = session?.access_token
-        ? { Authorization: `Bearer ${session.access_token}` }
-        : {}
+      const authHeaders = await getAuthHeaders()
 
       const formData = new FormData()
       formData.append('file', file)

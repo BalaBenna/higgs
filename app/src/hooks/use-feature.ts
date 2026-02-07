@@ -1,7 +1,7 @@
 'use client'
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createClient } from '@/lib/supabase/client'
+import { getAuthHeaders } from '@/lib/auth-headers'
 
 interface FeatureGenerationParams {
   featureType: string
@@ -25,13 +25,7 @@ export function useFeatureGeneration() {
 
   return useMutation({
     mutationFn: async (params: FeatureGenerationParams): Promise<FeatureResult> => {
-      const supabase = createClient()
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      const authHeaders: Record<string, string> = session?.access_token
-        ? { Authorization: `Bearer ${session.access_token}` }
-        : {}
+      const authHeaders = await getAuthHeaders()
 
       const response = await fetch('/api/generate/feature', {
         method: 'POST',
