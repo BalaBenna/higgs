@@ -3,7 +3,6 @@ from typing import Dict
 from typing_extensions import TypedDict
 from langchain_core.tools import BaseTool
 from models.tool_model import ToolInfo
-from tools.comfy_dynamic import build_tool
 from tools.write_plan import write_plan_tool
 from tools.generate_image_by_imagen_4_replicate import (
     generate_image_by_imagen_4_replicate,
@@ -80,44 +79,16 @@ from tools.kling_replicate_tools import (
     generate_video_by_kling_avatar_v2_replicate,
     generate_video_by_kling_lip_sync_replicate,
 )
-# Fal.ai Image Tools
-from tools.fal_image_tools import (
-    generate_image_by_nano_banana_fal,
-    generate_image_by_seedream_fal,
-    generate_image_by_flux2_fal,
-    generate_image_by_flux2_max_fal,
-    generate_image_by_flux_kontext_fal,
-    generate_image_by_flux_kontext_max_fal,
-    generate_image_by_midjourney_fal,
-    generate_image_by_ideogram_fal,
-    generate_image_by_recraft_fal,
-    generate_image_by_reve_fal,
-    generate_image_by_higgsfield_soul_fal,
-    generate_image_by_z_image_fal,
-    generate_image_by_kling_image_fal,
-    generate_image_by_wan_image_fal,
-)
-
-# Fal.ai Video Tools
-from tools.fal_video_tools import (
-    generate_video_by_kling_fal,
-    generate_video_by_kling_motion_fal,
-    generate_video_by_kling_avatars_fal,
-    generate_video_by_veo_fal,
-    generate_video_by_seedance_fal,
-    generate_video_by_wan_fal,
-    generate_video_by_hailuo_fal,
-    generate_video_by_higgsfield_dop_fal,
-    generate_video_by_grok_fal,
-)
 
 # OpenAI Sora Tool
-from tools.sora_video_tools import generate_video_by_sora_openai
+from tools.sora_video_tools import generate_video_by_sora_openai, generate_video_by_sora_2_pro_openai
 
 # Direct API Image Tools
 from tools.direct_image_tools import (
     generate_image_by_gpt_image_openai,
     generate_image_by_imagen_google,
+    generate_image_by_imagen_4_fast_google,
+    generate_image_by_imagen_4_ultra_google,
     enhance_image_by_topaz,
 )
 
@@ -423,150 +394,6 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
         "tool_function": generate_video_by_kling_lip_sync_replicate,
     },
     # ---------------
-    # Fal.ai Image Tools
-    # ---------------
-    "generate_image_by_nano_banana_fal": {
-        "display_name": "Nano Banana Pro",
-        "type": "image",
-        "provider": "fal",
-        "tool_function": generate_image_by_nano_banana_fal,
-    },
-    "generate_image_by_seedream_fal": {
-        "display_name": "Seedream 4.5",
-        "type": "image",
-        "provider": "fal",
-        "tool_function": generate_image_by_seedream_fal,
-    },
-    "generate_image_by_flux2_fal": {
-        "display_name": "FLUX.2 Pro",
-        "type": "image",
-        "provider": "fal",
-        "tool_function": generate_image_by_flux2_fal,
-    },
-    "generate_image_by_flux2_max_fal": {
-        "display_name": "FLUX.2 Max",
-        "type": "image",
-        "provider": "fal",
-        "tool_function": generate_image_by_flux2_max_fal,
-    },
-    "generate_image_by_flux_kontext_fal": {
-        "display_name": "FLUX Kontext Pro",
-        "type": "image",
-        "provider": "fal",
-        "tool_function": generate_image_by_flux_kontext_fal,
-    },
-    "generate_image_by_flux_kontext_max_fal": {
-        "display_name": "FLUX Kontext Max",
-        "type": "image",
-        "provider": "fal",
-        "tool_function": generate_image_by_flux_kontext_max_fal,
-    },
-    "generate_image_by_midjourney_fal": {
-        "display_name": "Midjourney",
-        "type": "image",
-        "provider": "fal",
-        "tool_function": generate_image_by_midjourney_fal,
-    },
-    "generate_image_by_ideogram_fal": {
-        "display_name": "Ideogram 3",
-        "type": "image",
-        "provider": "fal",
-        "tool_function": generate_image_by_ideogram_fal,
-    },
-    "generate_image_by_recraft_fal": {
-        "display_name": "Recraft V3",
-        "type": "image",
-        "provider": "fal",
-        "tool_function": generate_image_by_recraft_fal,
-    },
-    "generate_image_by_reve_fal": {
-        "display_name": "Reve",
-        "type": "image",
-        "provider": "fal",
-        "tool_function": generate_image_by_reve_fal,
-    },
-    "generate_image_by_higgsfield_soul_fal": {
-        "display_name": "Higgsfield Soul",
-        "type": "image",
-        "provider": "fal",
-        "tool_function": generate_image_by_higgsfield_soul_fal,
-    },
-    "generate_image_by_z_image_fal": {
-        "display_name": "Z-Image",
-        "type": "image",
-        "provider": "fal",
-        "tool_function": generate_image_by_z_image_fal,
-    },
-    "generate_image_by_kling_image_fal": {
-        "display_name": "Kling Q1 Image",
-        "type": "image",
-        "provider": "fal",
-        "tool_function": generate_image_by_kling_image_fal,
-    },
-    "generate_image_by_wan_image_fal": {
-        "display_name": "Wan 2.0 Image",
-        "type": "image",
-        "provider": "fal",
-        "tool_function": generate_image_by_wan_image_fal,
-    },
-    # ---------------
-    # Fal.ai Video Tools
-    # ---------------
-    "generate_video_by_kling_fal": {
-        "display_name": "Kling 3.0",
-        "type": "video",
-        "provider": "fal",
-        "tool_function": generate_video_by_kling_fal,
-    },
-    "generate_video_by_kling_motion_fal": {
-        "display_name": "Kling Motion Control",
-        "type": "video",
-        "provider": "fal",
-        "tool_function": generate_video_by_kling_motion_fal,
-    },
-    "generate_video_by_kling_avatars_fal": {
-        "display_name": "Kling Avatars 2.0",
-        "type": "video",
-        "provider": "fal",
-        "tool_function": generate_video_by_kling_avatars_fal,
-    },
-    "generate_video_by_veo_fal": {
-        "display_name": "Google Veo 3.1",
-        "type": "video",
-        "provider": "fal",
-        "tool_function": generate_video_by_veo_fal,
-    },
-    "generate_video_by_seedance_fal": {
-        "display_name": "Seedance 1.5 Pro",
-        "type": "video",
-        "provider": "fal",
-        "tool_function": generate_video_by_seedance_fal,
-    },
-    "generate_video_by_wan_fal": {
-        "display_name": "Wan 2.6",
-        "type": "video",
-        "provider": "fal",
-        "tool_function": generate_video_by_wan_fal,
-    },
-    "generate_video_by_hailuo_fal": {
-        "display_name": "MiniMax Hailuo 02",
-        "type": "video",
-        "provider": "fal",
-        "tool_function": generate_video_by_hailuo_fal,
-    },
-    "generate_video_by_higgsfield_dop_fal": {
-        "display_name": "Higgsfield DOP",
-        "type": "video",
-        "provider": "fal",
-        "tool_function": generate_video_by_higgsfield_dop_fal,
-    },
-    "generate_video_by_grok_fal": {
-        "display_name": "Grok Imagine",
-        "type": "video",
-        "provider": "fal",
-        "tool_function": generate_video_by_grok_fal,
-    },
-    # ---------------
     # OpenAI Sora Tool
     # ---------------
     "generate_video_by_sora_openai": {
@@ -574,6 +401,12 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
         "type": "video",
         "provider": "openai",
         "tool_function": generate_video_by_sora_openai,
+    },
+    "generate_video_by_sora_2_pro_openai": {
+        "display_name": "Sora 2 Pro",
+        "type": "video",
+        "provider": "openai",
+        "tool_function": generate_video_by_sora_2_pro_openai,
     },
     # ---------------
     # Direct API Image Tools
@@ -589,6 +422,18 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
         "type": "image",
         "provider": "google-ai",
         "tool_function": generate_image_by_imagen_google,
+    },
+    "generate_image_by_imagen_4_fast_google": {
+        "display_name": "Google Imagen 4 Fast",
+        "type": "image",
+        "provider": "google-ai",
+        "tool_function": generate_image_by_imagen_4_fast_google,
+    },
+    "generate_image_by_imagen_4_ultra_google": {
+        "display_name": "Google Imagen 4 Ultra",
+        "type": "image",
+        "provider": "google-ai",
+        "tool_function": generate_image_by_imagen_4_ultra_google,
     },
     "enhance_image_by_topaz": {
         "display_name": "Topaz Enhancer",
@@ -652,12 +497,7 @@ class ToolService:
                     if tool_info.get("provider") == provider_name:
                         self.register_tool(tool_id, tool_info)
 
-            # Register comfyui workflow tools (requires Supabase config)
-            if (
-                config_service.app_config.get("comfyui", {}).get("url", "")
-                and is_supabase_configured()
-            ):
-                await register_comfy_tools()
+
         except Exception as e:
             print(f"❌ Failed to initialize tool service: {e}")
             traceback.print_exc()
@@ -679,44 +519,3 @@ class ToolService:
 
 
 tool_service = ToolService()
-
-
-async def register_comfy_tools() -> Dict[str, BaseTool]:
-    """
-    Fetch all workflows from DB and build tool callables.
-    Run inside the current event loop.
-    """
-    if not is_supabase_configured():
-        print("[comfy_dynamic] Supabase not configured; skipping comfy tools.")
-        return {}
-    dynamic_comfy_tools: Dict[str, BaseTool] = {}
-    try:
-        workflows = await db_service.list_comfy_workflows()
-    except Exception as exc:  # pragma: no cover
-        print("[comfy_dynamic] Failed to list comfy workflows:", exc)
-        traceback.print_exc()
-        return {}
-
-    for wf in workflows:
-        try:
-            tool_fn = build_tool(wf)
-            # Export with a unique python identifier so that `dir(module)` works
-            unique_name = f"comfyui_{wf['name']}"
-            dynamic_comfy_tools[unique_name] = tool_fn
-            tool_service.register_tool(
-                unique_name,
-                {
-                    "provider": "comfyui",
-                    "tool_function": tool_fn,
-                    "display_name": wf["name"],
-                    # TODO: Add comfyui workflow type! Not hardcoded!
-                    "type": "image",
-                },
-            )
-        except Exception as exc:  # pragma: no cover
-            print(
-                f"[comfy_dynamic] Failed to create tool for workflow {wf.get('id')}: {exc}"
-            )
-            traceback.print_exc()
-
-    return dynamic_comfy_tools

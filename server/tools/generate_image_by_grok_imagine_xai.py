@@ -1,3 +1,4 @@
+import os
 from typing import Annotated, Optional
 from pydantic import BaseModel, Field
 from langchain_core.tools import tool
@@ -36,11 +37,12 @@ async def generate_image_by_grok_imagine_xai(
     ctx = config.get('configurable', {})
     canvas_id = ctx.get('canvas_id', '')
     session_id = ctx.get('session_id', '')
+    model_name = os.getenv('XAI_IMAGE_MODEL', 'grok-2-image-1212')
     return await generate_image_with_provider(
         canvas_id=canvas_id,
         session_id=session_id,
         provider='xai',
-        model='grok-imagine',
+        model=model_name,
         prompt=prompt,
         aspect_ratio=aspect_ratio,
         input_images=input_images,

@@ -47,7 +47,7 @@ async def generate_video_by_sora_openai(
     provider = get_sora_provider()
     if provider is None:
         return "OpenAI API key not configured for Sora. Please ensure OPENAI_API_KEY is set in your .env file."
-    
+
     try:
         video_url = await provider.generate(
             prompt=prompt,
@@ -59,3 +59,33 @@ async def generate_video_by_sora_openai(
         return f"Video generated successfully with Sora 2: {video_url}"
     except Exception as e:
         return f"Failed to generate video with Sora 2: {str(e)}"
+
+
+@tool(
+    "generate_video_by_sora_2_pro_openai",
+    description="Generate videos using OpenAI Sora 2 Pro. Highest quality, production-grade output, up to 20 seconds.",
+    args_schema=SoraVideoInputSchema,
+)
+async def generate_video_by_sora_2_pro_openai(
+    prompt: str,
+    aspect_ratio: str,
+    config: RunnableConfig,
+    duration: int = 5,
+    input_images: Optional[list[str]] = None,
+) -> str:
+    """Generate video using OpenAI Sora 2 Pro"""
+    provider = get_sora_provider()
+    if provider is None:
+        return "OpenAI API key not configured for Sora. Please ensure OPENAI_API_KEY is set in your .env file."
+
+    try:
+        video_url = await provider.generate(
+            prompt=prompt,
+            model="sora-2-pro",
+            aspect_ratio=aspect_ratio,
+            duration=duration,
+            input_images=input_images,
+        )
+        return f"Video generated successfully with Sora 2 Pro: {video_url}"
+    except Exception as e:
+        return f"Failed to generate video with Sora 2 Pro: {str(e)}"

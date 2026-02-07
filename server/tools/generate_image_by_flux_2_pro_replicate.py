@@ -13,6 +13,7 @@ async def generate_image_by_flux_2_pro_replicate(
     aspect_ratio: str,
     config: RunnableConfig,
     tool_call_id: Annotated[str, InjectedToolCallId],
+    num_images: int = 1,
 ) -> str:
     ctx = config.get('configurable', {})
     canvas_id = ctx.get('canvas_id', '')
@@ -25,6 +26,7 @@ async def generate_image_by_flux_2_pro_replicate(
         model='black-forest-labs/flux-2-pro',
         prompt=prompt,
         aspect_ratio=aspect_ratio,
+        num_images=num_images,
     )
 
 

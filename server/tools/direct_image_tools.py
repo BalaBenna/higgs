@@ -82,6 +82,62 @@ async def generate_image_by_imagen_google(
 
 
 # ============================================
+# GOOGLE IMAGEN 4 FAST
+# ============================================
+
+@tool(
+    "generate_image_by_imagen_4_fast_google",
+    description="Generate images using Google Imagen 4 Fast. Faster generation with good quality.",
+    args_schema=DirectImageInputSchema,
+)
+async def generate_image_by_imagen_4_fast_google(
+    prompt: str,
+    aspect_ratio: str,
+    config: RunnableConfig,
+    input_images: Optional[list[str]] = None,
+) -> str:
+    """Generate image using Google Imagen 4 Fast"""
+    ctx = config.get("configurable", {})
+    return await generate_image_with_provider(
+        canvas_id=ctx.get("canvas_id", ""),
+        session_id=ctx.get("session_id", ""),
+        provider="google-ai",
+        model="imagen-4.0-fast-generate-001",
+        prompt=prompt,
+        aspect_ratio=aspect_ratio,
+        input_images=input_images,
+    )
+
+
+# ============================================
+# GOOGLE IMAGEN 4 ULTRA
+# ============================================
+
+@tool(
+    "generate_image_by_imagen_4_ultra_google",
+    description="Generate images using Google Imagen 4 Ultra. Highest quality, production-grade outputs.",
+    args_schema=DirectImageInputSchema,
+)
+async def generate_image_by_imagen_4_ultra_google(
+    prompt: str,
+    aspect_ratio: str,
+    config: RunnableConfig,
+    input_images: Optional[list[str]] = None,
+) -> str:
+    """Generate image using Google Imagen 4 Ultra"""
+    ctx = config.get("configurable", {})
+    return await generate_image_with_provider(
+        canvas_id=ctx.get("canvas_id", ""),
+        session_id=ctx.get("session_id", ""),
+        provider="google-ai",
+        model="imagen-4.0-ultra-generate-001",
+        prompt=prompt,
+        aspect_ratio=aspect_ratio,
+        input_images=input_images,
+    )
+
+
+# ============================================
 # TOPAZ IMAGE ENHANCER (via Replicate)
 # ============================================
 

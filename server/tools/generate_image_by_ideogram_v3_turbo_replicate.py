@@ -13,6 +13,7 @@ async def generate_image_by_ideogram_v3_turbo_replicate(
     aspect_ratio: str,
     config: RunnableConfig,
     tool_call_id: Annotated[str, InjectedToolCallId],
+    num_images: int = 1,
 ) -> str:
     ctx = config.get('configurable', {})
     canvas_id = ctx.get('canvas_id', '')
@@ -25,6 +26,7 @@ async def generate_image_by_ideogram_v3_turbo_replicate(
         model='ideogram-ai/ideogram-v3-turbo',
         prompt=prompt,
         aspect_ratio=aspect_ratio,
+        num_images=num_images,
     )
 
 

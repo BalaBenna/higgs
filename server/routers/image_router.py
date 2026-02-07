@@ -145,28 +145,3 @@ async def get_file(file_id: str):
         return FileResponse(file_path)
     # File not found locally — it's likely on Supabase Storage
     raise HTTPException(status_code=404, detail="File not found")
-
-
-@router.post("/comfyui/object_info")
-async def get_object_info(data: dict):
-    url = data.get('url', '')
-    if not url:
-        raise HTTPException(status_code=400, detail="URL is required")
-
-    try:
-        timeout = httpx.Timeout(10.0)
-        async with HttpClient.create(timeout=timeout) as client:
-            response = await client.get(f"{url}/api/object_info")
-            if response.status_code == 200:
-                return response.json()
-            else:
-                raise HTTPException(
-                    status_code=response.status_code, detail=f"ComfyUI server returned status {response.status_code}")
-    except Exception as e:
-        if "ConnectError" in str(type(e)) or "timeout" in str(e).lower():
-            print(f"ComfyUI connection error: {str(e)}")
-            raise HTTPException(
-                status_code=503, detail="ComfyUI server is not available. Please make sure ComfyUI is running.")
-        print(f"Unexpected error connecting to ComfyUI: {str(e)}")
-        raise HTTPException(
-            status_code=500, detail=f"Failed to connect to ComfyUI: {str(e)}")

@@ -82,7 +82,7 @@ class ReplicateImageProvider(ImageProviderBase):
         aspect_ratio: str = "1:1",
         input_images: Optional[list[str]] = None,
         **kwargs: Any
-    ) -> tuple[str, int, int, str]:
+    ) -> tuple[str, int, int, str] | list[tuple[str, int, int, str]]:
         """
         Generate image using Replicate API
 
@@ -99,31 +99,41 @@ class ReplicateImageProvider(ImageProviderBase):
         try:
             url = self._build_url(model)
             headers = self._build_headers()
+            num_images = int(kwargs.get("num_images", 1) or 1)
 
-            # Build request data
-            data = {
-                "input": {
-                    "prompt": prompt,
-                    "aspect_ratio": aspect_ratio,
+            async def generate_one() -> tuple[str, int, int, str]:
+                # Build request data
+                data = {
+                    "input": {
+                        "prompt": prompt,
+                        "aspect_ratio": aspect_ratio,
+                    }
                 }
-            }
 
-            if input_images:
-                # For Replicate format, we take the first image as input_image
-                data['input']['input_image'] = input_images[0]
-                if len(input_images) > 1:
-                    print(
-                        "Warning: Replicate format only supports single image input. Using first image.")
+                if input_images:
+                    # For Replicate format, we take the first image as input_image
+                    data['input']['input_image'] = input_images[0]
+                    if len(input_images) > 1:
+                        print(
+                            "Warning: Replicate format only supports single image input. Using first image.")
 
-            # Forward supported kwargs to Replicate input
-            if kwargs.get("negative_prompt"):
-                data["input"]["negative_prompt"] = kwargs["negative_prompt"]
+                # Forward supported kwargs to Replicate input
+                if kwargs.get("negative_prompt"):
+                    data["input"]["negative_prompt"] = kwargs["negative_prompt"]
 
-            # Make request
-            res = await self._make_request(url, headers, data)
+                # Make request
+                res = await self._make_request(url, headers, data)
 
-            # Process response and return result
-            return await self._process_response(res)
+                # Process response and return result
+                return await self._process_response(res)
+
+            if num_images <= 1:
+                return await generate_one()
+
+            results: list[tuple[str, int, int, str]] = []
+            for _ in range(num_images):
+                results.append(await generate_one())
+            return results
 
         except Exception as e:
             print('Error generating image with Replicate:', e)

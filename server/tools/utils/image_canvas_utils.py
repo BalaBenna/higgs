@@ -121,24 +121,34 @@ async def save_image_to_canvas(
             content_type=mime_type,
         )
         # Record in generated_content table
-        await db_service.insert_generated_content({
-            "id": filename.rsplit(".", 1)[0],
-            "user_id": user_id,
-            "canvas_id": canvas_id or None,
-            "type": "image",
-            "filename": filename,
-            "storage_path": f"{user_id}/{filename}",
-            "public_url": image_url,
-            "mime_type": mime_type,
-            "width": width,
-            "height": height,
-            "prompt": prompt,
-            "model": model,
-            "provider": provider,
-            "aspect_ratio": aspect_ratio,
-        })
+        # Store extra fields in metadata JSONB to match schema
+        try:
+            await db_service.insert_generated_content({
+                "user_id": user_id,
+                "type": "image",
+                "storage_path": f"{user_id}/{filename}",
+                "prompt": prompt,
+                "model": model,
+                "metadata": {
+                    "canvas_id": canvas_id or None,
+                    "filename": filename,
+                    "public_url": image_url,
+                    "mime_type": mime_type,
+                    "width": width,
+                    "height": height,
+                    "provider": provider,
+                    "aspect_ratio": aspect_ratio,
+                },
+            })
+        except Exception as e:
+            # Log but don't fail the generation if DB insert fails
+            print(f"Warning: Failed to record generated content: {e}")
     else:
         image_url = f"/api/file/{filename}"
+
+    # Skip canvas operations if no canvas_id (direct generation mode)
+    if not canvas_id:
+        return image_url
 
     # Use lock to ensure atomicity of the save process
     async with canvas_lock_manager.lock_canvas(canvas_id):

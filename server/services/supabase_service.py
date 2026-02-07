@@ -5,13 +5,13 @@ Provides a service-role client for backend operations (bypasses RLS).
 
 import os
 from typing import Optional
-from supabase import create_client, Client
+from supabase._async.client import create_client, AsyncClient
 
 
-_supabase_client: Optional[Client] = None
+_supabase_client: Optional[AsyncClient] = None
 
 
-def get_supabase() -> Client:
+def get_supabase() -> AsyncClient:
     """Get or create the Supabase client singleton."""
     global _supabase_client
     if _supabase_client is None:

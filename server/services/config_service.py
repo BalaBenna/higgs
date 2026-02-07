@@ -27,11 +27,6 @@ AppConfig = Dict[str, ProviderConfig]
 
 
 DEFAULT_PROVIDERS_CONFIG: AppConfig = {
-    'comfyui': {
-        'models': {},
-        'url': 'http://127.0.0.1:8188',
-        'api_key': '',
-    },
     'openai': {
         'models': {
             'gpt-4o': {'type': 'text'},
@@ -49,11 +44,6 @@ DEFAULT_PROVIDERS_CONFIG: AppConfig = {
         'url': 'https://aistudio.googleapis.com/v1/',
         'api_key': os.getenv('GOOGLE_VERTEX_AI_API_KEY', ''),
         'max_tokens': 8192,
-    },
-    'fal': {
-        'models': {},
-        'url': 'https://queue.fal.run',
-        'api_key': os.getenv('FAL_API_KEY', ''),
     },
     'google-ai': {
         'models': {},
@@ -87,7 +77,6 @@ DEFAULT_PROVIDERS_CONFIG: AppConfig = {
 _PROVIDER_ENV_KEYS: Dict[str, str] = {
     'openai': 'OPENAI_API_KEY',
     'vertex-ai': 'GOOGLE_VERTEX_AI_API_KEY',
-    'fal': 'FAL_API_KEY',
     'google-ai': 'GOOGLE_API_KEY',
     'replicate': 'REPLICATE_API_KEY',
     'volces': 'VOLCENGINE_API_KEY',

@@ -18,7 +18,7 @@ from tools.utils.image_canvas_utils import generate_file_id
 from utils.http_client import HttpClient
 # services
 from models.config_model import ModelInfo
-from typing import List, Optional
+from typing import Any, List, Optional
 from services.tool_service import TOOL_MAPPING
 from middleware.auth import get_current_user
 
@@ -28,6 +28,95 @@ router = APIRouter(prefix="/api")
 def normalize_file_url(url: str) -> str:
     """Strip http://localhost:PORT prefix, returning a relative /api/file/... URL."""
     return re.sub(r'http://localhost:\d+', '', url)
+
+
+def _get_tool_schema_fields(tool_fn: Any) -> set[str]:
+    """Get Pydantic schema field names for both v1 and v2 models."""
+    args_schema = getattr(tool_fn, "args_schema", None)
+    if not args_schema:
+        return set()
+
+    model_fields = getattr(args_schema, "model_fields", None)
+    if isinstance(model_fields, dict):
+        return set(model_fields.keys())
+
+    fields = getattr(args_schema, "__fields__", None)
+    if isinstance(fields, dict):
+        return set(fields.keys())
+
+    return set()
+
+
+def _requires_tool_call_envelope(tool_fn: Any, sig: inspect.Signature | None) -> bool:
+    """
+    LangChain tools that use InjectedToolCallId must be invoked with a ToolCall envelope
+    ({name, type, id, args}) instead of a plain args dict.
+    """
+    params = sig.parameters if sig else {}
+    if "tool_call_id" in params:
+        return True
+    return "tool_call_id" in _get_tool_schema_fields(tool_fn)
+
+
+async def _invoke_tool(
+    tool_fn: Any,
+    tool_name: str,
+    call_id: str,
+    invoke_args: dict[str, Any],
+    config: dict[str, Any],
+    requires_tool_call_envelope: bool,
+) -> Any:
+    if requires_tool_call_envelope:
+        return await tool_fn.ainvoke(
+            {
+                "name": tool_name,
+                "type": "tool_call",
+                "id": call_id,
+                "args": invoke_args,
+            },
+            config=config,
+        )
+    return await tool_fn.ainvoke(invoke_args, config=config)
+
+
+def _tool_result_to_text(result: Any) -> str:
+    """Normalize tool output (string or ToolMessage) into plain text for parsing."""
+    if hasattr(result, "content"):
+        content = getattr(result, "content")
+        if isinstance(content, list):
+            parts: list[str] = []
+            for item in content:
+                if isinstance(item, dict):
+                    parts.append(str(item.get("text") or item.get("content") or item))
+                else:
+                    parts.append(str(item))
+            return " ".join(parts)
+        return str(content)
+    return str(result)
+
+
+def _extract_media_urls(result_text: str) -> list[str]:
+    """
+    Extract media URLs from markdown and fallback plain-text output.
+    Supports both absolute URLs and local /api/file/... paths.
+    """
+    urls: list[str] = []
+
+    for match in re.finditer(r'!\[.*?\]\(((?:https?://|/api/file/)[^\s\)]+)\)', result_text):
+        urls.append(normalize_file_url(match.group(1)))
+
+    if not urls:
+        for match in re.finditer(r'((?:https?://|/api/file/)[^\s\)]+)', result_text):
+            urls.append(normalize_file_url(match.group(1)))
+
+    # Preserve order while removing duplicates
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for url in urls:
+        if url not in seen:
+            seen.add(url)
+            deduped.append(url)
+    return deduped
 
 
 async def get_comfyui_model_list(base_url: str) -> List[str]:

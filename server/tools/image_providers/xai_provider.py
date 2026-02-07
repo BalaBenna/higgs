@@ -38,19 +38,6 @@ class XAIImageProvider(ImageProviderBase):
             'Content-Type': 'application/json',
         }
 
-    def _map_aspect_ratio_to_size(self, aspect_ratio: str) -> str:
-        """Map aspect ratio to image size"""
-        size_map = {
-            "1:1": "1024x1024",
-            "16:9": "1920x1080",
-            "9:16": "1080x1920",
-            "4:3": "1024x768",
-            "3:4": "768x1024",
-            "21:9": "2560x1080",
-            "9:21": "1080x2560",
-        }
-        return size_map.get(aspect_ratio, "1024x1024")
-
     def _build_payload(
         self,
         prompt: str,
@@ -60,12 +47,10 @@ class XAIImageProvider(ImageProviderBase):
         **kwargs: Any,
     ) -> Dict[str, Any]:
         """Build request payload for xAI API"""
-        size = self._map_aspect_ratio_to_size(aspect_ratio)
-
+        # Note: xAI API does not support 'size' parameter
         payload: Dict[str, Any] = {
             "model": model,
             "prompt": prompt,
-            "size": size,
             "n": kwargs.get("num_images", 1),
         }
 
@@ -127,24 +112,16 @@ class XAIImageProvider(ImageProviderBase):
                     if not image_url:
                         raise Exception("No image URL in xAI response")
 
-                    # Download and save the image
-                    print(f"📥 Downloading image from: {image_url}")
-                    async with session.get(image_url) as img_response:
-                        if img_response.status != 200:
-                            raise Exception(
-                                f"Failed to download image: {img_response.status}"
-                            )
-
-                        image_data = await img_response.read()
-
                     # Generate a unique image ID and save
                     image_id = generate_image_id()
-                    mime_type, width, height, filename = await get_image_info_and_save(
-                        image_data=image_data,
-                        image_id=image_id,
-                        save_dir=FILES_DIR,
+                    file_path_without_extension = os.path.join(FILES_DIR, f"im_{image_id}")
+                    mime_type, width, height, extension = await get_image_info_and_save(
+                        url=image_url,
+                        file_path_without_extension=file_path_without_extension,
+                        is_b64=False,
                         metadata=metadata or {},
                     )
+                    filename = f"im_{image_id}.{extension}"
 
                     print(f"✅ xAI Grok image generated: {filename} ({width}x{height})")
                     return mime_type, width, height, filename
