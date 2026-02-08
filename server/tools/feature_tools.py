@@ -40,16 +40,16 @@ async def feature_face_swap_jaaz(
     aspect_ratio: str = "1:1",
     input_images: list[str] | None = None,
 ) -> str:
-    ctx = config.get("configurable", {})
-    final_prompt = f"Swap the face from the first image onto the person in the second image. Keep the original pose, lighting, and background. {prompt}"
-    return await generate_image_with_provider(
-        canvas_id=ctx.get("canvas_id", ""),
-        session_id=ctx.get("session_id", ""),
-        provider="jaaz",
-        model="openai/gpt-image-1",
-        prompt=final_prompt,
-        aspect_ratio=aspect_ratio,
-        input_images=input_images,
+    from tools.face_swap_replicate import face_swap_replicate
+
+    return await face_swap_replicate.ainvoke(
+        {
+            "prompt": prompt,
+            "aspect_ratio": aspect_ratio,
+            "input_images": input_images,
+            "tool_call_id": tool_call_id,
+        },
+        config=config,
     )
 
 

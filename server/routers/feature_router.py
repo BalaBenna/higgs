@@ -27,8 +27,8 @@ def normalize_file_url(url: str) -> str:
 # {prompt} is replaced with user prompt, {direction} with params.light_direction, etc.
 FEATURE_DISPATCH = {
     "face_swap": {
-        "tool_id": "generate_image_by_gpt_image_openai",
-        "prompt_template": "Swap the face from the first image onto the person in the second image. Keep the original pose, lighting, and background. {prompt}",
+        "tool_id": "face_swap_replicate",
+        "prompt_template": "{prompt}",
     },
     "character_swap": {
         "tool_id": "generate_image_by_gpt_image_openai",

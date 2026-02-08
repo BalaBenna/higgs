@@ -66,6 +66,7 @@ from tools.stub_video_tools import (
     generate_video_by_grok_imagine_edit_jaaz,
     generate_video_by_seedance_v1_lite_jaaz,
 )
+from tools.face_swap_replicate import face_swap_replicate
 from tools.hailuo_replicate_tools import generate_video_by_hailuo_o2_replicate
 from tools.kling_replicate_tools import (
     generate_video_by_kling_v26_replicate,
@@ -325,6 +326,15 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
         "type": "video",
         "provider": "replicate",
         "tool_function": generate_video_by_seedance_v1_lite_jaaz,
+    },
+    # ---------------
+    # Face Swap (codeplugtech) Replicate Tool
+    # ---------------
+    "face_swap_replicate": {
+        "display_name": "Face Swap",
+        "type": "image",
+        "provider": "replicate",
+        "tool_function": face_swap_replicate,
     },
     # ---------------
     # Hailuo (MiniMax) Replicate Tool
