@@ -2,13 +2,66 @@
 Content router — CRUD endpoints for user's generated content.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from pydantic import BaseModel
+from typing import Optional, List
 from middleware.auth import get_current_user
 from services.db_service import db_service
 from services import storage_service
 
 router = APIRouter(prefix="/api/my-content")
+
+
+class SaveVibeMotionRequest(BaseModel):
+    prompt: str
+    preset: str
+    code: str
+    model: str
+    style: Optional[str] = None
+    duration: int = 10
+    aspect_ratio: str = "16:9"
+    media_urls: Optional[List[str]] = None
+
+
+@router.post("/vibe-motion")
+async def save_vibe_motion_content(
+    req: SaveVibeMotionRequest,
+    user_id: str = Depends(get_current_user),
+):
+    """Save a vibe motion project as video content to My Content."""
+    from tools.utils.image_canvas_utils import generate_file_id
+
+    file_id = generate_file_id()
+    metadata = {
+        "preset": req.preset,
+        "code": req.code[:500] if req.code else None,  # Store truncated code preview
+        "style": req.style,
+        "duration": req.duration,
+        "aspect_ratio": req.aspect_ratio,
+        "media_urls": req.media_urls,
+        "provider": "vibe-motion",
+    }
+
+    storage_path = f"{user_id}/{file_id}.json"
+    await storage_service.upload_file(
+        bucket=storage_service.GENERATED_CONTENT_BUCKET,
+        path=storage_path,
+        data=req.code,
+        content_type="application/json",
+    )
+
+    await db_service.insert_generated_content(
+        {
+            "user_id": user_id,
+            "type": "video",
+            "storage_path": storage_path,
+            "prompt": req.prompt,
+            "model": req.model,
+            "metadata": metadata,
+        }
+    )
+
+    return {"status": "saved", "file_id": file_id}
 
 
 @router.get("")

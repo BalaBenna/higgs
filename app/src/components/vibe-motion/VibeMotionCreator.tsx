@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Sparkles, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Sparkles, RefreshCw, Wand2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -17,7 +17,7 @@ import { AspectRatioSelector } from './AspectRatioSelector'
 import { MediaUploader, type MediaFile } from './MediaUploader'
 import { RemotionPreview } from './RemotionPreview'
 
-import { useVibeMotionGeneration, useMotionMediaUpload } from '@/hooks/use-vibe-motion'
+import { useVibeMotionGeneration, useMotionMediaUpload, usePromptEnhancement, useSaveVibeMotion } from '@/hooks/use-vibe-motion'
 import {
   ASPECT_RATIO_DATA,
   MODEL_DATA,
@@ -50,6 +50,8 @@ export function VibeMotionCreator({ preset, onBack }: VibeMotionCreatorProps) {
   const ratioData = ASPECT_RATIO_DATA.find((r) => r.id === aspectRatio) ?? ASPECT_RATIO_DATA[0]
 
   const mediaUpload = useMotionMediaUpload()
+  const promptEnhancement = usePromptEnhancement()
+  const saveVibeMotion = useSaveVibeMotion()
 
   const onCodeUpdate = useCallback((code: string) => {
     setGeneratedCode(code)
@@ -132,6 +134,47 @@ export function VibeMotionCreator({ preset, onBack }: VibeMotionCreatorProps) {
           width={ratioData.width}
           height={ratioData.height}
         />
+        {generatedCode && !generation.isPending && (
+          <div className="flex justify-end mt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                if (!generatedCode) return
+                try {
+                  await saveVibeMotion.mutateAsync({
+                    prompt,
+                    preset,
+                    code: generatedCode,
+                    model,
+                    style,
+                    duration: previewDuration,
+                    aspectRatio,
+                    mediaUrls: mediaFiles.filter((f) => f.url).map((f) => f.url as string),
+                  })
+                  toast.success('Saved to My Content')
+                } catch (error) {
+                  const message = error instanceof Error ? error.message : 'Failed to save'
+                  toast.error(message)
+                }
+              }}
+              disabled={saveVibeMotion.isPending}
+              className="gap-2"
+            >
+              {saveVibeMotion.isPending ? (
+                <>
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Save to My Content
+                </>
+              )}
+            </Button>
+          </div>
+        )}
       </motion.div>
 
       {/* Form */}
@@ -154,9 +197,42 @@ export function VibeMotionCreator({ preset, onBack }: VibeMotionCreatorProps) {
 
         {/* Prompt */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Describe your video</label>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">Describe your video</label>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              onClick={async () => {
+                if (!prompt.trim()) {
+                  toast.error('Please enter a prompt to enhance')
+                  return
+                }
+                try {
+                  const result = await promptEnhancement.mutateAsync({
+                    prompt,
+                    preset,
+                    style,
+                  })
+                  setPrompt(result.enhancedPrompt)
+                  toast.success('Prompt enhanced!')
+                } catch (error) {
+                  const message = error instanceof Error ? error.message : 'Enhancement failed'
+                  toast.error(message)
+                }
+              }}
+              disabled={!prompt.trim() || promptEnhancement.isPending}
+            >
+              {promptEnhancement.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Wand2 className="h-3.5 w-3.5" />
+              )}
+              Enhance
+            </Button>
+          </div>
           <Textarea
-            placeholder="Describe the motion graphic you want to create..."
+            placeholder="Describe the motion graphic you want to create, or use commands like 'flip it', 'make text bounce', 'slide in from right'..."
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             className="min-h-[100px] resize-none"

@@ -4,7 +4,11 @@ import { MODEL_DATA, type ModelId } from '@/lib/remotion/types'
 
 const MODEL_GRADIENTS: Record<ModelId, string> = {
   'gpt-4o': 'from-green-400 to-emerald-600',
+  'gpt-4o-mini': 'from-green-300 to-teal-500',
   'gemini-2.5-pro': 'from-blue-400 to-indigo-600',
+  'gemini-2.0-flash-exp': 'from-sky-400 to-blue-500',
+  'grok-2': 'from-orange-400 to-red-500',
+  'grok-2-vision': 'from-orange-300 to-red-400',
 }
 
 interface ModelSelectorProps {

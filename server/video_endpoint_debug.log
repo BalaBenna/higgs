@@ -1,0 +1,32 @@
+[2026-02-18 15:47:22.037835] test_post called with param: hello from requests
+[2026-02-18 15:48:11.512532] optional_auth: ENTRY - path=/api/generate/video, method=POST
+[2026-02-18 15:48:11.512532] optional_auth: No token, returning None
+[2026-02-18 15:48:11.513648] generate_video: FUNCTION BODY ENTERED - tool=generate_video_by_kling_v25_turbo_replicate, prompt=cat and dog fighting
+[2026-02-19 10:52:37.368120] optional_auth: ENTRY - path=/api/generate/feature, method=POST
+[2026-02-19 10:52:37.369568] optional_auth: No token, returning None
+[2026-02-19 10:52:39.340398] optional_auth: ENTRY - path=/api/generate/feature, method=POST
+[2026-02-19 10:52:39.341871] optional_auth: No token, returning None
+[2026-02-19 10:52:40.389859] optional_auth: ENTRY - path=/api/generate/feature, method=POST
+[2026-02-19 10:52:40.390889] optional_auth: No token, returning None
+[2026-02-19 10:52:41.649905] optional_auth: ENTRY - path=/api/generate/feature, method=POST
+[2026-02-19 10:52:41.651106] optional_auth: No token, returning None
+[2026-02-19 10:52:41.665484] optional_auth: ENTRY - path=/api/generate/feature, method=POST
+[2026-02-19 10:52:41.666498] optional_auth: No token, returning None
+[2026-02-19 10:52:41.678276] optional_auth: ENTRY - path=/api/generate/feature, method=POST
+[2026-02-19 10:52:41.678276] optional_auth: No token, returning None
+[2026-02-19 10:52:42.769413] optional_auth: ENTRY - path=/api/generate/feature, method=POST
+[2026-02-19 10:52:42.769413] optional_auth: No token, returning None
+[2026-02-19 10:54:28.180014] optional_auth: ENTRY - path=/api/generate/feature, method=POST
+[2026-02-19 10:54:28.181014] optional_auth: No token, returning None
+[2026-02-19 10:54:36.166171] optional_auth: ENTRY - path=/api/generate/feature, method=POST
+[2026-02-19 10:54:36.167638] optional_auth: No token, returning None
+[2026-02-19 11:02:19.717419] optional_auth: ENTRY - path=/api/generate/feature, method=POST
+[2026-02-19 11:02:19.717419] optional_auth: No token, returning None
+[2026-02-19 11:25:44.713022] optional_auth: ENTRY - path=/api/generate/image, method=POST
+[2026-02-19 11:25:44.714022] optional_auth: No token, returning None
+[2026-02-19 11:27:57.372895] optional_auth: ENTRY - path=/api/generate/image, method=POST
+[2026-02-19 11:27:57.374006] optional_auth: No token, returning None
+[2026-02-19 11:30:55.269438] optional_auth: ENTRY - path=/api/generate/image, method=POST
+[2026-02-19 11:30:55.269438] optional_auth: No token, returning None
+[2026-02-19 11:31:59.357245] optional_auth: ENTRY - path=/api/generate/image, method=POST
+[2026-02-19 11:32:58.790167] optional_auth: ENTRY - path=/api/generate/image, method=POST

@@ -9,6 +9,7 @@ async function proxyRequest(
 ) {
   const { path } = await params
   const url = `${BACKEND_URL}/api/${path.join('/')}`
+  console.log(`[PROXY] ${request.method} ${url}`)
 
   // Forward headers (excluding host and content-length for FormData)
   const headers = new Headers()
@@ -20,20 +21,31 @@ async function proxyRequest(
     }
   })
 
+  console.log('[PROXY] Client Authorization header present:', headers.has('authorization'))
+
   // If no Authorization header from the client, inject from server-side session.
   // The middleware already refreshed the session via getUser(), so getSession()
   // reads the fresh token from cookies that JS on the browser may not access.
   if (!headers.has('authorization')) {
+    console.log('[PROXY] No client auth header, checking server-side session...')
     try {
       const supabase = await createClient()
       const {
         data: { session },
       } = await supabase.auth.getSession()
+      console.log('[PROXY] Server session:', { 
+        hasSession: !!session, 
+        hasAccessToken: !!session?.access_token,
+        userId: session?.user?.id
+      })
       if (session?.access_token) {
         headers.set('Authorization', `Bearer ${session.access_token}`)
+        console.log('[PROXY] Injected Authorization header from server session')
+      } else {
+        console.warn('[PROXY] No server session found')
       }
-    } catch {
-      // Ignore — proceed without auth header
+    } catch (err) {
+      console.error('[PROXY] Error getting server session:', err)
     }
   }
 

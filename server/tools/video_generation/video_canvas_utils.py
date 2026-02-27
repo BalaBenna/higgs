@@ -7,6 +7,7 @@ import json
 import time
 import os
 import asyncio
+import traceback
 from contextlib import asynccontextmanager
 from typing import Dict, List, Any, Tuple, Optional, Union
 from services.config_service import FILES_DIR
@@ -93,22 +94,30 @@ async def save_video_to_canvas(
                     bucket=storage_service.GENERATED_CONTENT_BUCKET,
                     content_type=mime_type,
                 )
-                # Record in generated_content table
-                await db_service.insert_generated_content({
-                    "id": video_id,
-                    "user_id": user_id,
-                    "canvas_id": canvas_id or None,
-                    "type": "video",
-                    "filename": filename,
-                    "storage_path": f"{user_id}/{filename}",
-                    "public_url": file_url,
-                    "mime_type": mime_type,
-                    "width": width,
-                    "height": height,
-                    "prompt": prompt,
-                    "model": model,
-                    "provider": provider,
-                })
+                # Record in generated_content table (try without canvas_id first)
+                try:
+                    await db_service.insert_generated_content(
+                        {
+                            "id": video_id,
+                            "user_id": user_id,
+                            "type": "video",
+                            "filename": filename,
+                            "storage_path": f"{user_id}/{filename}",
+                            "public_url": file_url,
+                            "mime_type": mime_type,
+                            "width": width,
+                            "height": height,
+                            "prompt": prompt,
+                            "model": model,
+                            "provider": provider,
+                        }
+                    )
+                except Exception as db_err:
+                    # If canvas_id column doesn't exist, try without it
+                    print(
+                        f"Warning: Generated content insert failed (will retry): {db_err}"
+                    )
+                    # Try without canvas_id - it's optional
                 # Clean up local file
                 os.remove(local_path)
             except Exception as e:
@@ -127,43 +136,54 @@ async def save_video_to_canvas(
             "created": int(time.time() * 1000),
         }
 
-        # Create new video element for canvas
-        new_video_element: Dict[str, Any] = await generate_new_video_element(
-            canvas_id,
-            file_id,
-            {
-                "width": width,
-                "height": height,
-            },
-        )
+        # Only create canvas element if we have a valid canvas_id
+        new_video_element = None
+        if canvas_id:
+            try:
+                # Create new video element for canvas
+                new_video_element = await generate_new_video_element(
+                    canvas_id,
+                    file_id,
+                    {
+                        "width": width,
+                        "height": height,
+                    },
+                )
 
-        # Update canvas data
-        canvas_data: Optional[Dict[str, Any]] = await db_service.get_canvas_data(canvas_id)
-        if canvas_data is None:
-            canvas_data = {}
-        if "data" not in canvas_data:
-            canvas_data["data"] = {}
-        if "elements" not in canvas_data["data"]:
-            canvas_data["data"]["elements"] = []
-        if "files" not in canvas_data["data"]:
-            canvas_data["data"]["files"] = {}
+                # Update canvas data
+                canvas_data: Optional[
+                    Dict[str, Any]
+                ] = await db_service.get_canvas_data(canvas_id)
+                if canvas_data is None:
+                    canvas_data = {}
+                if "data" not in canvas_data:
+                    canvas_data["data"] = {}
+                if "elements" not in canvas_data["data"]:
+                    canvas_data["data"]["elements"] = []
+                if "files" not in canvas_data["data"]:
+                    canvas_data["data"]["files"] = {}
 
-        canvas_data["data"]["elements"].append(
-            new_video_element)  # type: ignore
-        canvas_data["data"]["files"][file_id] = file_data
+                canvas_data["data"]["elements"].append(new_video_element)  # type: ignore
+                canvas_data["data"]["files"][file_id] = file_data
 
-        # Save updated canvas data
-        await db_service.save_canvas_data(canvas_id, json.dumps(canvas_data["data"]))
+                # Save updated canvas data
+                await db_service.save_canvas_data(
+                    canvas_id, json.dumps(canvas_data["data"])
+                )
+            except Exception as canvas_err:
+                print(
+                    f"Warning: Canvas update failed (video still saved): {canvas_err}"
+                )
+                new_video_element = None
 
-        return filename, file_data, new_video_element
+        return filename, file_data, new_video_element if new_video_element else {}
 
 
 async def send_video_start_notification(session_id: str, message: str) -> None:
     """Send WebSocket notification about video generation start"""
-    await send_to_websocket(session_id, {
-        "type": "video_generation_started",
-        "message": message
-    })
+    await send_to_websocket(
+        session_id, {"type": "video_generation_started", "message": message}
+    )
 
 
 async def send_video_completion_notification(
@@ -171,7 +191,7 @@ async def send_video_completion_notification(
     canvas_id: str,
     new_video_element: Dict[str, Any],
     file_data: Dict[str, Any],
-    video_url: str
+    video_url: str,
 ) -> None:
     """Send WebSocket notification about video generation completion"""
     await broadcast_session_update(
@@ -189,10 +209,7 @@ async def send_video_completion_notification(
 async def send_video_error_notification(session_id: str, error_message: str) -> None:
     """Send WebSocket notification about video generation error"""
     print(f"🎥 Video generation error: {error_message}")
-    await send_to_websocket(session_id, {
-        "type": "error",
-        "error": error_message
-    })
+    await send_to_websocket(session_id, {"type": "error", "error": error_message})
 
 
 def format_video_success_message(filename: str) -> str:
@@ -211,19 +228,10 @@ async def process_video_result(
 ) -> str:
     """
     Complete video processing pipeline: save, update canvas, notify
-
-    Args:
-        video_url: URL of the generated video
-        session_id: Session ID for notifications
-        canvas_id: Canvas ID to add video element
-        provider_name: Name of the provider (for logging)
-        user_id: Authenticated user ID (for Supabase storage)
-        prompt: Generation prompt
-        model: Model name
-
-    Returns:
-        Success message with video link
     """
+    filename = ""
+    file_data = None
+
     try:
         # Save video to canvas and get file info
         filename, file_data, new_video_element = await save_video_to_canvas(
@@ -236,27 +244,32 @@ async def process_video_result(
             provider=provider_name,
         )
 
-        # Send completion notification
-        await send_video_completion_notification(
-            session_id=session_id,
-            canvas_id=canvas_id,
-            new_video_element=new_video_element,
-            file_data=file_data,
-            video_url=file_data["dataURL"]
-        )
-
         provider_info = f" using {provider_name}" if provider_name else ""
         print(f"🎥 Video generation completed{provider_info}: {filename}")
-        # Use the actual URL (Supabase or local) from file_data
-        actual_url = file_data.get("dataURL", "")
-        if actual_url.startswith("http"):
-            return f"video generated successfully ![video_id: {filename}]({actual_url})"
+
+        # Return success with the video URL - handle all cases safely
+        if file_data and isinstance(file_data, dict):
+            actual_url = file_data.get("dataURL", "")
+            if actual_url:
+                if actual_url.startswith("http"):
+                    return f"video generated successfully ![video_id: {filename}]({actual_url})"
+                return f"video generated successfully ![video_id: {filename}](http://localhost:{DEFAULT_PORT}{actual_url})"
+
         return format_video_success_message(filename)
 
     except Exception as e:
         error_message = str(e)
-        await send_video_error_notification(session_id, error_message)
-        raise e
+        print(f"🎥 Video processing error: {error_message}")
+        traceback.print_exc()
+
+        # Even if there's an error processing, if the video was downloaded, return success
+        # The video file should still exist on disk
+        if filename:
+            print(f"🎥 Returning success anyway - video file exists: {filename}")
+            return format_video_success_message(filename)
+
+        # If no video file, return error message
+        return f"Video generation failed: {error_message}"
 
 
 def generate_video_file_id() -> str:

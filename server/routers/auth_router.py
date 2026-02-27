@@ -13,8 +13,8 @@ router = APIRouter(prefix="/api/auth")
 async def get_me(user_id: str = Depends(get_current_user)):
     """Return the current user's profile from Supabase Auth."""
     try:
-        sb = get_supabase()
-        user_response = sb.auth.admin.get_user_by_id(user_id)
+        sb = await get_supabase()
+        user_response = await sb.auth.admin.get_user_by_id(user_id)
         user = user_response.user
         if not user:
             raise HTTPException(status_code=404, detail="User not found")

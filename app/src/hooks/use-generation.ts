@@ -37,6 +37,12 @@ interface VideoGenerationParams {
   lipSyncText?: string
 }
 
+interface EnhancePromptParams {
+  prompt: string
+  preset: string
+  style?: string
+}
+
 interface GenerationResult {
   id: string
   type: 'image' | 'video'
@@ -213,6 +219,76 @@ export function useChatGeneration() {
       }
 
       return response.json()
+    },
+  })
+}
+
+export function usePromptEnhancement() {
+  return useMutation({
+    mutationFn: async (params: EnhancePromptParams) => {
+      const authHeaders = await getAuthHeaders()
+      const response = await fetch('/api/enhance/prompt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders,
+        },
+        body: JSON.stringify({
+          prompt: params.prompt,
+          preset: params.preset,
+          style: params.style,
+        }),
+      })
+
+      if (!response.ok) {
+        let errorMsg = 'Prompt enhancement failed'
+        try {
+          const errorText = await response.text()
+          try {
+            const errorData = JSON.parse(errorText)
+            errorMsg = errorData.detail || errorData.message || errorMsg
+          } catch {
+            errorMsg = errorText || errorMsg
+          }
+        } catch {}
+        throw new Error(errorMsg)
+      }
+
+      const reader = response.body?.getReader()
+      if (!reader) throw new Error('No response stream available')
+
+      const decoder = new TextDecoder()
+      let accumulated = ''
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = (buffer + chunk).split('\n')
+        buffer = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const jsonStr = line.slice(6).trim()
+          if (!jsonStr) continue
+
+          try {
+            const event = JSON.parse(jsonStr)
+            if (event.type === 'delta' && event.content) {
+              accumulated += event.content
+            } else if (event.type === 'error') {
+              throw new Error(event.content || 'Enhancement error')
+            }
+          } catch (parseErr) {
+            if (parseErr instanceof SyntaxError) continue
+            throw parseErr
+          }
+        }
+      }
+
+      return { enhancedPrompt: accumulated.trim() }
     },
   })
 }

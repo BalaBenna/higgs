@@ -36,26 +36,26 @@ async def upload_file(
     Returns:
         Public URL of the uploaded file.
     """
-    sb = get_supabase()
+    sb = await get_supabase()
     storage_path = f"{user_id}/{filename}"
 
-    sb.storage.from_(bucket).upload(
+    await sb.storage.from_(bucket).upload(
         path=storage_path,
         file=file_bytes,
         file_options={"content-type": content_type, "upsert": "true"},
     )
 
-    return get_public_url(bucket, storage_path)
+    return await get_public_url(bucket, storage_path)
 
 
-def get_public_url(bucket: str, path: str) -> str:
+async def get_public_url(bucket: str, path: str) -> str:
     """Get the public URL for a file in Supabase Storage."""
-    sb = get_supabase()
-    result = sb.storage.from_(bucket).get_public_url(path)
+    sb = await get_supabase()
+    result = await sb.storage.from_(bucket).get_public_url(path)
     return result
 
 
 async def delete_file(bucket: str, path: str) -> None:
     """Delete a file from Supabase Storage."""
-    sb = get_supabase()
-    sb.storage.from_(bucket).remove([path])
+    sb = await get_supabase()
+    await sb.storage.from_(bucket).remove([path])

@@ -424,8 +424,21 @@ export const MODEL_TO_TOOL_MAP: Record<string, string> = ALL_MODEL_MAPPINGS.redu
   {} as Record<string, string>
 )
 
+// Add tool IDs as aliases for direct tool ID lookups (e.g., from Cinema Studio)
+MODEL_TO_TOOL_MAP['generate_video_by_kling_v26_replicate'] = 'generate_video_by_kling_v26_replicate'
+MODEL_TO_TOOL_MAP['generate_video_by_veo_google'] = 'generate_video_by_veo_google'
+MODEL_TO_TOOL_MAP['generate_video_by_sora_2_jaaz'] = 'generate_video_by_sora_2_jaaz'
+MODEL_TO_TOOL_MAP['generate_video_by_hailuo_02_jaaz'] = 'generate_video_by_hailuo_02_jaaz'
+MODEL_TO_TOOL_MAP['generate_video_by_seedance_v1_pro_volces'] = 'generate_video_by_seedance_v1_pro_volces'
+MODEL_TO_TOOL_MAP['generate_video_by_seedance_v1_lite_jaaz'] = 'generate_video_by_seedance_v1_lite_jaaz'
+
 export function getModelById(modelId: string): ModelMapping | undefined {
-  return ALL_MODEL_MAPPINGS.find((m) => m.id === modelId)
+  // First try to find by id
+  const byId = ALL_MODEL_MAPPINGS.find((m) => m.id === modelId)
+  if (byId) return byId
+  
+  // Then try to find by toolId (for direct tool ID lookups)
+  return ALL_MODEL_MAPPINGS.find((m) => m.toolId === modelId)
 }
 
 export function getToolIdByModelId(modelId: string): string | undefined {

@@ -13,9 +13,13 @@ export type StyleId = 'minimal' | 'corporate' | 'fashion' | 'marketing'
 
 export type ThemeId = 'prism' | 'mosaic' | 'candy' | 'custom'
 
-export type ModelId = 'gpt-4o' | 'gemini-2.5-pro'
+export type ModelId = 'gpt-4o' | 'gpt-4o-mini' | 'gemini-2.5-pro' | 'gemini-2.0-flash-exp' | 'grok-2' | 'grok-2-vision'
 
-export type AspectRatioId = '16:9' | '9:16' | '1:1' | '4:5'
+export type TransitionId = 'fade' | 'slide' | 'wipe' | 'flip' | 'clock-wipe'
+
+export type TransitionDirection = 'from-left' | 'from-right' | 'from-top' | 'from-bottom'
+
+export type AspectRatioId = '16:9' | '9:16' | '1:1' | '4:5' | '21:9'
 
 export const ASPECT_RATIO_DATA: {
   id: AspectRatioId
@@ -28,16 +32,28 @@ export const ASPECT_RATIO_DATA: {
   { id: '9:16', label: 'Portrait', width: 1080, height: 1920, description: 'Reels, TikTok, Stories' },
   { id: '1:1', label: 'Square', width: 1080, height: 1080, description: 'Instagram, social posts' },
   { id: '4:5', label: 'Vertical', width: 1080, height: 1350, description: 'Instagram feed, Pinterest' },
+  { id: '21:9', label: 'Ultrawide', width: 2560, height: 1080, description: 'Ultrawide monitors, cinematic' },
 ]
 
-export const MODEL_DATA: { id: ModelId; label: string; provider: string; description: string }[] = [
-  { id: 'gpt-4o', label: 'GPT-4o', provider: 'OpenAI', description: 'Fast, reliable code generation' },
+export const MODEL_DATA: { id: ModelId; label: string; provider: string; description: string; vision: boolean }[] = [
+  { id: 'gpt-4o', label: 'GPT-4o', provider: 'OpenAI', description: 'Fast, reliable code generation', vision: false },
+  { id: 'gpt-4o-mini', label: 'GPT-4o Mini', provider: 'OpenAI', description: 'Fast & cost-effective', vision: false },
   {
     id: 'gemini-2.5-pro',
     label: 'Gemini 2.5 Pro',
     provider: 'Google',
     description: 'Advanced reasoning, large context',
+    vision: true,
   },
+  {
+    id: 'gemini-2.0-flash-exp',
+    label: 'Gemini 2.0 Flash',
+    provider: 'Google',
+    description: 'Fast with vision support',
+    vision: true,
+  },
+  { id: 'grok-2', label: 'Grok-2', provider: 'xAI', description: 'Fast & creative', vision: false },
+  { id: 'grok-2-vision', label: 'Grok-2 Vision', provider: 'xAI', description: 'With image understanding', vision: true },
 ]
 
 export interface ThemeColors {
@@ -118,6 +134,29 @@ export const THEME_DATA: {
       background: '#FFF5F5',
     },
   },
+]
+
+export const TRANSITION_DATA: {
+  id: TransitionId
+  label: string
+  description: string
+  hasDirection: boolean
+}[] = [
+  { id: 'fade', label: 'Fade', description: 'Smooth crossfade', hasDirection: false },
+  { id: 'slide', label: 'Slide', description: 'Directional slide', hasDirection: true },
+  { id: 'wipe', label: 'Wipe', description: 'Directional wipe reveal', hasDirection: true },
+  { id: 'flip', label: 'Flip', description: '3D flip transition', hasDirection: true },
+  { id: 'clock-wipe', label: 'Clock Wipe', description: 'Clock-hand sweep', hasDirection: false },
+]
+
+export const TRANSITION_DIRECTION_DATA: {
+  id: TransitionDirection
+  label: string
+}[] = [
+  { id: 'from-left', label: 'From Left' },
+  { id: 'from-right', label: 'From Right' },
+  { id: 'from-top', label: 'From Top' },
+  { id: 'from-bottom', label: 'From Bottom' },
 ]
 
 export const QUICK_PROMPTS: Record<PresetId, string[]> = {

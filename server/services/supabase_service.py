@@ -11,7 +11,7 @@ from supabase._async.client import create_client, AsyncClient
 _supabase_client: Optional[AsyncClient] = None
 
 
-def get_supabase() -> AsyncClient:
+async def get_supabase() -> AsyncClient:
     """Get or create the Supabase client singleton."""
     global _supabase_client
     if _supabase_client is None:
@@ -21,7 +21,7 @@ def get_supabase() -> AsyncClient:
             raise RuntimeError(
                 "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in environment"
             )
-        _supabase_client = create_client(url, key)
+        _supabase_client = await create_client(url, key)
     return _supabase_client
 
 
