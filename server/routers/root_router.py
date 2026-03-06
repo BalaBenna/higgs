@@ -21,7 +21,7 @@ from utils.http_client import HttpClient
 from models.config_model import ModelInfo
 from typing import Any, List, Optional
 from services.tool_service import TOOL_MAPPING
-from middleware.auth import get_current_user, optional_auth
+from middleware.auth import get_current_user
 
 router = APIRouter(prefix="/api")
 
@@ -120,6 +120,19 @@ def _extract_media_urls(result_text: str) -> list[str]:
             seen.add(url)
             deduped.append(url)
     return deduped
+
+
+def _is_probable_video_url(url: str) -> bool:
+    lower = url.lower()
+    if lower.startswith("/api/file/"):
+        return True
+    if re.search(r"\.(mp4|webm|mov|m4v)(\?|$)", lower):
+        return True
+    if "replicate.delivery" in lower:
+        return True
+    if "/storage/v1/object/public/generated-content/" in lower:
+        return True
+    return False
 
 
 async def get_comfyui_model_list(base_url: str) -> List[str]:
@@ -222,7 +235,7 @@ async def list_chat_sessions(user_id: str = Depends(get_current_user)):
 
 @router.get("/chat_session/{session_id}")
 async def get_chat_session(session_id: str, user_id: str = Depends(get_current_user)):
-    return await db_service.get_chat_history(session_id)
+    return await db_service.get_chat_history(session_id, user_id=user_id)
 
 
 # ---------------
@@ -244,7 +257,7 @@ class ImageGenerateRequest(BaseModel):
 
 @router.post("/generate/image")
 async def generate_image(
-    req: ImageGenerateRequest, user_id: Optional[str] = Depends(optional_auth)
+    req: ImageGenerateRequest, user_id: str = Depends(get_current_user)
 ):
     """Direct image generation endpoint that invokes a tool by name."""
     tool_info = TOOL_MAPPING.get(req.tool) or tool_service.tools.get(req.tool)
@@ -271,7 +284,7 @@ async def generate_image(
         "configurable": {
             "canvas_id": "",
             "session_id": session_id,
-            "user_id": user_id or "",
+            "user_id": user_id,
         }
     }
 
@@ -409,41 +422,40 @@ async def generate_image(
                         "createdAt": datetime.now().isoformat(),
                     }
                 )
-        # Persist to Supabase if user is authenticated
-        if user_id and results:
+        # Ensure every generated image has a generated_content record.
+        # The tool's save_image_to_canvas may have already inserted one;
+        # we check by storage_path to avoid duplicates.
+        if results:
             try:
-                from services import storage_service
-
                 for img in results:
-                    local_url = img.get("url", "")
-                    if not local_url or not local_url.startswith("/api/file/"):
+                    image_url = img.get("url", "")
+                    if not image_url:
                         continue
-                    filename = local_url.split("/api/file/")[-1]
-                    file_path = os.path.join(FILES_DIR, filename)
-                    if not os.path.exists(file_path):
-                        continue
-                    with open(file_path, "rb") as f:
-                        image_bytes = f.read()
-                    public_url = await storage_service.upload_file(
-                        user_id=user_id,
-                        file_bytes=image_bytes,
-                        filename=filename,
+                    storage_path = image_url
+                    if image_url.startswith("/api/file/"):
+                        storage_path = image_url.replace("/api/file/", "", 1)
+                    elif "supabase" in image_url and "/storage/v1/" in image_url:
+                        # Derive storage_path that save_image_to_canvas would have used
+                        storage_path = f"{user_id}/{image_url.rsplit('/', 1)[-1]}"
+                    # Skip if the tool already persisted this record
+                    already = await db_service.content_exists_by_storage_path(
+                        user_id, storage_path
                     )
+                    if already:
+                        continue
                     await db_service.insert_generated_content(
                         {
                             "user_id": user_id,
                             "type": "image",
-                            "storage_path": f"{user_id}/{filename}",
+                            "storage_path": storage_path,
                             "prompt": req.prompt,
                             "model": req.model_name or req.tool,
                             "metadata": {
-                                "public_url": public_url,
+                                "public_url": image_url,
                                 "aspect_ratio": req.aspect_ratio or "1:1",
                             },
                         }
                     )
-                    img["url"] = public_url
-                    img["src"] = public_url
             except Exception as persist_err:
                 print(f"Warning: Failed to persist images to Supabase: {persist_err}")
                 traceback.print_exc()
@@ -476,7 +488,7 @@ async def generate_video(
     voice_id: Optional[str] = Form(None),
     voice_speed: Optional[str] = Form(None),
     lip_sync_text: Optional[str] = Form(None),
-    user_id: Optional[str] = Depends(get_current_user),
+    user_id: str = Depends(get_current_user),
 ):
     """Direct video generation endpoint that invokes a tool by name."""
     print(f"🎬 === VIDEO GENERATION REQUEST ===")
@@ -512,7 +524,7 @@ async def generate_video(
         "configurable": {
             "canvas_id": "",
             "session_id": session_id,
-            "user_id": user_id or "",
+            "user_id": user_id,
         }
     }
 
@@ -659,53 +671,59 @@ async def generate_video(
             # Real failure - no video and error message
             raise HTTPException(status_code=400, detail=result_str)
 
-        # If we have URLs (even with warning), use them
+        # If we have URLs (even with warning), only accept video-like URLs
         if urls:
-            video_url = urls[0]
-            print(f"🎬 Video URL extracted: {video_url}")
-            return {
-                "id": f"gen_{uuid.uuid4().hex[:8]}",
-                "type": "video",
-                "url": video_url,
-                "thumbnail": "",
-                "prompt": prompt,
-                "model": model_name or tool,
-                "duration": duration or "5",
-                "createdAt": datetime.now().isoformat(),
-            }
+            video_candidates = [u for u in urls if _is_probable_video_url(u)]
+            if video_candidates:
+                video_url = video_candidates[0]
+                print(f"🎬 Video URL extracted: {video_url}")
+                # Check if tool already persisted this record
+                try:
+                    storage_path = video_url
+                    if video_url.startswith("/api/file/"):
+                        storage_path = video_url.replace("/api/file/", "", 1)
+                    elif "supabase" in video_url and "/storage/v1/" in video_url:
+                        storage_path = f"{user_id}/{video_url.rsplit('/', 1)[-1]}"
+                    already = await db_service.content_exists_by_storage_path(
+                        user_id, storage_path
+                    )
+                    if not already:
+                        await db_service.insert_generated_content(
+                            {
+                                "user_id": user_id,
+                                "type": "video",
+                                "storage_path": storage_path,
+                                "prompt": prompt,
+                                "model": model_name or tool,
+                                "metadata": {
+                                    "public_url": video_url,
+                                    "aspect_ratio": aspect_ratio or "16:9",
+                                    "duration": duration or "5",
+                                },
+                            }
+                        )
+                except Exception as persist_err:
+                    print(
+                        f"Warning: Failed to persist generated video: {persist_err}"
+                    )
+                return {
+                    "id": f"gen_{uuid.uuid4().hex[:8]}",
+                    "type": "video",
+                    "url": video_url,
+                    "thumbnail": "",
+                    "prompt": prompt,
+                    "model": model_name or tool,
+                    "duration": duration or "5",
+                    "createdAt": datetime.now().isoformat(),
+                }
 
-        # Fallback: try to construct URL from local files
-        # Look for recently created video files
-        try:
-            from glob import glob
-            from datetime import timedelta
-
-            files_dir = os.path.join(
-                os.path.dirname(os.path.dirname(__file__)), "user_data", "files"
+            # Non-video links are usually provider help/billing links in error payloads
+            raise HTTPException(
+                status_code=400,
+                detail=f"Video generation did not return a playable video URL. Provider response: {result_str[:300]}",
             )
-            if os.path.exists(files_dir):
-                # Get video files created in last 5 minutes
-                cutoff = datetime.now() - timedelta(minutes=5)
-                video_files = glob(os.path.join(files_dir, "vi_*.mp4"))
-                for vf in sorted(video_files, key=os.path.getmtime, reverse=True):
-                    mtime = datetime.fromtimestamp(os.path.getmtime(vf))
-                    if mtime > cutoff:
-                        filename = os.path.basename(vf)
-                        video_url = f"/api/file/{filename}"
-                        print(f"🎬 Found recent video file: {video_url}")
-                        return {
-                            "id": f"gen_{uuid.uuid4().hex[:8]}",
-                            "type": "video",
-                            "url": video_url,
-                            "thumbnail": "",
-                            "prompt": prompt,
-                            "model": model_name or tool,
-                            "duration": duration or "5",
-                            "createdAt": datetime.now().isoformat(),
-                        }
-        except Exception as e:
-            print(f"⚠️ Fallback file search error: {e}")
 
+        # No local file fallback - all videos should be in Supabase
         # Last resort - return the result string as error
         raise HTTPException(
             status_code=500, detail=f"No video URL found. Result: {result_str[:200]}"

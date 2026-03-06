@@ -1,10 +1,18 @@
 'use client'
 
 import { useMutation } from '@tanstack/react-query'
+import { getRequiredAuthHeaders } from '@/lib/auth-headers'
 
 interface ScrapeProductParams {
   url: string
   autoAnalyze?: boolean
+}
+
+function normalizeProductUrl(input: string): string {
+  const trimmed = input.trim()
+  if (!trimmed) return trimmed
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  return `https://${trimmed}`
 }
 
 export interface ProductData {
@@ -18,11 +26,13 @@ export interface ProductData {
 export function useProductScraper() {
   return useMutation({
     mutationFn: async (params: ScrapeProductParams): Promise<ProductData> => {
+      const normalizedUrl = normalizeProductUrl(params.url)
+      const authHeaders = await getRequiredAuthHeaders()
       const response = await fetch('/api/scrape-product', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({
-          url: params.url,
+          url: normalizedUrl,
           auto_analyze: params.autoAnalyze ?? true,
         }),
       })
@@ -37,7 +47,7 @@ export function useProductScraper() {
           } catch {
             errorMsg = errorText || errorMsg
           }
-        } catch {}
+        } catch { }
         throw new Error(errorMsg)
       }
 

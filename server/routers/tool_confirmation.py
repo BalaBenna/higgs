@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Dict, Any
 from services.websocket_service import send_to_websocket
 from services.tool_confirmation_manager import tool_confirmation_manager
+from middleware.auth import get_current_user
 
 router = APIRouter(prefix="/api")
 
@@ -12,7 +13,7 @@ class ToolConfirmationRequest(BaseModel):
     confirmed: bool
 
 @router.post("/tool_confirmation")
-async def handle_tool_confirmation(request: ToolConfirmationRequest):
+async def handle_tool_confirmation(request: ToolConfirmationRequest, user_id: str = Depends(get_current_user)):
     """处理工具调用确认"""
     try:
         if request.confirmed:

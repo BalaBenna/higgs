@@ -116,8 +116,22 @@ async def create_jaaz_response(messages: List[Dict[str, Any]], session_id: str =
                 # 生成文件名
                 filename = f'{file_id}.{extension}'
 
-                # 保存图片到画布
-                image_url = await save_image_to_canvas(session_id, canvas_id, filename, mime_type, width, height)
+                # Read bytes for Supabase upload, then clean up local file
+                image_bytes = None
+                full_path = f"{file_path_without_extension}.{extension}"
+                if os.path.exists(full_path):
+                    with open(full_path, "rb") as f:
+                        image_bytes = f.read()
+                    try:
+                        os.remove(full_path)
+                    except Exception:
+                        pass
+
+                # 保存图片到画布 (uploads to Supabase if image_bytes available)
+                image_url = await save_image_to_canvas(
+                    session_id, canvas_id, filename, mime_type, width, height,
+                    image_bytes=image_bytes,
+                )
                 print(f"✨ 图片已保存到画布: {filename}")
             except Exception as e:
                 print(f"❌ 保存图片到画布失败: {e}")

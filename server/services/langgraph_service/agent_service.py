@@ -84,6 +84,7 @@ async def langgraph_multi_agent(
     text_model: ModelInfo,
     tool_list: List[ToolInfoJson],
     system_prompt: Optional[str] = None,
+    user_id: str = "",
 ) -> None:
     """多智能体处理函数
 
@@ -120,6 +121,11 @@ async def langgraph_multi_agent(
 
         # 5. 创建上下文
         context = {
+            'configurable': {
+                'canvas_id': canvas_id,
+                'session_id': session_id,
+                'user_id': user_id,
+            },
             'canvas_id': canvas_id,
             'session_id': session_id,
             'tool_list': tool_list,

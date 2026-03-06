@@ -26,14 +26,14 @@ async def create_canvas(request: Request, user_id: str = Depends(get_current_use
 
 @router.get("/{id}")
 async def get_canvas(id: str, user_id: str = Depends(get_current_user)):
-    return await db_service.get_canvas_data(id)
+    return await db_service.get_canvas_data(id, user_id=user_id)
 
 
 @router.post("/{id}/save")
 async def save_canvas(id: str, request: Request, user_id: str = Depends(get_current_user)):
     payload = await request.json()
     data_str = json.dumps(payload['data'])
-    await db_service.save_canvas_data(id, data_str, payload['thumbnail'])
+    await db_service.save_canvas_data(id, data_str, payload['thumbnail'], user_id=user_id)
     return {"id": id}
 
 
@@ -41,11 +41,11 @@ async def save_canvas(id: str, request: Request, user_id: str = Depends(get_curr
 async def rename_canvas(id: str, request: Request, user_id: str = Depends(get_current_user)):
     data = await request.json()
     name = data.get('name')
-    await db_service.rename_canvas(id, name)
+    await db_service.rename_canvas(id, name, user_id=user_id)
     return {"id": id}
 
 
 @router.delete("/{id}/delete")
 async def delete_canvas(id: str, user_id: str = Depends(get_current_user)):
-    await db_service.delete_canvas(id)
+    await db_service.delete_canvas(id, user_id=user_id)
     return {"id": id}

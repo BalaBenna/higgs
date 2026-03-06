@@ -30,6 +30,7 @@ async def generate_image_by_flux_1_1_pro(
     ctx = config.get('configurable', {})
     canvas_id = ctx.get('canvas_id', '')
     session_id = ctx.get('session_id', '')
+    user_id = ctx.get('user_id', '')
 
     return await generate_image_with_provider(
         canvas_id=canvas_id,
@@ -39,6 +40,7 @@ async def generate_image_by_flux_1_1_pro(
         aspect_ratio=aspect_ratio,
         model="black-forest-labs/flux-1.1-pro",
         input_images=None,
+        user_id=user_id,
     )
 
 

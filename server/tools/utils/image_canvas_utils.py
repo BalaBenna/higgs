@@ -120,31 +120,38 @@ async def save_image_to_canvas(
             bucket=storage_service.GENERATED_CONTENT_BUCKET,
             content_type=mime_type,
         )
-        # Record in generated_content table
-        # Store extra fields in metadata JSONB to match schema
-        try:
-            await db_service.insert_generated_content({
-                "user_id": user_id,
-                "type": "image",
-                "storage_path": f"{user_id}/{filename}",
-                "prompt": prompt,
-                "model": model,
-                "metadata": {
-                    "canvas_id": canvas_id or None,
-                    "filename": filename,
-                    "public_url": image_url,
-                    "mime_type": mime_type,
-                    "width": width,
-                    "height": height,
-                    "provider": provider,
-                    "aspect_ratio": aspect_ratio,
-                },
-            })
-        except Exception as e:
-            # Log but don't fail the generation if DB insert fails
-            print(f"Warning: Failed to record generated content: {e}")
     else:
         image_url = f"/api/file/{filename}"
+
+    # Record in generated_content table for authenticated users only
+    # Store extra fields in metadata JSONB to match schema
+    if user_id:
+        try:
+            await db_service.insert_generated_content(
+                {
+                    "user_id": user_id,
+                    "type": "image",
+                    "storage_path": f"{user_id}/{filename}",
+                    "prompt": prompt,
+                    "model": model,
+                    "metadata": {
+                        "canvas_id": canvas_id or None,
+                        "filename": filename,
+                        "public_url": image_url,
+                        "mime_type": mime_type,
+                        "width": width,
+                        "height": height,
+                        "provider": provider,
+                        "aspect_ratio": aspect_ratio,
+                    },
+                }
+            )
+        except Exception as e:
+            # Log details so we can debug why My Content may be empty
+            import traceback
+            print(f"Warning: Failed to record generated content: {e}")
+            print(f"  user_id={user_id}, storage_path={user_id}/{filename}, image_url={image_url}")
+            traceback.print_exc()
 
     # Skip canvas operations if no canvas_id (direct generation mode)
     if not canvas_id:

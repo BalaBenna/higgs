@@ -27,6 +27,7 @@ async def generate_image_by_ideogram3_bal_jaaz(
     ctx = config.get('configurable', {})
     canvas_id = ctx.get('canvas_id', '')
     session_id = ctx.get('session_id', '')
+    user_id = ctx.get('user_id', '')
 
     return await generate_image_with_provider(
         canvas_id=canvas_id,
@@ -36,6 +37,7 @@ async def generate_image_by_ideogram3_bal_jaaz(
         aspect_ratio=aspect_ratio,
         model="ideogram-ai/ideogram-v3-balanced",
         input_images=None,
+        user_id=user_id,
     )
 
 

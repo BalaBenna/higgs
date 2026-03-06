@@ -14,6 +14,7 @@ interface ContentItem {
   type: 'image' | 'video'
   filename: string
   public_url: string
+  storage_path?: string
   prompt: string
   model: string
   provider: string
@@ -21,6 +22,26 @@ interface ContentItem {
   width: number
   height: number
   created_at: string
+  metadata?: {
+    public_url?: string
+  }
+}
+
+function resolveMediaUrl(item: ContentItem): string {
+  if (item.public_url) return item.public_url
+  if (item.metadata?.public_url) return item.metadata.public_url
+  if (item.storage_path?.startsWith('/api/file/')) return item.storage_path
+  if (item.storage_path && !item.storage_path.startsWith('http')) {
+    return `/api/file/${item.storage_path}`
+  }
+  return item.storage_path || ''
+}
+
+function formatCreatedAt(dateValue?: string): string {
+  if (!dateValue) return 'Unknown date'
+  const parsed = new Date(dateValue)
+  if (Number.isNaN(parsed.getTime())) return 'Unknown date'
+  return parsed.toLocaleDateString()
 }
 
 export default function MyContentPage() {
@@ -36,11 +57,15 @@ export default function MyContentPage() {
       const response = await fetch(`/api/my-content${typeParam}`, {
         headers: authHeaders,
       })
-      if (!response.ok) throw new Error('Failed to fetch content')
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || 'Failed to fetch content')
+      }
       const data = await response.json()
       setItems(data.items || [])
     } catch (err) {
-      toast.error('Failed to load content')
+      const message = err instanceof Error ? err.message : 'Failed to load content'
+      toast.error(message)
     } finally {
       setLoading(false)
     }
@@ -104,72 +129,75 @@ export default function MyContentPage() {
       ) : (
         <ScrollArea className="h-[calc(100vh-220px)]">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="group relative overflow-hidden rounded-xl border border-border/40 bg-card transition-colors hover:border-border/80"
-              >
-                {/* Media */}
-                <div className="relative aspect-square overflow-hidden bg-muted">
-                  {item.type === 'image' ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={item.public_url}
-                      alt={item.prompt || 'Generated image'}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <video
-                      src={item.public_url}
-                      className="h-full w-full object-cover"
-                      muted
-                      loop
-                      playsInline
-                      onMouseEnter={(e) => e.currentTarget.play()}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.pause()
-                        e.currentTarget.currentTime = 0
-                      }}
-                    />
-                  )}
-                  {/* Type badge */}
-                  <Badge
-                    className="absolute left-2 top-2 text-[10px]"
-                    variant={item.type === 'video' ? 'default' : 'secondary'}
-                  >
-                    {item.type === 'video' ? (
-                      <Video className="mr-1 h-3 w-3" />
+            {items.map((item) => {
+              const mediaUrl = resolveMediaUrl(item)
+              return (
+                <div
+                  key={item.id}
+                  className="group relative overflow-hidden rounded-xl border border-border/40 bg-card transition-colors hover:border-border/80"
+                >
+                  {/* Media */}
+                  <div className="relative aspect-square overflow-hidden bg-muted">
+                    {item.type === 'image' ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={mediaUrl}
+                        alt={item.prompt || 'Generated image'}
+                        className="h-full w-full object-cover"
+                      />
                     ) : (
-                      <ImageIcon className="mr-1 h-3 w-3" />
+                      <video
+                        src={mediaUrl}
+                        className="h-full w-full object-cover"
+                        muted
+                        loop
+                        playsInline
+                        onMouseEnter={(e) => e.currentTarget.play()}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.pause()
+                          e.currentTarget.currentTime = 0
+                        }}
+                      />
                     )}
-                    {item.type}
-                  </Badge>
-                  {/* Delete button */}
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="absolute right-2 top-2 h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
-                    onClick={() => handleDelete(item.id)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-                {/* Info */}
-                <div className="p-3">
-                  <p className="line-clamp-2 text-sm text-foreground/90">
-                    {item.prompt || 'No prompt'}
-                  </p>
-                  <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{item.model || item.provider}</span>
-                    <span className="opacity-40">|</span>
-                    <Calendar className="h-3 w-3" />
-                    <span>
-                      {new Date(item.created_at).toLocaleDateString()}
-                    </span>
+                    {/* Type badge */}
+                    <Badge
+                      className="absolute left-2 top-2 text-[10px]"
+                      variant={item.type === 'video' ? 'default' : 'secondary'}
+                    >
+                      {item.type === 'video' ? (
+                        <Video className="mr-1 h-3 w-3" />
+                      ) : (
+                        <ImageIcon className="mr-1 h-3 w-3" />
+                      )}
+                      {item.type}
+                    </Badge>
+                    {/* Delete button */}
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute right-2 top-2 h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
+                      onClick={() => handleDelete(item.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  {/* Info */}
+                  <div className="p-3">
+                    <p className="line-clamp-2 text-sm text-foreground/90">
+                      {item.prompt || 'No prompt'}
+                    </p>
+                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{item.model || item.provider}</span>
+                      <span className="opacity-40">|</span>
+                      <Calendar className="h-3 w-3" />
+                      <span>
+                        {formatCreatedAt(item.created_at)}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </ScrollArea>
       )}

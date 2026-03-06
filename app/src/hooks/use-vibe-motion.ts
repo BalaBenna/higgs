@@ -1,9 +1,10 @@
 'use client'
 
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { buildSystemPrompt } from '@/lib/remotion/system-prompt'
 import type { MotionGenerationParams, PresetId } from '@/lib/remotion/types'
 import { ASPECT_RATIO_DATA, THEME_DATA } from '@/lib/remotion/types'
+import { getRequiredAuthHeaders } from '@/lib/auth-headers'
 
 interface GenerationCallbacks {
   onCodeUpdate?: (code: string) => void
@@ -12,9 +13,10 @@ interface GenerationCallbacks {
 export function usePromptEnhancement() {
   return useMutation({
     mutationFn: async (params: { prompt: string; preset: PresetId; style?: string }) => {
+      const authHeaders = await getRequiredAuthHeaders()
       const response = await fetch('/api/enhance/prompt', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({
           prompt: params.prompt,
           preset: params.preset,
@@ -32,7 +34,7 @@ export function usePromptEnhancement() {
           } catch {
             errorMsg = errorText || errorMsg
           }
-        } catch {}
+        } catch { }
         throw new Error(errorMsg)
       }
 
@@ -78,6 +80,7 @@ export function usePromptEnhancement() {
 export function useVibeMotionGeneration(callbacks?: GenerationCallbacks) {
   return useMutation({
     mutationFn: async (params: MotionGenerationParams) => {
+      const authHeaders = await getRequiredAuthHeaders()
       const themeColors =
         params.themeColors ??
         THEME_DATA.find((t) => t.id === params.theme)?.colors
@@ -97,7 +100,7 @@ export function useVibeMotionGeneration(callbacks?: GenerationCallbacks) {
 
       const response = await fetch('/api/generate/motion', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({
           prompt: params.prompt,
           system_prompt: systemPrompt,
@@ -121,7 +124,7 @@ export function useVibeMotionGeneration(callbacks?: GenerationCallbacks) {
           } catch {
             errorMsg = errorText || errorMsg
           }
-        } catch {}
+        } catch { }
         throw new Error(errorMsg)
       }
 
@@ -185,11 +188,13 @@ export function useVibeMotionGeneration(callbacks?: GenerationCallbacks) {
 export function useMotionMediaUpload() {
   return useMutation({
     mutationFn: async (file: File) => {
+      const authHeaders = await getRequiredAuthHeaders()
       const formData = new FormData()
       formData.append('file', file)
 
       const response = await fetch('/api/generate/motion/upload', {
         method: 'POST',
+        headers: authHeaders,
         body: formData,
       })
 
@@ -203,7 +208,7 @@ export function useMotionMediaUpload() {
           } catch {
             errorMsg = errorText || errorMsg
           }
-        } catch {}
+        } catch { }
         throw new Error(errorMsg)
       }
 
@@ -213,6 +218,8 @@ export function useMotionMediaUpload() {
 }
 
 export function useSaveVibeMotion() {
+  const queryClient = useQueryClient()
+
   return useMutation({
     mutationFn: async (params: {
       prompt: string
@@ -224,9 +231,10 @@ export function useSaveVibeMotion() {
       aspectRatio: string
       mediaUrls?: string[]
     }) => {
+      const authHeaders = await getRequiredAuthHeaders()
       const response = await fetch('/api/my-content/vibe-motion', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({
           prompt: params.prompt,
           preset: params.preset,
@@ -249,11 +257,14 @@ export function useSaveVibeMotion() {
           } catch {
             errorMsg = errorText || errorMsg
           }
-        } catch {}
+        } catch { }
         throw new Error(errorMsg)
       }
 
       return response.json() as Promise<{ status: string; file_id: string }>
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-content'] })
     },
   })
 }

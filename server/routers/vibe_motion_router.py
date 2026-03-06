@@ -1,13 +1,16 @@
 import os
+import re
 import json
 import traceback
-from fastapi import APIRouter, UploadFile, File, HTTPException
+import httpx
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List
 from openai import AsyncOpenAI
 from services.config_service import config_service, FILES_DIR
 from tools.utils.image_canvas_utils import generate_file_id
+from middleware.auth import get_current_user
 
 router = APIRouter(prefix="/api")
 
@@ -21,6 +24,65 @@ AVAILABLE_MODELS = {
     "grok-2": {"provider": "xai", "vision": False},
     "grok-2-vision": {"provider": "xai", "vision": True},
 }
+
+
+async def _download_external_media(url: str) -> Optional[str]:
+    """Download external media URL to local storage and return local URL."""
+    if not url:
+        return None
+
+    if url.startswith("/api/file/"):
+        return url
+
+    if url.startswith("http://localhost") or url.startswith("http://127.0.0.1"):
+        match = re.search(r"/api/file/[^s]+", url)
+        if match:
+            return match.group(0)
+        return None
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(url)
+            if response.status_code != 200:
+                return None
+
+            content_type = response.headers.get("content-type", "")
+            if (
+                "image" not in content_type
+                and "video" not in content_type
+                and "audio" not in content_type
+            ):
+                return None
+
+            ext = ".bin"
+            if "png" in content_type:
+                ext = ".png"
+            elif "jpeg" in content_type or "jpg" in content_type:
+                ext = ".jpg"
+            elif "webp" in content_type:
+                ext = ".webp"
+            elif "gif" in content_type:
+                ext = ".gif"
+            elif "mp4" in content_type:
+                ext = ".mp4"
+            elif "webm" in content_type:
+                ext = ".webm"
+            elif "mp3" in content_type:
+                ext = ".mp3"
+            elif "wav" in content_type:
+                ext = ".wav"
+
+            file_id = generate_file_id()
+            filename = f"{file_id}{ext}"
+            file_path = os.path.join(FILES_DIR, filename)
+
+            os.makedirs(FILES_DIR, exist_ok=True)
+            with open(file_path, "wb") as f:
+                f.write(response.content)
+
+            return f"/api/file/{filename}"
+    except Exception:
+        return None
 
 
 class MotionGenerateRequest(BaseModel):
@@ -153,11 +215,23 @@ async def _xai_event_stream(client: AsyncOpenAI, req: MotionGenerateRequest):
 
 
 @router.post("/generate/motion")
-async def generate_motion(req: MotionGenerateRequest):
+async def generate_motion(
+    req: MotionGenerateRequest, user_id: str = Depends(get_current_user)
+):
     """SSE streaming endpoint: proxies prompt to OpenAI, Gemini, or xAI and streams Remotion code back."""
     model = req.model or "gpt-4o"
 
     has_media = req.media_urls and len(req.media_urls) > 0
+
+    if has_media:
+        local_media_urls = []
+        for url in req.media_urls:
+            local_url = await _download_external_media(url)
+            if local_url:
+                local_media_urls.append(local_url)
+            else:
+                local_media_urls.append(url)
+        req.media_urls = local_media_urls
 
     if has_media and model not in VISION_MODELS:
         model = "gemini-2.5-pro"
@@ -240,7 +314,9 @@ async def generate_motion(req: MotionGenerateRequest):
 
 
 @router.post("/generate/motion/upload")
-async def upload_motion_media(file: UploadFile = File(...)):
+async def upload_motion_media(
+    file: UploadFile = File(...), user_id: str = Depends(get_current_user)
+):
     """Upload media file for use in motion generation."""
     try:
         file_id = generate_file_id()
@@ -419,7 +495,9 @@ Enhanced prompt:"""
 
 
 @router.post("/enhance/prompt")
-async def enhance_prompt(req: EnhancePromptRequest):
+async def enhance_prompt(
+    req: EnhancePromptRequest, user_id: str = Depends(get_current_user)
+):
     """Enhance a simple prompt into a detailed motion graphics prompt."""
     config = config_service.get_config()
     openai_config = config.get("openai", {})

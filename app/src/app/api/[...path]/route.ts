@@ -33,8 +33,8 @@ async function proxyRequest(
       const {
         data: { session },
       } = await supabase.auth.getSession()
-      console.log('[PROXY] Server session:', { 
-        hasSession: !!session, 
+      console.log('[PROXY] Server session:', {
+        hasSession: !!session,
         hasAccessToken: !!session?.access_token,
         userId: session?.user?.id
       })
@@ -74,9 +74,15 @@ async function proxyRequest(
       responseHeaders.set(key, value)
     })
 
-    // Stream SSE responses directly without buffering
+    // Stream SSE and media/range responses directly without buffering
     const contentType = response.headers.get('content-type') || ''
-    if (contentType.includes('text/event-stream')) {
+    const isStreamResponse =
+      contentType.includes('text/event-stream') ||
+      contentType.startsWith('video/') ||
+      contentType.startsWith('audio/') ||
+      response.status === 206
+
+    if (isStreamResponse) {
       return new NextResponse(response.body, {
         status: response.status,
         statusText: response.statusText,

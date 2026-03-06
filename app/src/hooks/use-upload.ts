@@ -12,6 +12,7 @@ export function useUpload() {
   const [isUploading, setIsUploading] = useState(false)
   const [preview, setPreview] = useState<string | null>(null)
   const [filename, setFilename] = useState<string | null>(null)
+  const [url, setUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null!)
 
   const upload = useCallback(async (file: File): Promise<UploadResult | null> => {
@@ -38,6 +39,7 @@ export function useUpload() {
         url: data.url || `/api/file/${data.filename || data.file_id}`,
       }
       setFilename(result.filename)
+      setUrl(result.url)
       return result
     } catch {
       return null
@@ -64,6 +66,7 @@ export function useUpload() {
   const clear = useCallback(() => {
     setPreview(null)
     setFilename(null)
+    setUrl(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -77,6 +80,7 @@ export function useUpload() {
     isUploading,
     preview,
     filename,
+    url,
     fileInputRef,
     upload,
     handleFileSelect,

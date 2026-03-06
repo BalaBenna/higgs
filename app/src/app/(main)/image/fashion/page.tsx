@@ -28,6 +28,7 @@ import { GeneratedImage } from '@/components/generation/GeneratedImage'
 import { useImageGeneration } from '@/hooks/use-generation'
 import { useUpload } from '@/hooks/use-upload'
 import { MODEL_TO_TOOL_MAP, getModelById } from '@/config/model-mappings'
+import { getRequiredAuthHeaders } from '@/lib/auth-headers'
 
 const IMAGE_MODELS = [
   { id: 'gpt-image-1.5', name: 'GPT Image 1.5', provider: 'OpenAI' },
@@ -99,10 +100,11 @@ export default function FashionPage() {
           throw new Error(`No tool mapping found for model: ${model}`)
         }
         const modelInfo = getModelById(model)
+        const authHeaders = await getRequiredAuthHeaders()
 
         const response = await fetch('/api/generate/image', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
           body: JSON.stringify({
             tool: toolId,
             prompt: fullPrompt,
@@ -123,7 +125,7 @@ export default function FashionPage() {
             } catch {
               errorMsg = errorText || errorMsg
             }
-          } catch {}
+          } catch { }
           throw new Error(errorMsg)
         }
 

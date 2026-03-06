@@ -12,7 +12,7 @@ from services.websocket_service import send_to_websocket  # type: ignore
 from services.stream_service import add_stream_task, remove_stream_task
 
 
-async def handle_magic(data: Dict[str, Any]) -> None:
+async def handle_magic(data: Dict[str, Any], user_id: str = "") -> None:
     """
     Handle an incoming magic generation request.
 
@@ -45,7 +45,7 @@ async def handle_magic(data: Dict[str, Any]) -> None:
     if len(messages) == 1:
         # create new session
         prompt = messages[0].get('content', '')
-        await db_service.create_chat_session(session_id, 'gpt', 'jaaz', canvas_id, (prompt[:200] if isinstance(prompt, str) else ''))
+        await db_service.create_chat_session(session_id, 'gpt', 'jaaz', canvas_id, (prompt[:200] if isinstance(prompt, str) else ''), user_id=user_id)
 
     # Save user message to database
     if len(messages) > 0:

@@ -37,6 +37,7 @@ async def generate_image_by_midjourney_jaaz(
     ctx = config.get('configurable', {})
     canvas_id = ctx.get('canvas_id', '')
     session_id = ctx.get('session_id', '')
+    user_id = ctx.get('user_id', '')
     print(f'🎨 canvas_id {canvas_id} session_id {session_id}')
 
     # Inject the tool call id into the context
@@ -107,9 +108,25 @@ async def generate_image_by_midjourney_jaaz(
 
                 filename = f'{image_id}.{extension}'
 
-                # Save to canvas
+                # Read bytes for Supabase upload, then clean up local file
+                image_bytes = None
+                full_path = os.path.join(FILES_DIR, filename)
+                if user_id and os.path.exists(full_path):
+                    with open(full_path, "rb") as f:
+                        image_bytes = f.read()
+                    try:
+                        os.remove(full_path)
+                    except Exception:
+                        pass
+
+                # Save to canvas (uploads to Supabase if image_bytes available)
                 canvas_image_url = await save_image_to_canvas(
-                    session_id, canvas_id, filename, mime_type, width, height
+                    session_id, canvas_id, filename, mime_type, width, height,
+                    user_id=user_id,
+                    image_bytes=image_bytes,
+                    prompt=prompt,
+                    model="midjourney",
+                    provider="jaaz",
                 )
 
                 # Add to saved images list

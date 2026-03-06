@@ -40,6 +40,7 @@ async def _generate_video_via_replicate(
     ctx = config.get("configurable", {})
     canvas_id = ctx.get("canvas_id", "")
     session_id = ctx.get("session_id", "")
+    user_id = ctx.get("user_id", "")
     await send_video_start_notification(
         session_id, f"Generating video with {model_label}..."
     )
@@ -51,7 +52,7 @@ async def _generate_video_via_replicate(
             aspect_ratio=aspect_ratio,
             duration=duration,
         )
-        return await process_video_result(video_url, session_id, canvas_id, model_label)
+        return await process_video_result(video_url, session_id, canvas_id, model_label, user_id=user_id)
     except Exception as e:
         await send_video_error_notification(session_id, str(e))
         return f"Video generation failed: {str(e)}"

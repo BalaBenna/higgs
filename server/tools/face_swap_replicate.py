@@ -99,6 +99,7 @@ async def face_swap_replicate(
     ctx = config.get("configurable", {})
     canvas_id = ctx.get("canvas_id", "")
     session_id = ctx.get("session_id", "")
+    user_id = ctx.get("user_id", "")
 
     if not input_images or len(input_images) < 2:
         raise ValueError(
@@ -118,12 +119,24 @@ async def face_swap_replicate(
 
         # Download and save the result
         image_id = generate_image_id()
+        file_path_base = os.path.join(FILES_DIR, f"{image_id}")
         mime_type, width, height, extension = await get_image_info_and_save(
-            output_url, os.path.join(FILES_DIR, f"{image_id}")
+            output_url, file_path_base
         )
         filename = f"{image_id}.{extension}"
 
-        # Save to canvas
+        # Read bytes for Supabase upload, then clean up local file
+        image_bytes = None
+        full_path = f"{file_path_base}.{extension}"
+        if user_id and os.path.exists(full_path):
+            with open(full_path, "rb") as f:
+                image_bytes = f.read()
+            try:
+                os.remove(full_path)
+            except Exception:
+                pass
+
+        # Save to canvas (uploads to Supabase if image_bytes available)
         image_url = await save_image_to_canvas(
             session_id,
             canvas_id,
@@ -131,6 +144,8 @@ async def face_swap_replicate(
             mime_type,
             width,
             height,
+            user_id=user_id,
+            image_bytes=image_bytes,
             prompt=prompt or "Face swap",
             model="codeplugtech/face-swap",
             provider="replicate",

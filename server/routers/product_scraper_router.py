@@ -2,8 +2,9 @@ from urllib.parse import urljoin, urlparse
 
 import httpx
 from bs4 import BeautifulSoup
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
+from middleware.auth import get_current_user
 
 router = APIRouter(prefix="/api")
 
@@ -142,7 +143,9 @@ def _extract_product_data(html: str, url: str) -> ScrapeResponse:
 
 
 @router.post("/scrape-product")
-async def scrape_product(req: ScrapeRequest) -> ScrapeResponse:
+async def scrape_product(
+    req: ScrapeRequest, user_id: str = Depends(get_current_user)
+) -> ScrapeResponse:
     """Scrape product data from a URL."""
     # Validate URL
     parsed = urlparse(req.url)

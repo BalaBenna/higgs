@@ -103,7 +103,14 @@ if os.path.exists(static_site):
 
 @app.get("/")
 async def serve_react_app():
-    response = FileResponse(os.path.join(react_build_dir, "index.html"))
+    index_path = os.path.join(react_build_dir, "index.html")
+    if not os.path.exists(index_path):
+        return {
+            "status": "ok",
+            "message": "Backend is running. Frontend static build not found.",
+        }
+
+    response = FileResponse(index_path)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"

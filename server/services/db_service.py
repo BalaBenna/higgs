@@ -35,16 +35,13 @@ class DatabaseService:
         result = await query.order("updated_at", desc=True).execute()
         return result.data or []
 
-    async def get_canvas_data(self, id: str) -> Optional[Dict[str, Any]]:
+    async def get_canvas_data(self, id: str, user_id: str = "") -> Optional[Dict[str, Any]]:
         """Get canvas data including sessions."""
         sb = await get_supabase()
-        result = await (
-            sb.table("canvases")
-            .select("data, name")
-            .eq("id", id)
-            .maybe_single()
-            .execute()
-        )
+        query = sb.table("canvases").select("data, name").eq("id", id)
+        if user_id:
+            query = query.eq("user_id", user_id)
+        result = await query.maybe_single().execute()
         row = result.data
         if not row:
             return None
@@ -62,7 +59,7 @@ class DatabaseService:
             "sessions": sessions,
         }
 
-    async def save_canvas_data(self, id: str, data: str, thumbnail: str = None):
+    async def save_canvas_data(self, id: str, data: str, thumbnail: str = None, user_id: str = ""):
         """Save canvas data (JSON string)."""
         sb = await get_supabase()
         update_payload: Dict[str, Any] = {
@@ -70,17 +67,26 @@ class DatabaseService:
         }
         if thumbnail is not None:
             update_payload["thumbnail"] = thumbnail
-        await sb.table("canvases").update(update_payload).eq("id", id).execute()
+        query = sb.table("canvases").update(update_payload).eq("id", id)
+        if user_id:
+            query = query.eq("user_id", user_id)
+        await query.execute()
 
-    async def delete_canvas(self, id: str):
+    async def delete_canvas(self, id: str, user_id: str = ""):
         """Delete canvas and related data (cascade handled by FK)."""
         sb = await get_supabase()
-        await sb.table("canvases").delete().eq("id", id).execute()
+        query = sb.table("canvases").delete().eq("id", id)
+        if user_id:
+            query = query.eq("user_id", user_id)
+        await query.execute()
 
-    async def rename_canvas(self, id: str, name: str):
+    async def rename_canvas(self, id: str, name: str, user_id: str = ""):
         """Rename a canvas."""
         sb = await get_supabase()
-        await sb.table("canvases").update({"name": name}).eq("id", id).execute()
+        query = sb.table("canvases").update({"name": name}).eq("id", id)
+        if user_id:
+            query = query.eq("user_id", user_id)
+        await query.execute()
 
     # ── Chat Sessions ─────────────────────────────────────────────────────
 
@@ -137,9 +143,23 @@ class DatabaseService:
             .execute()
         )
 
-    async def get_chat_history(self, session_id: str) -> List[Dict[str, Any]]:
+    async def get_chat_history(
+        self, session_id: str, user_id: str = ""
+    ) -> List[Dict[str, Any]]:
         """Get chat history for a session."""
         sb = await get_supabase()
+        # Verify the session belongs to this user
+        if user_id:
+            session_check = await (
+                sb.table("chat_sessions")
+                .select("id")
+                .eq("id", session_id)
+                .eq("user_id", user_id)
+                .maybe_single()
+                .execute()
+            )
+            if not session_check.data:
+                return []
         result = await (
             sb.table("chat_messages")
             .select("role, message, id")
@@ -166,6 +186,21 @@ class DatabaseService:
         """Insert a row into the generated_content table."""
         sb = await get_supabase()
         await sb.table("generated_content").insert(data).execute()
+
+    async def content_exists_by_storage_path(
+        self, user_id: str, storage_path: str
+    ) -> bool:
+        """Check if a generated_content record already exists for this user + storage_path."""
+        sb = await get_supabase()
+        result = await (
+            sb.table("generated_content")
+            .select("id")
+            .eq("user_id", user_id)
+            .eq("storage_path", storage_path)
+            .limit(1)
+            .execute()
+        )
+        return bool(result.data)
 
     def _flatten_metadata(self, item: Dict[str, Any]) -> Dict[str, Any]:
         """Flatten metadata JSONB fields into top-level fields for frontend compatibility."""
@@ -296,16 +331,13 @@ class DatabaseService:
         )
         return result.data or []
 
-    async def get_vibe_motion_project(self, id: str) -> Optional[Dict[str, Any]]:
+    async def get_vibe_motion_project(self, id: str, user_id: str = "") -> Optional[Dict[str, Any]]:
         """Get a single vibe motion project."""
         sb = await get_supabase()
-        result = await (
-            sb.table("vibe_motion_projects")
-            .select("*")
-            .eq("id", id)
-            .maybe_single()
-            .execute()
-        )
+        query = sb.table("vibe_motion_projects").select("*").eq("id", id)
+        if user_id:
+            query = query.eq("user_id", user_id)
+        result = await query.maybe_single().execute()
         return result.data
 
     async def update_vibe_motion_project(
@@ -355,12 +387,18 @@ class DatabaseService:
 
         updates["updated_at"] = "now"
 
-        await sb.table("vibe_motion_projects").update(updates).eq("id", id).execute()
+        query = sb.table("vibe_motion_projects").update(updates).eq("id", id)
+        if user_id:
+            query = query.eq("user_id", user_id)
+        await query.execute()
 
-    async def delete_vibe_motion_project(self, id: str):
+    async def delete_vibe_motion_project(self, id: str, user_id: str = ""):
         """Delete a vibe motion project."""
         sb = await get_supabase()
-        await sb.table("vibe_motion_projects").delete().eq("id", id).execute()
+        query = sb.table("vibe_motion_projects").delete().eq("id", id)
+        if user_id:
+            query = query.eq("user_id", user_id)
+        await query.execute()
 
 
 # Singleton instance

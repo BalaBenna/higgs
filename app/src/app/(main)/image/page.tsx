@@ -697,7 +697,7 @@ function ImagePageContent() {
                     </p>
                   </div>
                   {/* 4-column image grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 gap-3">
                     {group.isLoading
                       ? group.images.map((_, i) => (
                           <SkeletonPlaceholder

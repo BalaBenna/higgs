@@ -36,7 +36,7 @@ import { useUpload } from '@/hooks/use-upload'
 type EditTool =
   | 'relight'
   | 'upscale'
-  | 'enhance'
+  | 'ai_enhance'
   | 'remove_objects'
   | 'background_replace'
   | 'smart_crop'
@@ -44,7 +44,7 @@ type EditTool =
 const EDIT_TABS: { id: EditTool; label: string; icon: React.ElementType }[] = [
   { id: 'relight', label: 'Relight', icon: Sun },
   { id: 'upscale', label: 'Upscale', icon: ZoomIn },
-  { id: 'enhance', label: 'AI Enhance', icon: Wand2 },
+  { id: 'ai_enhance', label: 'AI Enhance', icon: Wand2 },
   { id: 'remove_objects', label: 'Remove Objects', icon: Eraser },
   { id: 'background_replace', label: 'Background', icon: Layers },
   { id: 'smart_crop', label: 'Smart Crop', icon: Crop },
@@ -112,7 +112,7 @@ export default function EditPage() {
         }
       case 'upscale':
         return { scale_factor: parseInt(scaleFactor) }
-      case 'enhance':
+      case 'ai_enhance':
         return { strength: enhanceStrength }
       case 'remove_objects':
         return {}
@@ -137,7 +137,7 @@ export default function EditPage() {
   }
 
   const handleGenerate = async () => {
-    if (!imageUpload.filename) {
+    if (!imageUpload.url) {
       toast.error('Please upload an image first')
       return
     }
@@ -155,7 +155,7 @@ export default function EditPage() {
     try {
       const result = await featureGeneration.mutateAsync({
         featureType: activeTool,
-        inputImages: [imageUpload.filename],
+        inputImages: [imageUpload.url],
         prompt: getPrompt(),
         params: getParams(),
       })
@@ -183,7 +183,7 @@ export default function EditPage() {
     (activeTool === 'background_replace' && !bgPrompt.trim())
 
   const canGenerate =
-    !!imageUpload.filename && !needsPrompt && !featureGeneration.isPending
+    !!imageUpload.url && !needsPrompt && !featureGeneration.isPending
 
   // Render tool-specific controls
   const renderToolControls = () => {
@@ -282,7 +282,7 @@ export default function EditPage() {
           </div>
         )
 
-      case 'enhance':
+      case 'ai_enhance':
         return (
           <div className="space-y-4">
             <div className="space-y-2">

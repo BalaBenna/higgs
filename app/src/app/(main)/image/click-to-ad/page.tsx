@@ -14,13 +14,23 @@ import { useImageGeneration } from '@/hooks/use-generation'
 
 const IMAGE_MODELS = [
   { id: 'gpt-image-1.5', name: 'GPT Image 1.5', provider: 'OpenAI' },
-  { id: 'seedream-4.5', name: 'Seedream 4.5', provider: 'ByteDance', badge: 'new' },
-  { id: 'flux-2', name: 'FLUX.2', provider: 'Black Forest Labs', badge: 'new' },
-  { id: 'midjourney', name: 'Midjourney', provider: 'Midjourney' },
+  {
+    id: 'seedream-4.5',
+    name: 'Seedream 4.5',
+    provider: 'ByteDance',
+    badge: 'new',
+    isComingSoon: true,
+  },
+  { id: 'flux-2-pro-replicate', name: 'FLUX.2', provider: 'Black Forest Labs', badge: 'new' },
+  { id: 'midjourney', name: 'Midjourney', provider: 'Midjourney', isComingSoon: true },
   { id: 'imagen-4', name: 'Imagen 4', provider: 'Google' },
-  { id: 'ideogram-3', name: 'Ideogram 3', provider: 'Ideogram' },
-  { id: 'recraft-v3', name: 'Recraft V3', provider: 'Recraft' },
-  { id: 'flux-kontext-pro', name: 'FLUX Kontext Pro', provider: 'Black Forest Labs' },
+  { id: 'ideogram-v3-turbo', name: 'Ideogram 3', provider: 'Ideogram' },
+  { id: 'recraft-v3-replicate', name: 'Recraft V3', provider: 'Recraft' },
+  {
+    id: 'flux-kontext-pro-replicate',
+    name: 'FLUX Kontext Pro',
+    provider: 'Black Forest Labs',
+  },
 ]
 
 interface ImageResult {
@@ -114,6 +124,7 @@ export default function ClickToAdImagePage() {
         aspectRatio: imageConfig.aspectRatio,
         numImages: imageConfig.numImages,
         style: imageConfig.imageStyle !== 'None' ? imageConfig.imageStyle : undefined,
+        inputImages,
       })
 
       if (result?.images) {
@@ -130,6 +141,7 @@ export default function ClickToAdImagePage() {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Image generation failed'
       toast.error(message)
+      setStep(2)
     }
   }
 

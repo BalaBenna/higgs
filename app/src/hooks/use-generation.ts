@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { MODEL_TO_TOOL_MAP, getModelById } from '@/config/model-mappings'
-import { getAuthHeaders } from '@/lib/auth-headers'
+import { getAuthHeaders, getRequiredAuthHeaders } from '@/lib/auth-headers'
 
 interface GenerationParams {
   model: string
@@ -62,7 +62,7 @@ async function generateContent<T = any>(
   endpoint: string,
   params: Record<string, unknown>
 ): Promise<T> {
-  const authHeaders = await getAuthHeaders()
+  const authHeaders = await getRequiredAuthHeaders()
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
@@ -135,7 +135,7 @@ export function useVideoGeneration() {
       }
 
       const model = getModelById(params.model)
-      const authHeaders = await getAuthHeaders()
+      const authHeaders = await getRequiredAuthHeaders()
 
       const formData = new FormData()
       formData.append('tool', toolId)
@@ -226,7 +226,7 @@ export function useChatGeneration() {
 export function usePromptEnhancement() {
   return useMutation({
     mutationFn: async (params: EnhancePromptParams) => {
-      const authHeaders = await getAuthHeaders()
+      const authHeaders = await getRequiredAuthHeaders()
       const response = await fetch('/api/enhance/prompt', {
         method: 'POST',
         headers: {
@@ -250,7 +250,7 @@ export function usePromptEnhancement() {
           } catch {
             errorMsg = errorText || errorMsg
           }
-        } catch {}
+        } catch { }
         throw new Error(errorMsg)
       }
 

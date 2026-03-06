@@ -31,6 +31,7 @@ async def generate_image_by_higgsfield_soul_jaaz(
     aspect_ratio: str = "1:1",
 ) -> str:
     ctx = config.get("configurable", {})
+    user_id = ctx.get("user_id", "")
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
         session_id=ctx.get("session_id", ""),
@@ -38,6 +39,7 @@ async def generate_image_by_higgsfield_soul_jaaz(
         model="black-forest-labs/flux-kontext-max",
         prompt=prompt,
         aspect_ratio=aspect_ratio,
+        user_id=user_id,
     )
 
 
@@ -53,6 +55,7 @@ async def generate_image_by_higgsfield_popcorn_jaaz(
     aspect_ratio: str = "1:1",
 ) -> str:
     ctx = config.get("configurable", {})
+    user_id = ctx.get("user_id", "")
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
         session_id=ctx.get("session_id", ""),
@@ -60,6 +63,7 @@ async def generate_image_by_higgsfield_popcorn_jaaz(
         model="black-forest-labs/flux-kontext-pro",
         prompt=prompt,
         aspect_ratio=aspect_ratio,
+        user_id=user_id,
     )
 
 
@@ -75,6 +79,7 @@ async def generate_image_by_nano_banana_pro_jaaz(
     aspect_ratio: str = "1:1",
 ) -> str:
     ctx = config.get("configurable", {})
+    user_id = ctx.get("user_id", "")
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
         session_id=ctx.get("session_id", ""),
@@ -82,6 +87,7 @@ async def generate_image_by_nano_banana_pro_jaaz(
         model="google/imagen-4",
         prompt=prompt,
         aspect_ratio=aspect_ratio,
+        user_id=user_id,
     )
 
 
@@ -97,6 +103,7 @@ async def generate_image_by_z_image_jaaz(
     aspect_ratio: str = "1:1",
 ) -> str:
     ctx = config.get("configurable", {})
+    user_id = ctx.get("user_id", "")
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
         session_id=ctx.get("session_id", ""),
@@ -104,6 +111,7 @@ async def generate_image_by_z_image_jaaz(
         model="recraft-ai/recraft-v3",
         prompt=prompt,
         aspect_ratio=aspect_ratio,
+        user_id=user_id,
     )
 
 
@@ -119,6 +127,7 @@ async def generate_image_by_kling_q1_image_jaaz(
     aspect_ratio: str = "1:1",
 ) -> str:
     ctx = config.get("configurable", {})
+    user_id = ctx.get("user_id", "")
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
         session_id=ctx.get("session_id", ""),
@@ -126,6 +135,7 @@ async def generate_image_by_kling_q1_image_jaaz(
         model="ideogram-ai/ideogram-v2-turbo",
         prompt=prompt,
         aspect_ratio=aspect_ratio,
+        user_id=user_id,
     )
 
 
@@ -141,6 +151,7 @@ async def generate_image_by_wan_2_2_image_jaaz(
     aspect_ratio: str = "1:1",
 ) -> str:
     ctx = config.get("configurable", {})
+    user_id = ctx.get("user_id", "")
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
         session_id=ctx.get("session_id", ""),
@@ -148,6 +159,7 @@ async def generate_image_by_wan_2_2_image_jaaz(
         model="black-forest-labs/flux-1.1-pro",
         prompt=prompt,
         aspect_ratio=aspect_ratio,
+        user_id=user_id,
     )
 
 
@@ -163,6 +175,7 @@ async def generate_image_by_reve_jaaz(
     aspect_ratio: str = "1:1",
 ) -> str:
     ctx = config.get("configurable", {})
+    user_id = ctx.get("user_id", "")
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
         session_id=ctx.get("session_id", ""),
@@ -170,6 +183,7 @@ async def generate_image_by_reve_jaaz(
         model="recraft-ai/recraft-v3",
         prompt=prompt,
         aspect_ratio=aspect_ratio,
+        user_id=user_id,
     )
 
 
@@ -185,6 +199,7 @@ async def generate_image_by_topaz_jaaz(
     aspect_ratio: str = "1:1",
 ) -> str:
     ctx = config.get("configurable", {})
+    user_id = ctx.get("user_id", "")
     enhanced_prompt = f"ultra high resolution, enhanced detail, upscaled: {prompt}"
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
@@ -193,6 +208,7 @@ async def generate_image_by_topaz_jaaz(
         model="philz1337x/clarity-upscaler",
         prompt=enhanced_prompt,
         aspect_ratio=aspect_ratio,
+        user_id=user_id,
     )
 
 
@@ -208,6 +224,7 @@ async def generate_image_by_nano_banana_pro_inpaint_jaaz(
     aspect_ratio: str = "1:1",
 ) -> str:
     ctx = config.get("configurable", {})
+    user_id = ctx.get("user_id", "")
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
         session_id=ctx.get("session_id", ""),
@@ -215,6 +232,7 @@ async def generate_image_by_nano_banana_pro_inpaint_jaaz(
         model="black-forest-labs/flux-kontext-pro",
         prompt=prompt,
         aspect_ratio=aspect_ratio,
+        user_id=user_id,
     )
 
 
@@ -230,6 +248,7 @@ async def generate_image_by_nano_banana_inpaint_jaaz(
     aspect_ratio: str = "1:1",
 ) -> str:
     ctx = config.get("configurable", {})
+    user_id = ctx.get("user_id", "")
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
         session_id=ctx.get("session_id", ""),
@@ -237,6 +256,7 @@ async def generate_image_by_nano_banana_inpaint_jaaz(
         model="black-forest-labs/flux-kontext-pro",
         prompt=prompt,
         aspect_ratio=aspect_ratio,
+        user_id=user_id,
     )
 
 
@@ -252,6 +272,7 @@ async def generate_image_by_product_placement_jaaz(
     aspect_ratio: str = "1:1",
 ) -> str:
     ctx = config.get("configurable", {})
+    user_id = ctx.get("user_id", "")
     placement_prompt = f"product placement, natural scene integration: {prompt}"
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
@@ -260,6 +281,7 @@ async def generate_image_by_product_placement_jaaz(
         model="black-forest-labs/flux-kontext-pro",
         prompt=placement_prompt,
         aspect_ratio=aspect_ratio,
+        user_id=user_id,
     )
 
 

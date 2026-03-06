@@ -57,7 +57,7 @@ export default function ClickToAdVideoPage() {
     siteName: '',
   })
   const [videoConfig, setVideoConfig] = useState({
-    model: 'kling-2.6',
+    model: 'kling-v2.6-replicate',
     adFormat: 'instagram-reel',
     duration: '5',
     style: 'cinematic',
@@ -135,6 +135,7 @@ export default function ClickToAdVideoPage() {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Video generation failed'
       toast.error(message)
+      setStep(2)
     }
   }
 

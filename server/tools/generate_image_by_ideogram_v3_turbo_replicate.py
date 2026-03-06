@@ -25,6 +25,7 @@ async def generate_image_by_ideogram_v3_turbo_replicate(
     ctx = config.get('configurable', {})
     canvas_id = ctx.get('canvas_id', '')
     session_id = ctx.get('session_id', '')
+    user_id = ctx.get('user_id', '')
     print(f'🛠️ canvas_id {canvas_id} session_id {session_id}')
     return await generate_image_with_provider(
         canvas_id=canvas_id,
@@ -34,6 +35,7 @@ async def generate_image_by_ideogram_v3_turbo_replicate(
         prompt=prompt,
         aspect_ratio=aspect_ratio,
         num_images=num_images,
+        user_id=user_id,
     )
 
 

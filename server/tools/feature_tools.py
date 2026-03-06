@@ -66,6 +66,7 @@ async def feature_character_swap_jaaz(
     input_images: list[str] | None = None,
 ) -> str:
     ctx = config.get("configurable", {})
+    user_id = ctx.get("user_id", "")
     final_prompt = f"Replace the character in the target image with the character from the reference image. Maintain the scene, pose, and lighting. {prompt}"
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
@@ -75,6 +76,7 @@ async def feature_character_swap_jaaz(
         prompt=final_prompt,
         aspect_ratio=aspect_ratio,
         input_images=input_images,
+        user_id=user_id,
     )
 
 
@@ -91,6 +93,7 @@ async def feature_video_face_swap_jaaz(
     input_images: list[str] | None = None,
 ) -> str:
     ctx = config.get("configurable", {})
+    user_id = ctx.get("user_id", "")
     final_prompt = f"Generate a video with this person's face applied naturally. Maintain expressions and lip movement. {prompt}"
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
@@ -100,6 +103,7 @@ async def feature_video_face_swap_jaaz(
         prompt=final_prompt,
         aspect_ratio=aspect_ratio,
         input_images=input_images,
+        user_id=user_id,
     )
 
 
@@ -116,6 +120,7 @@ async def feature_inpaint_jaaz(
     input_images: list[str] | None = None,
 ) -> str:
     ctx = config.get("configurable", {})
+    user_id = ctx.get("user_id", "")
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
         session_id=ctx.get("session_id", ""),
@@ -124,6 +129,7 @@ async def feature_inpaint_jaaz(
         prompt=prompt,
         aspect_ratio=aspect_ratio,
         input_images=input_images,
+        user_id=user_id,
     )
 
 
@@ -140,6 +146,7 @@ async def feature_relight_jaaz(
     input_images: list[str] | None = None,
 ) -> str:
     ctx = config.get("configurable", {})
+    user_id = ctx.get("user_id", "")
     final_prompt = f"Relight this image with the following lighting adjustments: {prompt}"
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
@@ -149,6 +156,7 @@ async def feature_relight_jaaz(
         prompt=final_prompt,
         aspect_ratio=aspect_ratio,
         input_images=input_images,
+        user_id=user_id,
     )
 
 
@@ -165,6 +173,7 @@ async def feature_upscale_jaaz(
     input_images: list[str] | None = None,
 ) -> str:
     ctx = config.get("configurable", {})
+    user_id = ctx.get("user_id", "")
     final_prompt = f"Enhance and upscale this image to higher resolution. Improve fine details, textures, and sharpness while maintaining the original composition. {prompt}"
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
@@ -174,6 +183,7 @@ async def feature_upscale_jaaz(
         prompt=final_prompt,
         aspect_ratio=aspect_ratio,
         input_images=input_images,
+        user_id=user_id,
     )
 
 
@@ -190,6 +200,7 @@ async def feature_skin_enhancer_jaaz(
     input_images: list[str] | None = None,
 ) -> str:
     ctx = config.get("configurable", {})
+    user_id = ctx.get("user_id", "")
     final_prompt = f"Enhance the skin in this portrait. Smooth skin texture naturally, reduce blemishes, and improve skin tone while keeping it photorealistic. {prompt}"
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
@@ -199,6 +210,7 @@ async def feature_skin_enhancer_jaaz(
         prompt=final_prompt,
         aspect_ratio=aspect_ratio,
         input_images=input_images,
+        user_id=user_id,
     )
 
 
@@ -215,6 +227,7 @@ async def feature_ai_stylist_jaaz(
     input_images: list[str] | None = None,
 ) -> str:
     ctx = config.get("configurable", {})
+    user_id = ctx.get("user_id", "")
     final_prompt = f"Apply style transfer to this image: {prompt}"
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
@@ -224,6 +237,7 @@ async def feature_ai_stylist_jaaz(
         prompt=final_prompt,
         aspect_ratio=aspect_ratio,
         input_images=input_images,
+        user_id=user_id,
     )
 
 
@@ -240,6 +254,7 @@ async def feature_draw_to_edit_jaaz(
     input_images: list[str] | None = None,
 ) -> str:
     ctx = config.get("configurable", {})
+    user_id = ctx.get("user_id", "")
     final_prompt = f"Edit this image based on the drawing overlay: {prompt}"
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
@@ -249,6 +264,7 @@ async def feature_draw_to_edit_jaaz(
         prompt=final_prompt,
         aspect_ratio=aspect_ratio,
         input_images=input_images,
+        user_id=user_id,
     )
 
 
@@ -265,6 +281,7 @@ async def feature_lipsync_jaaz(
     input_images: list[str] | None = None,
 ) -> str:
     ctx = config.get("configurable", {})
+    user_id = ctx.get("user_id", "")
     final_prompt = f"Generate a talking head video from this portrait. The person should be speaking naturally: {prompt}"
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
@@ -274,6 +291,7 @@ async def feature_lipsync_jaaz(
         prompt=final_prompt,
         aspect_ratio=aspect_ratio,
         input_images=input_images,
+        user_id=user_id,
     )
 
 
@@ -290,6 +308,7 @@ async def feature_soul_id_character_jaaz(
     input_images: list[str] | None = None,
 ) -> str:
     ctx = config.get("configurable", {})
+    user_id = ctx.get("user_id", "")
     final_prompt = f"Generate a consistent character identity based on the reference: {prompt}"
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
@@ -299,6 +318,7 @@ async def feature_soul_id_character_jaaz(
         prompt=final_prompt,
         aspect_ratio=aspect_ratio,
         input_images=input_images,
+        user_id=user_id,
     )
 
 

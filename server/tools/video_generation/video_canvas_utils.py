@@ -94,37 +94,41 @@ async def save_video_to_canvas(
                     bucket=storage_service.GENERATED_CONTENT_BUCKET,
                     content_type=mime_type,
                 )
-                # Record in generated_content table (try without canvas_id first)
+                print(f"✓ Video uploaded to Supabase: {file_url}")
+                # Clean up local temp file after successful upload
                 try:
-                    await db_service.insert_generated_content(
-                        {
-                            "id": video_id,
-                            "user_id": user_id,
-                            "type": "video",
+                    os.remove(local_path)
+                    print(f"✓ Cleaned up local temp file: {local_path}")
+                except Exception:
+                    pass
+            except Exception as e:
+                print(f"Warning: Supabase upload failed, using local file: {e}")
+                file_url = f"/api/file/{filename}"
+        else:
+            file_url = f"/api/file/{filename}"
+
+        # Record in generated_content table for authenticated users only
+        if user_id:
+            try:
+                await db_service.insert_generated_content(
+                    {
+                        "user_id": user_id,
+                        "type": "video",
+                        "storage_path": f"{user_id}/{filename}",
+                        "prompt": prompt,
+                        "model": model,
+                        "metadata": {
                             "filename": filename,
-                            "storage_path": f"{user_id}/{filename}",
                             "public_url": file_url,
                             "mime_type": mime_type,
                             "width": width,
                             "height": height,
-                            "prompt": prompt,
-                            "model": model,
                             "provider": provider,
-                        }
-                    )
-                except Exception as db_err:
-                    # If canvas_id column doesn't exist, try without it
-                    print(
-                        f"Warning: Generated content insert failed (will retry): {db_err}"
-                    )
-                    # Try without canvas_id - it's optional
-                # Clean up local file
-                os.remove(local_path)
-            except Exception as e:
-                print(f"Warning: Supabase upload failed, keeping local file: {e}")
-                file_url = f"/api/file/{filename}"
-        else:
-            file_url = f"/api/file/{filename}"
+                        },
+                    }
+                )
+            except Exception as db_err:
+                print(f"Warning: Generated content insert failed (will retry): {db_err}")
 
         # Create file data
         file_id = generate_video_file_id()

@@ -1,7 +1,7 @@
 'use client'
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { getAuthHeaders } from '@/lib/auth-headers'
+import { getRequiredAuthHeaders } from '@/lib/auth-headers'
 
 interface FeatureGenerationParams {
   featureType: string
@@ -25,7 +25,7 @@ export function useFeatureGeneration() {
 
   return useMutation({
     mutationFn: async (params: FeatureGenerationParams): Promise<FeatureResult> => {
-      const authHeaders = await getAuthHeaders()
+      const authHeaders = await getRequiredAuthHeaders()
 
       const response = await fetch('/api/generate/feature', {
         method: 'POST',
@@ -48,7 +48,7 @@ export function useFeatureGeneration() {
           } catch {
             errorMsg = errorText || errorMsg
           }
-        } catch {}
+        } catch { }
         throw new Error(errorMsg)
       }
 
@@ -56,6 +56,7 @@ export function useFeatureGeneration() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['generations'] })
+      queryClient.invalidateQueries({ queryKey: ['my-content'] })
     },
   })
 }

@@ -9,13 +9,15 @@ import { Suspense } from 'react'
 function LoginContent() {
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
+  const reason = searchParams.get('reason')
+  const next = searchParams.get('next') || '/explore'
 
   const handleGoogleLogin = () => {
     const supabase = createClient()
     supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
       },
     })
   }
@@ -38,6 +40,12 @@ function LoginContent() {
         {error && (
           <div className="w-full rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-center text-sm text-destructive">
             Authentication failed. Please try again.
+          </div>
+        )}
+
+        {reason === 'auth_required' && (
+          <div className="w-full rounded-lg border border-neon/40 bg-neon/10 p-3 text-center text-sm text-foreground">
+            Please sign in or sign up to generate images and videos.
           </div>
         )}
 
@@ -67,7 +75,7 @@ function LoginContent() {
                 fill="#EA4335"
               />
             </svg>
-            Sign in with Google
+            Continue with Google (Sign in / Sign up)
           </Button>
         </div>
 

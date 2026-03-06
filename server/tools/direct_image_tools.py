@@ -56,6 +56,7 @@ async def generate_image_by_gpt_image_openai(
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
         session_id=ctx.get("session_id", ""),
+        user_id=ctx.get("user_id", ""),
         provider="openai",
         model="gpt-image-1",
         prompt=prompt,
@@ -86,6 +87,7 @@ async def generate_image_by_dalle3_openai(
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
         session_id=ctx.get("session_id", ""),
+        user_id=ctx.get("user_id", ""),
         provider="openai",
         model="dall-e-3",
         prompt=prompt,
@@ -117,6 +119,7 @@ async def generate_image_by_imagen_google(
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
         session_id=ctx.get("session_id", ""),
+        user_id=ctx.get("user_id", ""),
         provider="google-ai",
         model="imagen-3.0-generate-001",
         prompt=prompt,
@@ -147,6 +150,7 @@ async def generate_image_by_imagen_4_fast_google(
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
         session_id=ctx.get("session_id", ""),
+        user_id=ctx.get("user_id", ""),
         provider="google-ai",
         model="imagen-4.0-fast-generate-001",
         prompt=prompt,
@@ -177,6 +181,7 @@ async def generate_image_by_imagen_4_ultra_google(
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
         session_id=ctx.get("session_id", ""),
+        user_id=ctx.get("user_id", ""),
         provider="google-ai",
         model="imagen-4.0-ultra-generate-001",
         prompt=prompt,
@@ -219,6 +224,7 @@ async def enhance_image_by_topaz(
     ctx = config.get("configurable", {})
     canvas_id = ctx.get("canvas_id", "")
     session_id = ctx.get("session_id", "")
+    user_id = ctx.get("user_id", "")
 
     # Get Replicate API key
     replicate_config = config_service.app_config.get("replicate", {})
@@ -270,11 +276,34 @@ async def enhance_image_by_topaz(
         )
         filename = f"{image_id}.{extension}"
 
-        # Save to canvas
+        # Read bytes for Supabase upload, then clean up local file
+        image_bytes = None
+        full_path = f"{file_path_without_ext}.{extension}"
+        if user_id and os.path.exists(full_path):
+            with open(full_path, "rb") as f:
+                image_bytes = f.read()
+            try:
+                os.remove(full_path)
+            except Exception:
+                pass
+
+        # Save to canvas (uploads to Supabase if image_bytes available)
         image_url = await save_image_to_canvas(
-            session_id, canvas_id, filename, mime_type, width, height
+            session_id,
+            canvas_id,
+            filename,
+            mime_type,
+            width,
+            height,
+            user_id=user_id,
+            image_bytes=image_bytes,
+            prompt=prompt,
+            model="topazlabs/image-upscale",
+            provider="replicate",
         )
 
+        if image_url.startswith("http"):
+            return f"image generated successfully ![image_id: {filename}]({image_url})"
         return f"image generated successfully ![image_id: {filename}](http://localhost:{DEFAULT_PORT}{image_url})"
 
     except Exception as e:

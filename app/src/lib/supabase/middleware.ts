@@ -35,7 +35,7 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // Define public paths that don't require authentication
-  const publicPaths = ['/login', '/explore', '/auth/callback']
+  const publicPaths = ['/login', '/auth/callback']
   const isPublicPath = publicPaths.some(
     (path) => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(path + '/')
   )
@@ -49,6 +49,11 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isPublicPath && !isApiPath && !isStaticPath) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
+    url.searchParams.set('reason', 'auth_required')
+    const next = `${request.nextUrl.pathname}${request.nextUrl.search}`
+    if (next && next !== '/login') {
+      url.searchParams.set('next', next)
+    }
     return NextResponse.redirect(url)
   }
 

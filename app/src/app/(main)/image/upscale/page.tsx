@@ -32,25 +32,14 @@ export default function ImageUpscalePage() {
     }
 
     try {
-      // Map scale factor to number
-      const scaleMap: Record<string, number> = {
-        'x1': 1,
-        'x2': 2,
-        'x4': 4,
-        'x8': 8,
-        'x16': 16,
-      }
-
+      const scaleValue = parseInt(settings.scaleFactor.replace('x', ''), 10) || 2
       const result = await featureGeneration.mutateAsync({
         featureType: 'upscale',
         inputImages: [imageUpload.filename],
         params: {
-          scale_factor: scaleMap[settings.scaleFactor] || 2,
-          model: settings.model,
-          preset: settings.preset,
-          sharpness: settings.sharpness / 100,
-          denoise: settings.denoise / 100,
-          face_enhancement: settings.faceEnhancement ? 'true' : 'false',
+          upscale_factor: `${scaleValue}x`,
+          face_enhancement: settings.faceEnhancement,
+          output_format: 'png',
         },
       })
 

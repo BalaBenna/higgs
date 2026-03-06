@@ -18,6 +18,7 @@ async def generate_image_by_flux_kontext_pro_replicate(
     ctx = config.get('configurable', {})
     canvas_id = ctx.get('canvas_id', '')
     session_id = ctx.get('session_id', '')
+    user_id = ctx.get('user_id', '')
     return await generate_image_with_provider(
         canvas_id=canvas_id,
         session_id=session_id,
@@ -26,6 +27,7 @@ async def generate_image_by_flux_kontext_pro_replicate(
         prompt=prompt,
         aspect_ratio=aspect_ratio,
         input_images=[input_image] if input_image else None,
+        user_id=user_id,
     )
 
 # Export the tool for easy import

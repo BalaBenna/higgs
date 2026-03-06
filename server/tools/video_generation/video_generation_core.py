@@ -58,6 +58,7 @@ async def generate_video_with_provider(
     ctx = config.get('configurable', {})
     canvas_id = ctx.get('canvas_id', '')
     session_id = ctx.get('session_id', '')
+    user_id = ctx.get('user_id', '')
     print(f'🛠️ canvas_id {canvas_id} session_id {session_id}')
 
     # Inject the tool call id into the context
@@ -123,6 +124,9 @@ async def generate_video_with_provider(
             session_id=session_id,
             canvas_id=canvas_id,
             provider_name=f"{model_name} ({provider_name})",
+            user_id=user_id,
+            prompt=prompt,
+            model=model,
         )
 
     except Exception as e:

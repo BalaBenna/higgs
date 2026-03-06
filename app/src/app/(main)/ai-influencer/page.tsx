@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 import {
   User,
@@ -11,13 +11,20 @@ import {
   Eye,
   Smile,
   Settings2,
+  RefreshCw,
+  Download,
+  Video,
+  Play,
+  Wand2,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Slider } from '@/components/ui/slider'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
   Select,
   SelectContent,
@@ -25,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useImageGeneration, useVideoGeneration } from '@/hooks/use-generation'
 
 const CHARACTER_TYPES = [
   { id: 'realistic', name: 'Realistic', preview: 'https://picsum.photos/seed/type1/100/100' },
@@ -43,64 +51,6 @@ const EYE_TYPES = ['Almond', 'Round', 'Hooded', 'Monolid', 'Downturned', 'Upturn
 const EYE_SECRETS = ['Normal', 'Heterochromia', 'Glowing', 'Cat-like', 'Spiral']
 const MOUTH_TYPES = ['Full', 'Thin', 'Heart-shaped', 'Wide', 'Small']
 
-const ATTRIBUTE_SECTIONS = [
-  {
-    id: 'character-type',
-    title: 'Character Type',
-    icon: User,
-  },
-  {
-    id: 'gender',
-    title: 'Gender',
-    icon: User,
-  },
-  {
-    id: 'ethnicity',
-    title: 'Ethnicity / Origin',
-    icon: User,
-  },
-  {
-    id: 'skin',
-    title: 'Skin Color',
-    icon: Palette,
-  },
-  {
-    id: 'eyes',
-    title: 'Eye Color',
-    icon: Eye,
-  },
-  {
-    id: 'skin-conditions',
-    title: 'Skin Conditions',
-    icon: User,
-  },
-  {
-    id: 'age',
-    title: 'Age',
-    icon: User,
-  },
-  {
-    id: 'eye-type',
-    title: 'Eyes - Type',
-    icon: Eye,
-  },
-  {
-    id: 'eye-secrets',
-    title: 'Eyes - Secrets',
-    icon: Eye,
-  },
-  {
-    id: 'mouth',
-    title: 'Mouth & Teeth',
-    icon: Smile,
-  },
-  {
-    id: 'advanced',
-    title: 'Advanced Settings',
-    icon: Settings2,
-  },
-]
-
 const SKIN_COLORS = [
   '#fce4d6', '#f5d5c8', '#e8c4b8', '#d4a574', '#c68642',
   '#8d5524', '#6b4423', '#4a3728', '#362a23', '#2d221c',
@@ -111,7 +61,19 @@ const EYE_COLORS = [
   '#91c3dc', '#808080', '#000000', '#9370db', '#ff4500',
 ]
 
+const MOTION_PRESETS = [
+  { id: 'dance', name: 'Dance', preview: '🎵' },
+  { id: 'walk', name: 'Walking', preview: '🚶' },
+  { id: 'talk', name: 'Talking', preview: '💬' },
+  { id: 'smile', name: 'Smile', preview: '😊' },
+  { id: 'wave', name: 'Wave', preview: '👋' },
+  { id: 'pose', name: 'Pose', preview: '📸' },
+]
+
 export default function AIInfluencerPage() {
+  const [activeTab, setActiveTab] = useState('create')
+  
+  // Character attributes
   const [characterType, setCharacterType] = useState('realistic')
   const [gender, setGender] = useState('Female')
   const [ethnicity, setEthnicity] = useState('Caucasian')
@@ -119,6 +81,33 @@ export default function AIInfluencerPage() {
   const [eyeColor, setEyeColor] = useState('#634e34')
   const [age, setAge] = useState('Adult')
   const [expandedSections, setExpandedSections] = useState<string[]>(['character-type', 'gender'])
+  
+  // Additional attributes
+  const [skinConditions, setSkinConditions] = useState<string[]>([])
+  const [eyeType, setEyeType] = useState('')
+  const [eyeSecrets, setEyeSecrets] = useState('')
+  const [mouthType, setMouthType] = useState('')
+  const [faceShape, setFaceShape] = useState(50)
+  const [jawDefinition, setJawDefinition] = useState(50)
+  const [cheekbones, setCheekbones] = useState(50)
+  
+  // Generation states
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null)
+  const [generatedImageFile, setGeneratedImageFile] = useState<File | null>(null)
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false)
+  
+  // Animation states
+  const [motionVideoFile, setMotionVideoFile] = useState<File | null>(null)
+  const [motionVideoPreview, setMotionVideoPreview] = useState<string | null>(null)
+  const [selectedMotion, setSelectedMotion] = useState('')
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false)
+  const [generatedVideos, setGeneratedVideos] = useState<{url: string, prompt: string}[]>([])
+  
+  // Refs
+  const motionVideoRef = useRef<HTMLInputElement>(null!)
+  
+  const imageGeneration = useImageGeneration()
+  const videoGeneration = useVideoGeneration()
 
   const toggleSection = (id: string) => {
     setExpandedSections((prev) =>
@@ -126,41 +115,400 @@ export default function AIInfluencerPage() {
     )
   }
 
+  const toggleSkinCondition = (condition: string) => {
+    setSkinConditions((prev) =>
+      prev.includes(condition)
+        ? prev.filter((c) => c !== condition)
+        : [...prev, condition]
+    )
+  }
+
+  const buildCharacterPrompt = (): string => {
+    const styleMap: Record<string, string> = {
+      realistic: 'photorealistic, realistic photography, high quality, detailed',
+      anime: 'anime style, manga, cel-shaded, vibrant colors',
+      '3d': '3D render, CGI, octane render, high quality, detailed',
+      cartoon: 'cartoon style, illustrated, fun, colorful',
+      fantasy: 'fantasy art, magical, ethereal, fantasy style',
+      cyberpunk: 'cyberpunk, futuristic, neon lights, sci-fi',
+    }
+
+    const parts: string[] = []
+
+    if (characterType === 'realistic') {
+      parts.push(`a ${age.toLowerCase()} ${ethnicity.toLowerCase()} ${gender.toLowerCase()} woman`)
+      parts.push('beautiful face, symmetrical features, detailed skin texture')
+    } else {
+      parts.push(`a ${characterType} style ${gender.toLowerCase()} character`)
+      parts.push(`${ethnicity.toLowerCase()} appearance`)
+    }
+
+    parts.push(styleMap[characterType] || 'high quality')
+    parts.push(`skin tone: ${skinColor}`)
+    parts.push(`eye color: ${eyeColor}`)
+    if (eyeType) parts.push(`eye shape: ${eyeType.toLowerCase()}`)
+    if (eyeSecrets) parts.push(`eye detail: ${eyeSecrets.toLowerCase()}`)
+    if (mouthType) parts.push(`mouth: ${mouthType.toLowerCase()} lips`)
+
+    if (faceShape < 30) parts.push('round face shape')
+    else if (faceShape > 70) parts.push('slim face shape')
+
+    if (jawDefinition < 30) parts.push('soft jawline')
+    else if (jawDefinition > 70) parts.push('defined jawline')
+
+    if (cheekbones < 30) parts.push('flat cheeks')
+    else if (cheekbones > 70) parts.push('high cheekbones')
+
+    if (skinConditions.length > 0) {
+      parts.push(skinConditions.map((c) => c.toLowerCase()).join(', '))
+    }
+
+    parts.push('masterpiece, best quality, 8k, highly detailed')
+    return parts.join(', ')
+  }
+
+  const handleGenerateCharacter = async () => {
+    setIsGeneratingImage(true)
+    setGeneratedImage(null)
+
+    try {
+      const prompt = buildCharacterPrompt()
+      console.log('Generating AI influencer with prompt:', prompt)
+
+      const result = await imageGeneration.mutateAsync({
+        model: 'flux-2-pro-replicate',
+        prompt: prompt,
+        aspectRatio: '1:1',
+        numImages: 1,
+      })
+
+      if (result?.images?.length > 0) {
+        const imageUrl = result.images[0].url || result.images[0].src || null
+        if (imageUrl) {
+          setGeneratedImage(imageUrl)
+          
+          // Convert URL to File for video generation
+          try {
+            const response = await fetch(imageUrl)
+            const blob = await response.blob()
+            const file = new File([blob], 'character.jpg', { type: 'image/jpeg' })
+            setGeneratedImageFile(file)
+          } catch (e) {
+            console.error('Failed to convert image to file:', e)
+          }
+          
+          toast.success('AI Influencer created!')
+          // Auto-switch to animate tab
+          setActiveTab('animate')
+        } else {
+          toast.error('Failed to generate image')
+        }
+      } else {
+        toast.error('Failed to generate image')
+      }
+    } catch (error) {
+      console.error('Generation error:', error)
+      toast.error(error instanceof Error ? error.message : 'Generation failed')
+    } finally {
+      setIsGeneratingImage(false)
+    }
+  }
+
+  const handleMotionVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setMotionVideoFile(file)
+      const reader = new FileReader()
+      reader.onload = (ev) => setMotionVideoPreview(ev.target?.result as string)
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const clearMotionVideo = () => {
+    setMotionVideoFile(null)
+    setMotionVideoPreview(null)
+    if (motionVideoRef.current) {
+      motionVideoRef.current.value = ''
+    }
+  }
+
+  const handleAnimateCharacter = async () => {
+    if (!generatedImageFile) {
+      toast.error('Please generate a character first')
+      return
+    }
+
+    if (!motionVideoFile) {
+      toast.error('Please upload a motion reference video')
+      return
+    }
+
+    setIsGeneratingVideo(true)
+
+    try {
+      const motionDescriptions: Record<string, string> = {
+        dance: 'energetic dance moves, rhythm, full body movement',
+        walk: 'walking naturally, casual pace, forward movement',
+        talk: 'speaking, natural lip movement, facial expression',
+        smile: 'smiling, happy expression, gentle movement',
+        wave: 'waving hand, greeting gesture, friendly',
+        pose: 'striking a pose, confident, model-like',
+      }
+
+      const prompt = motionDescriptions[selectedMotion] || 'natural movement'
+      
+      const result = await videoGeneration.mutateAsync({
+        model: 'kling-v2.6-motion-control-replicate',
+        prompt: prompt,
+        sourceImage: generatedImageFile,
+        videoFile: motionVideoFile,
+      })
+
+      if (result?.url) {
+        setGeneratedVideos((prev) => [{ url: result.url, prompt }, ...prev])
+        toast.success('Character animated!')
+      } else {
+        toast.error('Failed to animate character')
+      }
+    } catch (error) {
+      console.error('Animation error:', error)
+      toast.error(error instanceof Error ? error.message : 'Animation failed')
+    } finally {
+      setIsGeneratingVideo(false)
+    }
+  }
+
+  const canAnimate = generatedImageFile && motionVideoFile && !isGeneratingVideo
+
   return (
     <div className="flex h-[calc(100vh-3.5rem)]">
-      {/* Left Panel - Character Preview */}
-      <div className="w-1/2 border-r border-border bg-gradient-to-br from-background to-card/50 flex flex-col items-center justify-center p-8">
-        <motion.div
-          className="relative"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-        >
-          {/* Character Preview */}
-          <div className="w-80 h-80 rounded-2xl bg-card border border-border overflow-hidden shadow-2xl">
-            <img
-              src={`https://picsum.photos/seed/${characterType}${gender}/400/400`}
-              alt="Character Preview"
-              className="w-full h-full object-cover"
-            />
-          </div>
+      {/* Left Panel - Preview */}
+      <div className="w-1/2 border-r border-border bg-gradient-to-br from-background to-card/50 flex flex-col p-6 overflow-hidden">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="create" className="gap-2">
+              <User className="h-4 w-4" />
+              Create Character
+            </TabsTrigger>
+            <TabsTrigger value="animate" className="gap-2" disabled={!generatedImage}>
+              <Video className="h-4 w-4" />
+              Animate
+            </TabsTrigger>
+          </TabsList>
 
-          {/* Character Info */}
-          <div className="mt-6 text-center">
-            <h2 className="text-xl font-semibold mb-2">Your AI Influencer</h2>
-            <div className="flex items-center justify-center gap-2 flex-wrap">
-              <Badge variant="secondary">{gender}</Badge>
-              <Badge variant="secondary">{ethnicity}</Badge>
-              <Badge variant="secondary">{age}</Badge>
-              <Badge variant="neon">{CHARACTER_TYPES.find(t => t.id === characterType)?.name}</Badge>
+          <TabsContent value="create" className="flex-1 flex flex-col items-center justify-center m-0">
+            <motion.div
+              className="relative w-full max-w-md"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+            >
+              {/* Character Preview */}
+              <div className="w-full aspect-square rounded-2xl bg-card border border-border overflow-hidden shadow-2xl">
+                {generatedImage ? (
+                  <img
+                    src={generatedImage}
+                    alt="Generated Character"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-muted">
+                    <User className="h-24 w-24 text-muted-foreground" />
+                  </div>
+                )}
+                {isGeneratingImage && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                    <RefreshCw className="h-12 w-12 animate-spin text-neon" />
+                  </div>
+                )}
+              </div>
+
+              {/* Character Info */}
+              <div className="mt-6 text-center">
+                <h2 className="text-xl font-semibold mb-2">Your AI Influencer</h2>
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                  <Badge variant="secondary">{gender}</Badge>
+                  <Badge variant="secondary">{ethnicity}</Badge>
+                  <Badge variant="secondary">{age}</Badge>
+                  <Badge variant="neon">{CHARACTER_TYPES.find(t => t.id === characterType)?.name}</Badge>
+                </div>
+              </div>
+
+              {/* Generate Button */}
+              <Button 
+                variant="neon" 
+                size="lg" 
+                className="w-full mt-6 gap-2"
+                onClick={handleGenerateCharacter}
+                disabled={isGeneratingImage}
+              >
+                {isGeneratingImage ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    Generate Character
+                  </>
+                )}
+              </Button>
+
+              {generatedImage && (
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="w-full mt-2 gap-2"
+                  onClick={() => {
+                    const link = document.createElement('a')
+                    link.href = generatedImage
+                    link.download = `ai-influencer-${Date.now()}.jpg`
+                    link.click()
+                  }}
+                >
+                  <Download className="h-4 w-4" />
+                  Download Image
+                </Button>
+              )}
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="animate" className="flex-1 flex flex-col m-0 overflow-y-auto">
+            <div className="space-y-4">
+              {/* Character Image Preview */}
+              <div className="flex items-center gap-4 p-4 bg-card rounded-xl border">
+                <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted">
+                  {generatedImage && (
+                    <img src={generatedImage} alt="Character" className="w-full h-full object-cover" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold">Character Ready</h3>
+                  <p className="text-sm text-muted-foreground">Now add motion to bring your influencer to life</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setActiveTab('create')}>
+                  Edit
+                </Button>
+              </div>
+
+              {/* Motion Reference Upload */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Motion Reference Video</label>
+                <input
+                  ref={motionVideoRef}
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime"
+                  className="hidden"
+                  onChange={handleMotionVideoSelect}
+                />
+                <div
+                  className="relative border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-neon/50 transition-colors"
+                  onClick={() => motionVideoRef.current?.click()}
+                >
+                  {motionVideoPreview ? (
+                    <div className="relative">
+                      <video
+                        src={motionVideoPreview}
+                        className="max-h-40 mx-auto rounded-lg"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-0 right-0 h-6 w-6 bg-black/50 hover:bg-black/70 text-white rounded-full"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          clearMotionVideo()
+                        }}
+                      >
+                        ✕
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <Video className="h-8 w-8 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        Upload motion reference video
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        The character will copy this motion
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Motion Presets */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Or choose a motion preset</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {MOTION_PRESETS.map((motion) => (
+                    <Button
+                      key={motion.id}
+                      variant={selectedMotion === motion.id ? 'secondary' : 'outline'}
+                      className={`gap-2 ${selectedMotion === motion.id ? 'border-neon/50 bg-neon/10' : ''}`}
+                      onClick={() => setSelectedMotion(motion.id)}
+                    >
+                      <span>{motion.preview}</span>
+                      {motion.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Animate Button */}
+              <Button 
+                variant="neon" 
+                size="lg" 
+                className="w-full gap-2"
+                onClick={handleAnimateCharacter}
+                disabled={!canAnimate}
+              >
+                {isGeneratingVideo ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Animating...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4" />
+                    Animate Character
+                  </>
+                )}
+              </Button>
+
+              {/* Generated Videos */}
+              {generatedVideos.length > 0 && (
+                <div className="space-y-2 mt-4">
+                  <h3 className="font-semibold">Generated Videos</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {generatedVideos.map((video, idx) => (
+                      <div key={idx} className="relative rounded-lg overflow-hidden bg-card border">
+                        <video
+                          src={video.url}
+                          className="w-full aspect-video object-cover"
+                          controls
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute bottom-2 right-2 gap-1"
+                          onClick={() => {
+                            const link = document.createElement('a')
+                            link.href = video.url
+                            link.download = `ai-influencer-video-${Date.now()}.mp4`
+                            link.click()
+                          }}
+                        >
+                          <Download className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-
-          {/* Generate Button */}
-          <Button variant="neon" size="lg" className="w-full mt-6 gap-2">
-            <Sparkles className="h-4 w-4" />
-            Generate Character
-          </Button>
-        </motion.div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Right Panel - Attribute Panels */}
@@ -176,7 +524,7 @@ export default function AIInfluencerPage() {
                 AI <span className="text-neon neon-text">Influencer</span>
               </h1>
               <p className="text-sm text-muted-foreground">
-                Customize every aspect of your AI character
+                Create and animate your AI character
               </p>
             </motion.div>
 
@@ -237,7 +585,7 @@ export default function AIInfluencerPage() {
 
             {/* Ethnicity Section */}
             <AttributeSection
-              title="Ethnicity / Origin"
+              title="Ethnicity / origin"
               icon={User}
               isExpanded={expandedSections.includes('ethnicity')}
               onToggle={() => toggleSection('ethnicity')}
@@ -335,8 +683,11 @@ export default function AIInfluencerPage() {
                 {SKIN_CONDITIONS.map((condition) => (
                   <Badge
                     key={condition}
-                    variant="outline"
-                    className="cursor-pointer hover:bg-accent"
+                    variant={skinConditions.includes(condition) ? 'default' : 'outline'}
+                    className={`cursor-pointer hover:bg-accent ${
+                      skinConditions.includes(condition) ? 'bg-neon text-black' : ''
+                    }`}
+                    onClick={() => toggleSkinCondition(condition)}
                   >
                     {condition}
                   </Badge>
@@ -353,7 +704,13 @@ export default function AIInfluencerPage() {
             >
               <div className="grid grid-cols-3 gap-2">
                 {EYE_TYPES.map((type) => (
-                  <Button key={type} variant="outline" size="sm">
+                  <Button
+                    key={type}
+                    variant={eyeType === type ? 'secondary' : 'outline'}
+                    size="sm"
+                    className={eyeType === type ? 'border-neon/50 bg-neon/10' : ''}
+                    onClick={() => setEyeType(eyeType === type ? '' : type)}
+                  >
                     {type}
                   </Button>
                 ))}
@@ -369,7 +726,13 @@ export default function AIInfluencerPage() {
             >
               <div className="grid grid-cols-3 gap-2">
                 {EYE_SECRETS.map((secret) => (
-                  <Button key={secret} variant="outline" size="sm">
+                  <Button
+                    key={secret}
+                    variant={eyeSecrets === secret ? 'secondary' : 'outline'}
+                    size="sm"
+                    className={eyeSecrets === secret ? 'border-neon/50 bg-neon/10' : ''}
+                    onClick={() => setEyeSecrets(eyeSecrets === secret ? '' : secret)}
+                  >
                     {secret}
                   </Button>
                 ))}
@@ -385,7 +748,13 @@ export default function AIInfluencerPage() {
             >
               <div className="grid grid-cols-3 gap-2">
                 {MOUTH_TYPES.map((type) => (
-                  <Button key={type} variant="outline" size="sm">
+                  <Button
+                    key={type}
+                    variant={mouthType === type ? 'secondary' : 'outline'}
+                    size="sm"
+                    className={mouthType === type ? 'border-neon/50 bg-neon/10' : ''}
+                    onClick={() => setMouthType(mouthType === type ? '' : type)}
+                  >
                     {type}
                   </Button>
                 ))}
@@ -402,15 +771,33 @@ export default function AIInfluencerPage() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Face Shape</label>
-                  <Slider defaultValue={[50]} min={0} max={100} step={1} />
+                  <Slider 
+                    value={[faceShape]} 
+                    onValueChange={([v]) => setFaceShape(v)} 
+                    min={0} 
+                    max={100} 
+                    step={1} 
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Jaw Definition</label>
-                  <Slider defaultValue={[50]} min={0} max={100} step={1} />
+                  <Slider 
+                    value={[jawDefinition]} 
+                    onValueChange={([v]) => setJawDefinition(v)} 
+                    min={0} 
+                    max={100} 
+                    step={1} 
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Cheekbones</label>
-                  <Slider defaultValue={[50]} min={0} max={100} step={1} />
+                  <Slider 
+                    value={[cheekbones]} 
+                    onValueChange={([v]) => setCheekbones(v)} 
+                    min={0} 
+                    max={100} 
+                    step={1} 
+                  />
                 </div>
               </div>
             </AttributeSection>

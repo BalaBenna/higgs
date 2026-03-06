@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 import {
   Move,
@@ -23,7 +23,6 @@ import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useVideoGeneration } from '@/hooks/use-generation'
-import { useUpload } from '@/hooks/use-upload'
 
 interface MotionSlider {
   id: string
@@ -47,8 +46,15 @@ export default function MotionControlPage() {
   const [zoom, setZoom] = useState(0)
   const [prompt, setPrompt] = useState('')
   const [results, setResults] = useState<GeneratedVideoData[]>([])
-
-  const imageUpload = useUpload()
+  const [sourceImageFile, setSourceImageFile] = useState<File | null>(null)
+  const [sourceImagePreview, setSourceImagePreview] = useState<string | null>(null)
+  const [motionVideoFile, setMotionVideoFile] = useState<File | null>(null)
+  const [motionVideoPreview, setMotionVideoPreview] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  
+  const sourceImageRef = useRef<HTMLInputElement>(null!)
+  const motionVideoRef = useRef<HTMLInputElement>(null!)
+  
   const videoGeneration = useVideoGeneration()
 
   const motionSliders: MotionSlider[] = [
@@ -142,9 +148,50 @@ export default function MotionControlPage() {
     setZoom(0)
   }
 
+  const handleSourceImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setSourceImageFile(file)
+      const reader = new FileReader()
+      reader.onload = (ev) => setSourceImagePreview(ev.target?.result as string)
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleMotionVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setMotionVideoFile(file)
+      const reader = new FileReader()
+      reader.onload = (ev) => setMotionVideoPreview(ev.target?.result as string)
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const clearSourceImage = () => {
+    setSourceImageFile(null)
+    setSourceImagePreview(null)
+    if (sourceImageRef.current) {
+      sourceImageRef.current.value = ''
+    }
+  }
+
+  const clearMotionVideo = () => {
+    setMotionVideoFile(null)
+    setMotionVideoPreview(null)
+    if (motionVideoRef.current) {
+      motionVideoRef.current.value = ''
+    }
+  }
+
   const handleGenerate = async () => {
-    if (!imageUpload.preview) {
+    if (!sourceImagePreview) {
       toast.error('Please upload a source image first')
+      return
+    }
+
+    if (!motionVideoFile) {
+      toast.error('Please upload a motion reference video first')
       return
     }
 
@@ -156,13 +203,13 @@ export default function MotionControlPage() {
       return
     }
 
+    setIsUploading(true)
     try {
-      // We need the source image as a File for the video generation endpoint
-      // Use the uploaded file info
       const result = await videoGeneration.mutateAsync({
-        model: 'kling-2.6',
+        model: 'kling-v2.6-motion-control-replicate',
         prompt: fullPrompt,
-        sourceImage: null,
+        sourceImage: sourceImageFile,
+        videoFile: motionVideoFile,
       })
 
       if (result) {
@@ -179,14 +226,18 @@ export default function MotionControlPage() {
       const message =
         error instanceof Error ? error.message : 'Motion generation failed'
       toast.error(message)
+    } finally {
+      setIsUploading(false)
     }
   }
 
   const hasMotion = panX !== 0 || panY !== 0 || rotate !== 0 || zoom !== 0
   const canGenerate =
-    !!imageUpload.preview &&
+    !!sourceImagePreview &&
+    !!motionVideoFile &&
     (hasMotion || prompt.trim()) &&
-    !videoGeneration.isPending
+    !videoGeneration.isPending &&
+    !isUploading
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)]">
@@ -221,25 +272,25 @@ export default function MotionControlPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Source Image</label>
               <input
-                ref={imageUpload.fileInputRef}
+                ref={sourceImageRef}
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
                 className="hidden"
-                onChange={imageUpload.handleFileSelect}
+                onChange={handleSourceImageSelect}
               />
               <div
                 className="relative border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-neon/50 transition-colors min-h-[120px] flex items-center justify-center"
-                onClick={imageUpload.openFilePicker}
+                onClick={() => sourceImageRef.current?.click()}
               >
-                {imageUpload.isUploading ? (
+                {isUploading ? (
                   <div className="flex flex-col items-center gap-2">
                     <RefreshCw className="h-6 w-6 animate-spin text-neon" />
-                    <p className="text-xs text-muted-foreground">Uploading...</p>
+                    <p className="text-xs text-muted-foreground">Processing...</p>
                   </div>
-                ) : imageUpload.preview ? (
+                ) : sourceImagePreview ? (
                   <div className="relative w-full">
                     <img
-                      src={imageUpload.preview}
+                      src={sourceImagePreview}
                       alt="Source"
                       className="max-h-28 mx-auto rounded-lg object-contain"
                     />
@@ -249,7 +300,7 @@ export default function MotionControlPage() {
                       className="absolute top-0 right-0 h-6 w-6 bg-black/50 hover:bg-black/70 text-white rounded-full"
                       onClick={(e) => {
                         e.stopPropagation()
-                        imageUpload.clear()
+                        clearSourceImage()
                       }}
                     >
                       <X className="h-3 w-3" />
@@ -260,6 +311,49 @@ export default function MotionControlPage() {
                     <Upload className="h-6 w-6 text-muted-foreground" />
                     <p className="text-xs text-muted-foreground">
                       Upload a source image
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Motion Reference Video Upload */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Motion Reference Video</label>
+              <input
+                ref={motionVideoRef}
+                type="file"
+                accept="video/mp4,video/webm,video/quicktime"
+                className="hidden"
+                onChange={handleMotionVideoSelect}
+              />
+              <div
+                className="relative border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-neon/50 transition-colors min-h-[120px] flex items-center justify-center"
+                onClick={() => motionVideoRef.current?.click()}
+              >
+                {motionVideoPreview ? (
+                  <div className="relative w-full">
+                    <video
+                      src={motionVideoPreview}
+                      className="max-h-28 mx-auto rounded-lg object-contain"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-0 right-0 h-6 w-6 bg-black/50 hover:bg-black/70 text-white rounded-full"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        clearMotionVideo()
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2">
+                    <Video className="h-6 w-6 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground">
+                      Upload motion reference video
                     </p>
                   </div>
                 )}
@@ -349,7 +443,7 @@ export default function MotionControlPage() {
             onClick={handleGenerate}
             disabled={!canGenerate}
           >
-            {videoGeneration.isPending ? (
+            {(videoGeneration.isPending || isUploading) ? (
               <>
                 <RefreshCw className="h-4 w-4 animate-spin" />
                 Generating...

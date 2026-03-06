@@ -280,7 +280,7 @@ export default function CinemaStudioPage() {
     try {
       const result = await promptEnhancement.mutateAsync({
         prompt,
-        preset: 'cinema',
+        preset: 'presentation',
       })
       setPrompt(result.enhancedPrompt)
       toast.success('Prompt enhanced!')

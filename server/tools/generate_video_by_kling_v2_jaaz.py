@@ -53,6 +53,7 @@ async def generate_video_by_kling_v2_jaaz(
     ctx = config.get('configurable', {})
     canvas_id = ctx.get('canvas_id', '')
     session_id = ctx.get('session_id', '')
+    user_id = ctx.get('user_id', '')
     print(f'🛠️ canvas_id {canvas_id} session_id {session_id}')
 
     # Inject the tool call id into the context
@@ -102,6 +103,7 @@ async def generate_video_by_kling_v2_jaaz(
             session_id=session_id,
             canvas_id=canvas_id,
             provider_name="jaaz_kling",
+            user_id=user_id,
         )
 
     except Exception as e:
