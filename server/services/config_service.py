@@ -99,6 +99,7 @@ USER_DATA_DIR = os.getenv(
     os.path.join(SERVER_DIR, "user_data"),
 )
 FILES_DIR = os.path.join(USER_DATA_DIR, "files")
+os.makedirs(FILES_DIR, exist_ok=True)
 
 
 IMAGE_FORMATS = (

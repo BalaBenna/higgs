@@ -575,8 +575,8 @@ export default function InpaintPage() {
                         <button
                           key={c}
                           className={`w-6 h-6 rounded-full border-2 transition-all ${brushColor === c
-                              ? 'border-foreground scale-110 ring-1 ring-foreground/30'
-                              : 'border-border hover:border-foreground/50'
+                            ? 'border-foreground scale-110 ring-1 ring-foreground/30'
+                            : 'border-border hover:border-foreground/50'
                             }`}
                           style={{ backgroundColor: c }}
                           onClick={() => setBrushColor(c)}
