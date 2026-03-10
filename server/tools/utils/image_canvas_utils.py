@@ -105,6 +105,7 @@ async def save_image_to_canvas(
     model: str = "",
     provider: str = "",
     aspect_ratio: str = "",
+    feature_type: str = "",
 ) -> str:
     """Save image to canvas with proper locking and positioning.
 
@@ -143,6 +144,9 @@ async def save_image_to_canvas(
                         "height": height,
                         "provider": provider,
                         "aspect_ratio": aspect_ratio,
+                        **({
+                            "feature_type": feature_type
+                        } if feature_type else {}),
                     },
                 }
             )

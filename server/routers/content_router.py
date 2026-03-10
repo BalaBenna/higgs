@@ -67,6 +67,7 @@ async def save_vibe_motion_content(
 @router.get("")
 async def list_my_content(
     type: Optional[str] = Query(None, description="Filter by 'image' or 'video'"),
+    feature_type: Optional[str] = Query(None, description="Filter by feature type (e.g. 'character_swap', 'face_swap')"),
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=100),
     user_id: str = Depends(get_current_user),
@@ -76,6 +77,7 @@ async def list_my_content(
     items = await db_service.list_generated_content(
         user_id=user_id,
         content_type=type,
+        feature_type=feature_type,
         limit=limit,
         offset=offset,
     )

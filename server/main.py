@@ -60,6 +60,19 @@ async def lifespan(app: FastAPI):
 print('Creating FastAPI app')
 app = FastAPI(lifespan=lifespan)
 
+# CORS – allow the Next.js dev server (and any other local origin) to call the
+# backend directly for long-running operations that would otherwise time out
+# going through the Next.js API-route proxy.
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://127.0.0.1:3001"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Include routers
 print('Including routers')
 app.include_router(config_router.router)

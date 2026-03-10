@@ -40,11 +40,13 @@ interface UpscaleResult {
 
 export default function VideoUpscalePage() {
   const fileInputRef = useRef<HTMLInputElement>(null!)
+  const dragCounterRef = useRef(0)
 
   const [scale, setScale] = useState('2')
   const [activeEnhancements, setActiveEnhancements] = useState<string[]>([])
   const [sourceFile, setSourceFile] = useState<File | null>(null)
   const [sourcePreview, setSourcePreview] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
   const [results, setResults] = useState<UpscaleResult[]>([])
 
   const uploader = useUpload()
@@ -52,6 +54,20 @@ export default function VideoUpscalePage() {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
+    if (file) {
+      setSourceFile(file)
+      const reader = new FileReader()
+      reader.onload = (ev) => setSourcePreview(ev.target?.result as string)
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleFileDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounterRef.current = 0
+    setIsDragging(false)
+    const file = e.dataTransfer.files?.[0]
     if (file) {
       setSourceFile(file)
       const reader = new FileReader()
@@ -138,8 +154,15 @@ export default function VideoUpscalePage() {
                 onChange={handleFileUpload}
               />
               <div
-                className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-neon/50 transition-colors"
+                className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${isDragging
+                    ? 'border-neon bg-neon/10'
+                    : 'border-border hover:border-neon/50'
+                  }`}
                 onClick={() => fileInputRef.current?.click()}
+                onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); dragCounterRef.current++; setIsDragging(true) }}
+                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); dragCounterRef.current--; if (dragCounterRef.current === 0) setIsDragging(false) }}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation() }}
+                onDrop={handleFileDrop}
               >
                 {sourcePreview ? (
                   <div className="relative">
@@ -174,7 +197,7 @@ export default function VideoUpscalePage() {
                 ) : (
                   <>
                     <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Upload image or video</p>
+                    <p className="text-sm text-muted-foreground">Drop file here or click to upload</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       Image or video up to 50MB
                     </p>
@@ -215,17 +238,15 @@ export default function VideoUpscalePage() {
                     key={e.id}
                     variant={activeEnhancements.includes(e.id) ? 'secondary' : 'outline'}
                     size="sm"
-                    className={`w-full justify-start ${
-                      activeEnhancements.includes(e.id) ? 'border-neon/50 bg-neon/10' : ''
-                    }`}
+                    className={`w-full justify-start ${activeEnhancements.includes(e.id) ? 'border-neon/50 bg-neon/10' : ''
+                      }`}
                     onClick={() => toggleEnhancement(e.id)}
                   >
                     <div
-                      className={`w-3 h-3 rounded-sm border mr-2 ${
-                        activeEnhancements.includes(e.id)
-                          ? 'bg-neon border-neon'
-                          : 'border-muted-foreground'
-                      }`}
+                      className={`w-3 h-3 rounded-sm border mr-2 ${activeEnhancements.includes(e.id)
+                        ? 'bg-neon border-neon'
+                        : 'border-muted-foreground'
+                        }`}
                     />
                     {e.label}
                   </Button>

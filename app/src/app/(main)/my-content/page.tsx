@@ -1,13 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ImageIcon, Video, Trash2, Calendar, Wand2 } from 'lucide-react'
+import { ImageIcon, Video, Trash2, Calendar, Wand2, Download } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { ImageComparisonSlider } from '@/components/ui/image-comparison-slider'
 import { getAuthHeaders } from '@/lib/auth-headers'
+import * as VisuallyHidden from '@radix-ui/react-visually-hidden'
 
 interface ContentItem {
   id: string
@@ -24,6 +27,8 @@ interface ContentItem {
   created_at: string
   metadata?: {
     public_url?: string
+    feature_type?: string
+    input_images?: string[]
   }
 }
 
@@ -48,6 +53,7 @@ export default function MyContentPage() {
   const [items, setItems] = useState<ContentItem[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'image' | 'video'>('all')
+  const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null)
 
   const fetchContent = async () => {
     setLoading(true)
@@ -87,6 +93,24 @@ export default function MyContentPage() {
       toast.success('Content deleted')
     } catch {
       toast.error('Failed to delete content')
+    }
+  }
+
+  const handleDownload = async (item: ContentItem) => {
+    const url = resolveMediaUrl(item)
+    if (!url) return
+    try {
+      const res = await fetch(url)
+      const blob = await res.blob()
+      const ext = item.type === 'video' ? 'mp4' : 'png'
+      const filename = item.filename || `${item.id}.${ext}`
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(a.href)
+    } catch {
+      toast.error('Failed to download')
     }
   }
 
@@ -134,7 +158,8 @@ export default function MyContentPage() {
               return (
                 <div
                   key={item.id}
-                  className="group relative overflow-hidden rounded-xl border border-border/40 bg-card transition-colors hover:border-border/80"
+                  className="group relative cursor-pointer overflow-hidden rounded-xl border border-border/40 bg-card transition-colors hover:border-border/80"
+                  onClick={() => setSelectedItem(item)}
                 >
                   {/* Media */}
                   <div className="relative aspect-square overflow-hidden bg-muted">
@@ -171,15 +196,31 @@ export default function MyContentPage() {
                       )}
                       {item.type}
                     </Badge>
-                    {/* Delete button */}
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute right-2 top-2 h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
-                      onClick={() => handleDelete(item.id)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    {/* Action buttons */}
+                    <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDownload(item)
+                        }}
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDelete(item.id)
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                   {/* Info */}
                   <div className="p-3">
@@ -201,6 +242,66 @@ export default function MyContentPage() {
           </div>
         </ScrollArea>
       )}
+
+      {/* Enlarged view dialog */}
+      <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
+        <DialogContent className="max-w-4xl w-[90vw] p-0 overflow-hidden">
+          <VisuallyHidden.Root>
+            <DialogTitle>Content preview</DialogTitle>
+          </VisuallyHidden.Root>
+          {selectedItem && (() => {
+            const url = resolveMediaUrl(selectedItem)
+            const isUpscale =
+              (selectedItem.metadata?.feature_type === 'upscale' ||
+                selectedItem.metadata?.feature_type === 'creative_upscale') &&
+              selectedItem.metadata?.input_images?.length
+
+            return (
+              <div className="flex flex-col">
+                {isUpscale ? (
+                  <div className="p-4">
+                    <ImageComparisonSlider
+                      beforeSrc={selectedItem.metadata!.input_images![0]}
+                      afterSrc={url}
+                      beforeLabel="Original"
+                      afterLabel="Upscaled"
+                    />
+                  </div>
+                ) : selectedItem.type === 'video' ? (
+                  <video
+                    src={url}
+                    className="w-full"
+                    controls
+                    autoPlay
+                    loop
+                  />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={url}
+                    alt={selectedItem.prompt || 'Generated image'}
+                    className="w-full h-auto"
+                  />
+                )}
+                <div className="flex items-center justify-between border-t border-border p-3">
+                  <p className="line-clamp-1 text-sm text-muted-foreground">
+                    {selectedItem.prompt || selectedItem.filename || 'Generated content'}
+                  </p>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="shrink-0 gap-1.5"
+                    onClick={() => handleDownload(selectedItem)}
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Save
+                  </Button>
+                </div>
+              </div>
+            )
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -91,6 +91,10 @@ from tools.direct_image_tools import (
     generate_image_by_imagen_4_ultra_google,
     enhance_image_by_topaz,
 )
+from tools.recraft_creative_upscale_replicate import (
+    creative_upscale_by_recraft_replicate,
+)
+from tools.face_swap_replicate import face_swap_replicate
 
 # Google Veo Tool
 from tools.google_veo_tools import generate_video_by_veo_google
@@ -440,6 +444,18 @@ TOOL_MAPPING: Dict[str, ToolInfo] = {
         "type": "image",
         "provider": "replicate",
         "tool_function": enhance_image_by_topaz,
+    },
+    "creative_upscale_by_recraft_replicate": {
+        "display_name": "Recraft Creative Upscale",
+        "type": "image",
+        "provider": "replicate",
+        "tool_function": creative_upscale_by_recraft_replicate,
+    },
+    "face_swap_replicate": {
+        "display_name": "Face Swap",
+        "type": "image",
+        "provider": "replicate",
+        "tool_function": face_swap_replicate,
     },
     # ---------------
     # Google Veo Tool

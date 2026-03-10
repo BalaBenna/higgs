@@ -96,12 +96,14 @@ export default function CinemaStudioPage() {
   const endFrameRef = useRef<HTMLInputElement>(null)
   const [selectedModel, setSelectedModel] = useState('generate_video_by_kling_v26_replicate')
   const [showAdvanced, setShowAdvanced] = useState(false)
-  
+
   // Set default values for advanced settings based on selected model
   const modelSupportsAdvanced = selectedModel.includes('kling_v26')
   const [newProjectName, setNewProjectName] = useState('')
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [showMovementDropdown, setShowMovementDropdown] = useState(false)
+  const [startFrameDragActive, setStartFrameDragActive] = useState(false)
+  const [endFrameDragActive, setEndFrameDragActive] = useState(false)
 
   const imageGeneration = useImageGeneration()
   const videoGeneration = useVideoGeneration()
@@ -250,7 +252,7 @@ export default function CinemaStudioPage() {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Generation failed'
       console.error('Generation error:', message)
-      
+
       // Provide more helpful error messages
       if (message.includes('Coming Soon')) {
         toast.error('This model is coming soon. Please try a different model.')
@@ -334,18 +336,18 @@ export default function CinemaStudioPage() {
             className="border-r border-border bg-card/50 overflow-hidden flex flex-col"
           >
             <div className="p-4 border-b border-border space-y-2">
-              <Button 
-                variant="outline" 
-                className="w-full gap-2" 
+              <Button
+                variant="outline"
+                className="w-full gap-2"
                 size="sm"
                 onClick={() => setShowSaveDialog(true)}
               >
                 <Save className="h-4 w-4" />
                 Save Project
               </Button>
-              <Button 
-                variant="outline" 
-                className="w-full gap-2" 
+              <Button
+                variant="outline"
+                className="w-full gap-2"
                 size="sm"
                 onClick={clearGeneratedContent}
               >
@@ -364,15 +366,15 @@ export default function CinemaStudioPage() {
                   className="h-8"
                 />
                 <div className="flex gap-2">
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     className="flex-1"
                     onClick={handleSaveProject}
                   >
                     Save
                   </Button>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="ghost"
                     onClick={() => {
                       setShowSaveDialog(false)
@@ -400,13 +402,13 @@ export default function CinemaStudioPage() {
                       key={project.id}
                       className={cn(
                         "p-3 rounded-lg cursor-pointer transition-colors group",
-                        activeProjectId === project.id 
-                          ? "bg-neon/10 border border-neon/30" 
+                        activeProjectId === project.id
+                          ? "bg-neon/10 border border-neon/30"
                           : "bg-muted/50 hover:bg-muted"
                       )}
                     >
                       <div className="flex items-center justify-between">
-                        <p 
+                        <p
                           className="text-sm font-medium truncate flex-1"
                           onClick={() => handleLoadProject(project)}
                         >
@@ -820,8 +822,18 @@ export default function CinemaStudioPage() {
                 <div className="flex items-center gap-4">
                   {/* Start Frame */}
                   <div
-                    className="flex-1 flex items-center gap-3 p-3 rounded-lg border-2 border-dashed border-border hover:border-neon/50 cursor-pointer transition-colors"
+                    className={`flex-1 flex items-center gap-3 p-3 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${startFrameDragActive
+                        ? 'border-neon bg-neon/10'
+                        : 'border-border hover:border-neon/50'
+                      }`}
                     onClick={() => startFrameRef.current?.click()}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setStartFrameDragActive(true) }}
+                    onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setStartFrameDragActive(false) }}
+                    onDrop={(e) => {
+                      e.preventDefault(); e.stopPropagation(); setStartFrameDragActive(false)
+                      const file = e.dataTransfer.files?.[0]
+                      if (file) setStartFrame(file)
+                    }}
                   >
                     <input
                       ref={startFrameRef}
@@ -847,8 +859,18 @@ export default function CinemaStudioPage() {
 
                   {/* End Frame */}
                   <div
-                    className="flex-1 flex items-center gap-3 p-3 rounded-lg border-2 border-dashed border-border hover:border-neon/50 cursor-pointer transition-colors"
+                    className={`flex-1 flex items-center gap-3 p-3 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${endFrameDragActive
+                        ? 'border-neon bg-neon/10'
+                        : 'border-border hover:border-neon/50'
+                      }`}
                     onClick={() => endFrameRef.current?.click()}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setEndFrameDragActive(true) }}
+                    onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setEndFrameDragActive(false) }}
+                    onDrop={(e) => {
+                      e.preventDefault(); e.stopPropagation(); setEndFrameDragActive(false)
+                      const file = e.dataTransfer.files?.[0]
+                      if (file) setEndFrame(file)
+                    }}
                   >
                     <input
                       ref={endFrameRef}

@@ -23,6 +23,7 @@ import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useVideoGeneration } from '@/hooks/use-generation'
+import { HistoryDialog } from '@/components/generation/HistoryDialog'
 
 interface MotionSlider {
   id: string
@@ -51,10 +52,13 @@ export default function MotionControlPage() {
   const [motionVideoFile, setMotionVideoFile] = useState<File | null>(null)
   const [motionVideoPreview, setMotionVideoPreview] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
-  
+  const [sourceDragActive, setSourceDragActive] = useState(false)
+  const [motionDragActive, setMotionDragActive] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
+
   const sourceImageRef = useRef<HTMLInputElement>(null!)
   const motionVideoRef = useRef<HTMLInputElement>(null!)
-  
+
   const videoGeneration = useVideoGeneration()
 
   const motionSliders: MotionSlider[] = [
@@ -279,8 +283,18 @@ export default function MotionControlPage() {
                 onChange={handleSourceImageSelect}
               />
               <div
-                className="relative border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-neon/50 transition-colors min-h-[120px] flex items-center justify-center"
+                className={`relative border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors min-h-[120px] flex items-center justify-center ${sourceDragActive
+                  ? 'border-neon bg-neon/10'
+                  : 'border-border hover:border-neon/50'
+                  }`}
                 onClick={() => sourceImageRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setSourceDragActive(true) }}
+                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setSourceDragActive(false) }}
+                onDrop={(e) => {
+                  e.preventDefault(); e.stopPropagation(); setSourceDragActive(false)
+                  const file = e.dataTransfer.files?.[0]
+                  if (file) { setSourceImageFile(file); const r = new FileReader(); r.onload = (ev) => setSourceImagePreview(ev.target?.result as string); r.readAsDataURL(file) }
+                }}
               >
                 {isUploading ? (
                   <div className="flex flex-col items-center gap-2">
@@ -328,8 +342,18 @@ export default function MotionControlPage() {
                 onChange={handleMotionVideoSelect}
               />
               <div
-                className="relative border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-neon/50 transition-colors min-h-[120px] flex items-center justify-center"
+                className={`relative border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors min-h-[120px] flex items-center justify-center ${motionDragActive
+                  ? 'border-neon bg-neon/10'
+                  : 'border-border hover:border-neon/50'
+                  }`}
                 onClick={() => motionVideoRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setMotionDragActive(true) }}
+                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setMotionDragActive(false) }}
+                onDrop={(e) => {
+                  e.preventDefault(); e.stopPropagation(); setMotionDragActive(false)
+                  const file = e.dataTransfer.files?.[0]
+                  if (file) { setMotionVideoFile(file); const r = new FileReader(); r.onload = (ev) => setMotionVideoPreview(ev.target?.result as string); r.readAsDataURL(file) }
+                }}
               >
                 {motionVideoPreview ? (
                   <div className="relative w-full">
@@ -472,10 +496,16 @@ export default function MotionControlPage() {
                   Your motion-controlled videos will appear here
                 </p>
               </div>
-              <Button variant="outline" size="sm" className="gap-2">
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => setHistoryOpen(true)}>
                 <Video className="h-4 w-4" />
                 View History
               </Button>
+              <HistoryDialog
+                open={historyOpen}
+                onOpenChange={setHistoryOpen}
+                contentType="video"
+                title="Motion Control"
+              />
             </div>
 
             {results.length > 0 ? (

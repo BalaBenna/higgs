@@ -18,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { GeneratedImage } from '@/components/generation/GeneratedImage'
+import { HistoryDialog } from '@/components/generation/HistoryDialog'
 import { useFeatureGeneration } from '@/hooks/use-feature'
 import { useUpload } from '@/hooks/use-upload'
 
@@ -32,19 +33,23 @@ function UploadZone({
   description,
   preview,
   isUploading,
+  isDragging,
   onFileSelect,
   onClear,
   openFilePicker,
   fileInputRef,
+  dropZoneProps,
 }: {
   label: string
   description: string
   preview: string | null
   isUploading: boolean
+  isDragging?: boolean
   onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void
   onClear: () => void
   openFilePicker: () => void
   fileInputRef: React.RefObject<HTMLInputElement>
+  dropZoneProps?: Record<string, (e: React.DragEvent) => void>
 }) {
   return (
     <div className="space-y-2">
@@ -57,8 +62,12 @@ function UploadZone({
         onChange={onFileSelect}
       />
       <div
-        className="relative border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-neon/50 transition-colors min-h-[140px] flex items-center justify-center"
+        className={`relative border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors min-h-[140px] flex items-center justify-center ${isDragging
+          ? 'border-neon bg-neon/10'
+          : 'border-border hover:border-neon/50'
+          }`}
         onClick={openFilePicker}
+        {...dropZoneProps}
       >
         {isUploading ? (
           <div className="flex flex-col items-center gap-2">
@@ -98,13 +107,14 @@ function UploadZone({
 export default function CharacterSwapPage() {
   const [prompt, setPrompt] = useState('')
   const [results, setResults] = useState<GeneratedResult[]>([])
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   const sourceUpload = useUpload()
   const targetUpload = useUpload()
   const featureGeneration = useFeatureGeneration()
 
   const handleGenerate = async () => {
-    if (!sourceUpload.filename || !targetUpload.filename) {
+    if (!sourceUpload.url || !targetUpload.url) {
       toast.error('Please upload both a source character and target scene')
       return
     }
@@ -112,7 +122,7 @@ export default function CharacterSwapPage() {
     try {
       const result = await featureGeneration.mutateAsync({
         featureType: 'character_swap',
-        inputImages: [sourceUpload.filename, targetUpload.filename],
+        inputImages: [sourceUpload.url, targetUpload.url],
         prompt: prompt || undefined,
       })
 
@@ -133,8 +143,8 @@ export default function CharacterSwapPage() {
   }
 
   const canGenerate =
-    !!sourceUpload.filename &&
-    !!targetUpload.filename &&
+    !!sourceUpload.url &&
+    !!targetUpload.url &&
     !featureGeneration.isPending
 
   return (
@@ -160,13 +170,15 @@ export default function CharacterSwapPage() {
             <div className="space-y-4">
               <UploadZone
                 label="Source Character"
-                description="Upload the character to place into the scene"
+                description="Drop image here or click to upload"
                 preview={sourceUpload.preview}
                 isUploading={sourceUpload.isUploading}
+                isDragging={sourceUpload.isDragging}
                 onFileSelect={sourceUpload.handleFileSelect}
                 onClear={sourceUpload.clear}
                 openFilePicker={sourceUpload.openFilePicker}
                 fileInputRef={sourceUpload.fileInputRef}
+                dropZoneProps={sourceUpload.dropZoneProps}
               />
 
               <div className="flex justify-center">
@@ -177,13 +189,15 @@ export default function CharacterSwapPage() {
 
               <UploadZone
                 label="Target Scene"
-                description="Upload the scene where the character should appear"
+                description="Drop image here or click to upload"
                 preview={targetUpload.preview}
                 isUploading={targetUpload.isUploading}
+                isDragging={targetUpload.isDragging}
                 onFileSelect={targetUpload.handleFileSelect}
                 onClear={targetUpload.clear}
                 openFilePicker={targetUpload.openFilePicker}
                 fileInputRef={targetUpload.fileInputRef}
+                dropZoneProps={targetUpload.dropZoneProps}
               />
             </div>
 
@@ -204,11 +218,11 @@ export default function CharacterSwapPage() {
             {/* Status */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Badge variant={sourceUpload.filename ? 'new' : 'secondary'}>
-                  {sourceUpload.filename ? 'Character Ready' : 'Character Needed'}
+                <Badge variant={sourceUpload.url ? 'new' : 'secondary'}>
+                  {sourceUpload.url ? 'Character Ready' : 'Character Needed'}
                 </Badge>
-                <Badge variant={targetUpload.filename ? 'new' : 'secondary'}>
-                  {targetUpload.filename ? 'Scene Ready' : 'Scene Needed'}
+                <Badge variant={targetUpload.url ? 'new' : 'secondary'}>
+                  {targetUpload.url ? 'Scene Ready' : 'Scene Needed'}
                 </Badge>
               </div>
             </div>
@@ -250,10 +264,16 @@ export default function CharacterSwapPage() {
                   Your character swap results will appear here
                 </p>
               </div>
-              <Button variant="outline" size="sm" className="gap-2">
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => setHistoryOpen(true)}>
                 <ImageIcon className="h-4 w-4" />
                 View History
               </Button>
+              <HistoryDialog
+                open={historyOpen}
+                onOpenChange={setHistoryOpen}
+                featureType="character_swap"
+                title="Character Swap"
+              />
             </div>
 
             {results.length > 0 ? (

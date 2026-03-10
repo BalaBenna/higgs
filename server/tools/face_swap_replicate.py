@@ -4,6 +4,7 @@ Takes a swap_image (source face) and input_image (target) and produces a face-sw
 """
 
 import os
+import asyncio
 import traceback
 from typing import Annotated, Optional
 
@@ -56,7 +57,6 @@ async def _run_face_swap(
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
-        "Prefer": "wait",
     }
     data = {
         "version": FACE_SWAP_MODEL_VERSION,
@@ -67,20 +67,41 @@ async def _run_face_swap(
     }
 
     async with HttpClient.create_aiohttp() as session:
-        print(f"🔄 Face Swap Replicate API request: codeplugtech/face-swap")
+        print(f"🔄 Face Swap: submitting prediction", flush=True)
         async with session.post(url, headers=headers, json=data) as response:
             json_data = await response.json()
-            print(f"🔄 Face Swap Replicate API response status: {json_data.get('status')}")
+            status_code = response.status
 
-    output = json_data.get("output", "")
-    if not output:
-        detail = json_data.get("detail", "")
-        error = json_data.get("error", "")
-        raise Exception(
-            f"Face swap failed: {detail or error or 'no output returned'}"
-        )
+    if status_code not in (200, 201):
+        raise Exception(f"Face swap submission failed ({status_code}): {json_data.get('detail', json_data)}")
 
-    return output
+    prediction_url = json_data.get("urls", {}).get("get", "")
+    if not prediction_url:
+        # Synchronous response — output is already available
+        output = json_data.get("output", "")
+        if output:
+            return output
+        raise Exception("Face swap failed: no prediction URL or output returned")
+
+    # Poll until completed
+    poll_headers = {"Authorization": f"Bearer {api_key}"}
+    for attempt in range(90):  # up to ~3 minutes
+        await asyncio.sleep(2)
+        async with HttpClient.create_aiohttp() as session:
+            async with session.get(prediction_url, headers=poll_headers) as response:
+                poll_data = await response.json()
+        status = poll_data.get("status", "")
+        print(f"🔄 Face Swap poll #{attempt + 1}: {status}", flush=True)
+        if status == "succeeded":
+            output = poll_data.get("output", "")
+            if output:
+                return output
+            raise Exception("Face swap succeeded but no output returned")
+        if status in ("failed", "canceled"):
+            error = poll_data.get("error", "unknown error")
+            raise Exception(f"Face swap {status}: {error}")
+
+    raise Exception("Face swap timed out after 3 minutes")
 
 
 @tool(
@@ -100,6 +121,7 @@ async def face_swap_replicate(
     canvas_id = ctx.get("canvas_id", "")
     session_id = ctx.get("session_id", "")
     user_id = ctx.get("user_id", "")
+    feature_type = ctx.get("feature_type", "")
 
     if not input_images or len(input_images) < 2:
         raise ValueError(
@@ -150,6 +172,7 @@ async def face_swap_replicate(
             model="codeplugtech/face-swap",
             provider="replicate",
             aspect_ratio=aspect_ratio,
+            feature_type=feature_type,
         )
 
         if image_url.startswith("http"):

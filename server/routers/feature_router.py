@@ -47,8 +47,8 @@ FEATURE_DISPATCH = {
         "prompt_template": "{prompt}",
     },
     "character_swap": {
-        "tool_id": "generate_image_by_gpt_image_openai",
-        "prompt_template": "Replace the character in the target image with the character from the reference image. Maintain the scene, pose, and lighting. {prompt}",
+        "tool_id": "generate_image_by_flux_kontext_pro_replicate",
+        "prompt_template": "Replace the main person/character in this image with a different person while keeping the exact same pose, scene, background, and lighting. {prompt}",
     },
     "inpaint": {
         "tool_id": "generate_image_by_gpt_image_openai",
@@ -94,6 +94,10 @@ FEATURE_DISPATCH = {
         "tool_id": "generate_image_by_gpt_image_openai",
         "prompt_template": "Generate a consistent character based on the reference image. Maintain the same face, features, and identity. {prompt}",
     },
+    "creative_upscale": {
+        "tool_id": "creative_upscale_by_recraft_replicate",
+        "prompt_template": "upscale",
+    },
 }
 
 
@@ -109,6 +113,7 @@ async def generate_feature(
     req: FeatureRequest, user_id: str = Depends(get_current_user)
 ):
     """Unified feature endpoint for specialized AI operations."""
+    print(f"🔧 Feature request: type={req.feature_type}, images={len(req.input_images)}, params={req.params}", flush=True)
     dispatch = FEATURE_DISPATCH.get(req.feature_type)
     if not dispatch:
         raise HTTPException(
@@ -142,6 +147,7 @@ async def generate_feature(
             "canvas_id": "",
             "session_id": session_id,
             "user_id": user_id,
+            "feature_type": req.feature_type,
         }
     }
 
@@ -149,7 +155,6 @@ async def generate_feature(
         call_id = f"call_{uuid.uuid4().hex[:8]}"
         invoke_args = {
             "prompt": final_prompt.strip(),
-            "tool_call_id": call_id,
         }
 
         # Pass input_images if the tool supports it
@@ -160,7 +165,18 @@ async def generate_feature(
         )
         has_input_images = sig and "input_images" in sig.parameters if sig else False
         if has_input_images and req.input_images:
-            invoke_args["input_images"] = req.input_images
+            images = req.input_images
+            # For character_swap, the frontend sends [source_character, target_scene].
+            # Flux Kontext Pro only uses the first image (input_image), so we reverse
+            # the order so the target scene (to be edited) is passed as input_image.
+            if req.feature_type == "character_swap" and len(images) >= 2:
+                images = [images[1]]
+            invoke_args["input_images"] = images
+
+        # Fallback: pass singular input_image if the tool uses that param name
+        has_input_image = sig and "input_image" in sig.parameters if sig else False
+        if has_input_image and not has_input_images and req.input_images:
+            invoke_args["input_image"] = req.input_images[0]
 
         # Pass upscale-specific params if the tool supports them
         if req.params.get("upscale_factor"):
@@ -172,14 +188,31 @@ async def generate_feature(
         if req.params.get("output_format"):
             if sig and "output_format" in sig.parameters:
                 invoke_args["output_format"] = req.params.get("output_format")
+        if req.params.get("enhance_model"):
+            if sig and "enhance_model" in sig.parameters:
+                invoke_args["enhance_model"] = req.params.get("enhance_model")
 
         # Pass aspect_ratio for image generation tools
         if req.params.get("aspect_ratio"):
             invoke_args["aspect_ratio"] = req.params.get("aspect_ratio")
+        elif sig and "aspect_ratio" in sig.parameters and "aspect_ratio" not in invoke_args:
+            invoke_args["aspect_ratio"] = "1:1"
 
-        result = await tool_fn.ainvoke(invoke_args, config=config)
+        print(f"🔧 Feature invoke: tool={tool_id}, args_keys={list(invoke_args.keys())}", flush=True)
 
-        image_url = extract_media_url(str(result))
+        # Use ToolCall format so InjectedToolCallId is handled correctly
+        tool_call = {
+            "args": invoke_args,
+            "name": tool_id,
+            "type": "tool_call",
+            "id": call_id,
+        }
+        result = await tool_fn.ainvoke(tool_call, config=config)
+        # ToolCall invocation returns a ToolMessage; extract the content string
+        result_text = result.content if hasattr(result, "content") else str(result)
+        print(f"🔧 Feature result: {result_text[:200]}", flush=True)
+
+        image_url = extract_media_url(result_text)
 
         if image_url:
             # Ensure a generated_content record exists (tool may have already inserted one)
@@ -193,6 +226,12 @@ async def generate_feature(
                     user_id, storage_path
                 )
                 if not already:
+                    content_metadata = {
+                        "public_url": image_url,
+                        "feature_type": req.feature_type,
+                    }
+                    if req.input_images:
+                        content_metadata["input_images"] = req.input_images
                     await db_service.insert_generated_content(
                         {
                             "user_id": user_id,
@@ -200,11 +239,13 @@ async def generate_feature(
                             "storage_path": storage_path,
                             "prompt": req.prompt,
                             "model": tool_id,
-                            "metadata": {
-                                "public_url": image_url,
-                                "feature_type": req.feature_type,
-                            },
+                            "metadata": content_metadata,
                         }
+                    )
+                else:
+                    # Record was already inserted by the tool — patch in feature_type
+                    await db_service.update_content_feature_type(
+                        user_id, storage_path, req.feature_type
                     )
             except Exception as persist_err:
                 print(
@@ -223,6 +264,7 @@ async def generate_feature(
     except HTTPException:
         raise
     except Exception as e:
+        print(f"❌ Feature error: {type(e).__name__}: {e}", flush=True)
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 

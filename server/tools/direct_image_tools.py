@@ -4,6 +4,7 @@ For OpenAI and Google models using direct API access
 """
 
 import os
+import asyncio
 import traceback
 from typing import Optional
 from langchain_core.tools import tool
@@ -63,6 +64,7 @@ async def generate_image_by_gpt_image_openai(
         aspect_ratio=aspect_ratio,
         input_images=input_images,
         num_images=num_images,
+        feature_type=ctx.get("feature_type", ""),
     )
 
 
@@ -199,7 +201,8 @@ class TopazUpscaleInputSchema(BaseModel):
     """Input schema for Topaz image upscaling"""
     input_images: list[str] = Field(description="The image(s) to upscale. Only the first image is used.")
     prompt: str = Field(default="upscale", description="Unused for upscaling, kept for schema compatibility")
-    upscale_factor: str = Field(default="4x", description="Upscale factor: 1x, 2x, or 4x")
+    upscale_factor: str = Field(default="4x", description="Upscale factor: 2x or 4x. Use 1x for enhance-only (no upscale).")
+    enhance_model: str = Field(default="Standard V2", description="Enhancement model: Standard V2, Low Resolution V2, CGI, High Fidelity V2, or Text Refine")
     face_enhancement: bool = Field(default=True, description="Enable face enhancement")
     output_format: str = Field(default="png", description="Output format: png or jpeg")
 
@@ -214,6 +217,7 @@ async def enhance_image_by_topaz(
     config: RunnableConfig,
     prompt: str = "upscale",
     upscale_factor: str = "4x",
+    enhance_model: str = "Standard V2",
     face_enhancement: bool = True,
     output_format: str = "png",
 ) -> str:
@@ -238,31 +242,62 @@ async def enhance_image_by_topaz(
         if not processed_image:
             return f"Error: Could not process input image: {input_images[0]}"
 
-        # Call Replicate API for topazlabs/image-upscale
+        # Call Replicate API for topazlabs/image-upscale (async polling)
         url = "https://api.replicate.com/v1/models/topazlabs/image-upscale/predictions"
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
-            "Prefer": "wait",
         }
-        data = {
-            "input": {
-                "image": processed_image,
-                "upscale_factor": upscale_factor,
-                "face_enhancement": face_enhancement,
-                "output_format": output_format,
-            }
+        input_params = {
+            "image": processed_image,
+            "enhance_model": enhance_model,
+            "face_enhancement": face_enhancement,
+            "output_format": output_format,
         }
+        # Only include upscale_factor if it's a real upscale (2x+).
+        # "1x" is not valid for Replicate; omitting defaults to enhance-only.
+        if upscale_factor and upscale_factor != "1x":
+            input_params["upscale_factor"] = upscale_factor
 
-        print(f"🔬 Topaz upscale request: factor={upscale_factor}, face_enhancement={face_enhancement}")
+        data = {"input": input_params}
+
+        print(f"🔬 Topaz upscale request: factor={upscale_factor}, model={enhance_model}, face_enhancement={face_enhancement}", flush=True)
 
         async with HttpClient.create_aiohttp() as session:
+            # Submit prediction
             async with session.post(url, headers=headers, json=data) as response:
                 res = await response.json()
-                print(f"🔬 Topaz upscale response status: {response.status}")
+                print(f"🔬 Topaz prediction created: status={response.status}", flush=True)
+                if response.status >= 400:
+                    print(f"🔬 Topaz error body: {res}", flush=True)
+                    detail = res.get("detail", "")
+                    error_msg = res.get("error", "")
+                    return f"Error: Topaz upscale failed: {detail or error_msg or str(res)}"
 
-        # Extract output URL from response
-        output_url = res.get("output", "")
+            # Poll for completion
+            prediction_url = res.get("urls", {}).get("get", "")
+            status = res.get("status", "")
+            output_url = res.get("output", "")
+
+            poll_count = 0
+            while status in ("starting", "processing") and prediction_url:
+                poll_count += 1
+                await asyncio.sleep(2)
+                async with session.get(prediction_url, headers={"Authorization": f"Bearer {api_key}"}) as poll_resp:
+                    res = await poll_resp.json()
+                    status = res.get("status", "")
+                    output_url = res.get("output", "")
+                    if poll_count % 5 == 0:
+                        print(f"🔬 Topaz polling... status={status}, count={poll_count}", flush=True)
+
+            print(f"🔬 Topaz final status: {status}, polls={poll_count}", flush=True)
+
+            if status == "failed":
+                error_msg = res.get("error", "unknown error")
+                return f"Error: Topaz upscale failed: {error_msg}"
+            if status == "canceled":
+                return "Error: Topaz upscale was canceled"
+
         if not output_url:
             detail = res.get("detail", "")
             error_msg = res.get("error", "")
@@ -300,6 +335,7 @@ async def enhance_image_by_topaz(
             prompt=prompt,
             model="topazlabs/image-upscale",
             provider="replicate",
+            feature_type=ctx.get("feature_type", ""),
         )
 
         if image_url.startswith("http"):

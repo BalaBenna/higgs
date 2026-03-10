@@ -19,6 +19,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { useVideoGeneration } from '@/hooks/use-generation'
 import { useUpload } from '@/hooks/use-upload'
+import { HistoryDialog } from '@/components/generation/HistoryDialog'
 
 interface GeneratedVideoData {
   id: string
@@ -29,8 +30,11 @@ interface GeneratedVideoData {
 export default function VideoFaceSwapPage() {
   const [videoFile, setVideoFile] = useState<File | null>(null)
   const [videoPreview, setVideoPreview] = useState<string | null>(null)
+  const [videoDragging, setVideoDragging] = useState(false)
   const [results, setResults] = useState<GeneratedVideoData[]>([])
+  const [historyOpen, setHistoryOpen] = useState(false)
   const videoInputRef = useRef<HTMLInputElement>(null!)
+  const videoDragCounter = useRef(0)
 
   const faceUpload = useUpload()
   const videoGeneration = useVideoGeneration()
@@ -42,6 +46,19 @@ export default function VideoFaceSwapPage() {
     setVideoFile(file)
     const url = URL.createObjectURL(file)
     setVideoPreview(url)
+  }
+
+  const handleVideoDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    videoDragCounter.current = 0
+    setVideoDragging(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file) {
+      setVideoFile(file)
+      const url = URL.createObjectURL(file)
+      setVideoPreview(url)
+    }
   }
 
   const clearVideo = () => {
@@ -56,7 +73,7 @@ export default function VideoFaceSwapPage() {
   }
 
   const handleGenerate = async () => {
-    if (!faceUpload.preview || !videoFile) {
+    if (!faceUpload.url || !videoFile) {
       toast.error('Please upload both a face photo and a target video')
       return
     }
@@ -85,7 +102,7 @@ export default function VideoFaceSwapPage() {
   }
 
   const canGenerate =
-    !!faceUpload.filename && !!videoFile && !videoGeneration.isPending
+    !!faceUpload.url && !!videoFile && !videoGeneration.isPending
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)]">
@@ -117,8 +134,12 @@ export default function VideoFaceSwapPage() {
                 onChange={faceUpload.handleFileSelect}
               />
               <div
-                className="relative border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-neon/50 transition-colors min-h-[140px] flex items-center justify-center"
+                className={`relative border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors min-h-[140px] flex items-center justify-center ${faceUpload.isDragging
+                  ? 'border-neon bg-neon/10'
+                  : 'border-border hover:border-neon/50'
+                  }`}
                 onClick={faceUpload.openFilePicker}
+                {...faceUpload.dropZoneProps}
               >
                 {faceUpload.isUploading ? (
                   <div className="flex flex-col items-center gap-2">
@@ -148,7 +169,7 @@ export default function VideoFaceSwapPage() {
                   <div className="flex flex-col items-center gap-2">
                     <Upload className="h-6 w-6 text-muted-foreground" />
                     <p className="text-xs text-muted-foreground">
-                      Upload the face photo to use
+                      Drop image here or click to upload
                     </p>
                   </div>
                 )}
@@ -172,8 +193,15 @@ export default function VideoFaceSwapPage() {
                 onChange={handleVideoSelect}
               />
               <div
-                className="relative border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-neon/50 transition-colors min-h-[140px] flex items-center justify-center"
+                className={`relative border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors min-h-[140px] flex items-center justify-center ${videoDragging
+                  ? 'border-neon bg-neon/10'
+                  : 'border-border hover:border-neon/50'
+                  }`}
                 onClick={() => videoInputRef.current?.click()}
+                onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); videoDragCounter.current++; setVideoDragging(true) }}
+                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); videoDragCounter.current--; if (videoDragCounter.current === 0) setVideoDragging(false) }}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation() }}
+                onDrop={handleVideoDrop}
               >
                 {videoPreview ? (
                   <div className="relative w-full">
@@ -203,7 +231,7 @@ export default function VideoFaceSwapPage() {
                   <div className="flex flex-col items-center gap-2">
                     <Video className="h-6 w-6 text-muted-foreground" />
                     <p className="text-xs text-muted-foreground">
-                      Upload the target video
+                      Drop video here or click to upload
                     </p>
                     <p className="text-[10px] text-muted-foreground">
                       MP4, MOV, AVI up to 100MB
@@ -263,10 +291,16 @@ export default function VideoFaceSwapPage() {
                   Your video face swap results will appear here
                 </p>
               </div>
-              <Button variant="outline" size="sm" className="gap-2">
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => setHistoryOpen(true)}>
                 <Video className="h-4 w-4" />
                 View History
               </Button>
+              <HistoryDialog
+                open={historyOpen}
+                onOpenChange={setHistoryOpen}
+                contentType="video"
+                title="Video Face Swap"
+              />
             </div>
 
             {results.length > 0 ? (

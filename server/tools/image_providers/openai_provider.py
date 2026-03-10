@@ -1,5 +1,7 @@
 import os
+import base64
 import traceback
+from io import BytesIO
 from typing import Optional, Any
 from openai import OpenAI
 from .image_base_provider import ImageProviderBase
@@ -44,16 +46,51 @@ class OpenAIImageProvider(ImageProviderBase):
             if input_images and len(input_images) > 0:
                 # Image editing mode
                 input_image_path = input_images[0]
-                # For OpenAI, input_image should be the file path
-                full_path = os.path.join(FILES_DIR, input_image_path)
 
-                with open(full_path, 'rb') as image_file:
-                    result = self.client.images.edit(
-                        model=model,
-                        image=image_file,
-                        prompt=prompt,
-                        n=kwargs.get("num_images", 1)
-                    )
+                # Check if a mask image is provided (second input image)
+                mask_file = None
+                if len(input_images) > 1:
+                    mask_path = input_images[1]
+                    if mask_path.startswith("data:"):
+                        _, mask_b64 = mask_path.split(",", 1)
+                        mask_bytes = base64.b64decode(mask_b64)
+                        mask_file = BytesIO(mask_bytes)
+                        mask_file.name = "mask.png"
+                    else:
+                        mask_full_path = os.path.join(FILES_DIR, mask_path)
+                        if os.path.exists(mask_full_path):
+                            mask_file = open(mask_full_path, 'rb')
+
+                edit_kwargs = {
+                    "model": model,
+                    "prompt": prompt,
+                    "n": kwargs.get("num_images", 1),
+                }
+                if mask_file:
+                    edit_kwargs["mask"] = mask_file
+
+                if input_image_path.startswith("data:"):
+                    # Base64 data URI from process_input_image
+                    # Extract raw base64 after the header
+                    _, b64_data = input_image_path.split(",", 1)
+                    image_bytes = base64.b64decode(b64_data)
+                    image_file = BytesIO(image_bytes)
+                    image_file.name = "image.png"
+                    edit_kwargs["image"] = image_file
+                    result = self.client.images.edit(**edit_kwargs)
+                else:
+                    # Local file path
+                    full_path = os.path.join(FILES_DIR, input_image_path)
+                    with open(full_path, 'rb') as image_file:
+                        edit_kwargs["image"] = image_file
+                        result = self.client.images.edit(**edit_kwargs)
+
+                # Clean up mask file handle if opened from disk
+                if mask_file and hasattr(mask_file, 'close') and not isinstance(mask_file, BytesIO):
+                    mask_file.close()
+
+                # Collect results from edit operation
+                generated_data = result.data if result.data else []
             else:
                 # Image generation mode
                 # Model-aware size mapping

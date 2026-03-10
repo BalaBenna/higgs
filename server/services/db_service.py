@@ -187,6 +187,37 @@ class DatabaseService:
         sb = await get_supabase()
         await sb.table("generated_content").insert(data).execute()
 
+    async def update_content_feature_type(
+        self, user_id: str, storage_path: str, feature_type: str
+    ):
+        """Update the feature_type inside metadata JSONB for a matching record."""
+        sb = await get_supabase()
+        # Fetch the existing record
+        result = await (
+            sb.table("generated_content")
+            .select("id, metadata")
+            .eq("user_id", user_id)
+            .eq("storage_path", storage_path)
+            .limit(1)
+            .execute()
+        )
+        if not result.data:
+            return
+        row = result.data[0]
+        metadata = row.get("metadata") or {}
+        if isinstance(metadata, str):
+            try:
+                metadata = json.loads(metadata)
+            except (json.JSONDecodeError, TypeError):
+                metadata = {}
+        metadata["feature_type"] = feature_type
+        await (
+            sb.table("generated_content")
+            .update({"metadata": metadata})
+            .eq("id", row["id"])
+            .execute()
+        )
+
     async def content_exists_by_storage_path(
         self, user_id: str, storage_path: str
     ) -> bool:
@@ -223,10 +254,16 @@ class DatabaseService:
             "metadata": metadata,
         }
 
+    # Map feature types to their known model names (for old records without feature_type)
+    FEATURE_MODEL_MAP = {
+        "face_swap": ["codeplugtech/face-swap"],
+    }
+
     async def list_generated_content(
         self,
         user_id: str,
         content_type: Optional[str] = None,
+        feature_type: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
     ) -> List[Dict[str, Any]]:
@@ -235,6 +272,17 @@ class DatabaseService:
         query = sb.table("generated_content").select("*").eq("user_id", user_id)
         if content_type:
             query = query.eq("type", content_type)
+        if feature_type:
+            # Use OR to match both new records (with feature_type in metadata)
+            # and old records (matched by known model names)
+            models = self.FEATURE_MODEL_MAP.get(feature_type, [])
+            if models:
+                or_parts = [f"metadata->>feature_type.eq.{feature_type}"]
+                for m in models:
+                    or_parts.append(f"model.eq.{m}")
+                query = query.or_(",".join(or_parts))
+            else:
+                query = query.eq("metadata->>feature_type", feature_type)
         result = await (
             query.order("created_at", desc=True)
             .range(offset, offset + limit - 1)

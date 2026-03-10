@@ -32,6 +32,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useVideoGeneration } from '@/hooks/use-generation'
+import { HistoryDialog } from '@/components/generation/HistoryDialog'
 
 // Per-model capability flags
 interface ModelCapabilities {
@@ -302,6 +303,7 @@ function VideoPageContent() {
   const [sourceImage, setSourceImage] = useState<File | null>(null)
   const [sourceImagePreview, setSourceImagePreview] = useState<string | null>(null)
   const [generatedVideos, setGeneratedVideos] = useState<GeneratedVideoData[]>([])
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   // Kling-specific state
   const [negativePrompt, setNegativePrompt] = useState('')
@@ -962,10 +964,16 @@ function VideoPageContent() {
                   Your AI-generated videos will appear here
                 </p>
               </div>
-              <Button variant="outline" size="sm" className="gap-2">
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => setHistoryOpen(true)}>
                 <Video className="h-4 w-4" />
                 View History
               </Button>
+              <HistoryDialog
+                open={historyOpen}
+                onOpenChange={setHistoryOpen}
+                contentType="video"
+                title="Video Generation"
+              />
             </div>
 
             {/* Generated Videos Grid */}

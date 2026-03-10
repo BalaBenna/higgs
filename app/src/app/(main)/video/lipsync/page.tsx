@@ -67,6 +67,7 @@ export default function LipsyncPage() {
   const [sourceImage, setSourceImage] = useState<File | null>(null)
   const [sourceImagePreview, setSourceImagePreview] = useState<string | null>(null)
   const [generatedVideos, setGeneratedVideos] = useState<GeneratedVideoData[]>([])
+  const [fileDragActive, setFileDragActive] = useState(false)
 
   const videoGeneration = useVideoGeneration()
 
@@ -148,8 +149,18 @@ export default function LipsyncPage() {
                 onChange={handleImageUpload}
               />
               <div
-                className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-neon/50 transition-colors relative"
+                className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors relative ${fileDragActive
+                    ? 'border-neon bg-neon/10'
+                    : 'border-border hover:border-neon/50'
+                  }`}
                 onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setFileDragActive(true) }}
+                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setFileDragActive(false) }}
+                onDrop={(e) => {
+                  e.preventDefault(); e.stopPropagation(); setFileDragActive(false)
+                  const file = e.dataTransfer.files?.[0]
+                  if (file) { setSourceImage(file); const r = new FileReader(); r.onload = (ev) => setSourceImagePreview(ev.target?.result as string); r.readAsDataURL(file) }
+                }}
               >
                 {sourceImagePreview ? (
                   <div className="relative">

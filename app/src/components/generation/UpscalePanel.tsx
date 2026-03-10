@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { useState } from 'react'
-import { RefreshCw, Sparkles, Info, ChevronUp, ChevronDown } from 'lucide-react'
+import { RefreshCw, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -13,13 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Slider } from '@/components/ui/slider'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 
 // Icon components
 const UpscaleIcon = () => (
@@ -93,10 +86,10 @@ const MODELS: ModelOption[] = [
     icon: <TopazIcon />,
   },
   {
-    value: 'generative',
-    label: 'Topaz Generative',
-    description: 'AI-powered enhancement with generative capabilities.',
-    icon: <TopazIcon />,
+    value: 'recraft-creative',
+    label: 'Recraft Creative',
+    description: 'Enhances textures, details, and facial features.',
+    icon: <StandardIcon />,
   },
 ]
 
@@ -108,7 +101,7 @@ const PRESETS: PresetOption[] = [
   { value: 'Low Resolution V2', label: 'Low res', description: 'Optimized for very low resolution inputs.' },
 ]
 
-const SCALE_FACTORS = ['x1', 'x2', 'x4', 'x8', 'x16'] as const
+const SCALE_FACTORS = ['x1', 'x2', 'x4'] as const
 
 interface UpscalePanelProps {
   onSubmit: (settings: UpscaleSettings) => void
@@ -121,8 +114,6 @@ export interface UpscaleSettings {
   model: string
   scaleFactor: typeof SCALE_FACTORS[number]
   preset: string
-  sharpness: number
-  denoise: number
   faceEnhancement: boolean
 }
 
@@ -135,17 +126,12 @@ export function UpscalePanel({
   const [model, setModel] = useState('standard')
   const [scaleFactor, setScaleFactor] = useState<typeof SCALE_FACTORS[number]>('x1')
   const [preset, setPreset] = useState('Standard V2')
-  const [sharpness, setSharpness] = useState(30)
-  const [denoise, setDenoise] = useState(20)
   const [faceEnhancement, setFaceEnhancement] = useState(false)
-  const [advancedOpen, setAdvancedOpen] = useState(true)
 
   const handleReset = () => {
     setModel('standard')
     setScaleFactor('x1')
     setPreset('Standard V2')
-    setSharpness(30)
-    setDenoise(20)
     setFaceEnhancement(false)
   }
 
@@ -155,8 +141,6 @@ export function UpscalePanel({
       model,
       scaleFactor,
       preset,
-      sharpness,
-      denoise,
       faceEnhancement,
     })
   }
@@ -227,157 +211,71 @@ export function UpscalePanel({
           </div>
 
           {/* Scale Factor */}
-          <div className="flex gap-1.5 flex-col mb-4">
-            <div className="text-sm font-medium text-white/60">Scale factor</div>
-            <div className="w-full bg-white/[0.04] rounded-xl p-0.5 flex flex-wrap gap-0.5">
-              {SCALE_FACTORS.map((factor) => (
-                <button
-                  key={factor}
-                  type="button"
-                  onClick={() => setScaleFactor(factor)}
-                  className={cn(
-                    'px-2.5 py-3 h-10 grow rounded-[10px] focus:outline-none text-sm font-semibold transition-colors duration-200',
-                    scaleFactor === factor
-                      ? 'bg-white text-black'
-                      : 'bg-transparent hover:bg-white/[0.08] text-white'
-                  )}
-                >
-                  {factor}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Advanced Settings */}
-          <div className="my-2">
-            <button
-              type="button"
-              onClick={() => setAdvancedOpen(!advancedOpen)}
-              className="flex justify-between w-full items-center py-2"
-            >
-              <span className="text-sm font-semibold">Advanced Settings</span>
-              {advancedOpen ? (
-                <ChevronUp className="h-5 w-5" />
-              ) : (
-                <ChevronDown className="h-5 w-5" />
-              )}
-            </button>
-
-            {advancedOpen && (
-              <div className="pt-2 space-y-4">
-                {/* Preset */}
-                <div className="flex gap-1.5 flex-col">
-                  <div className="text-sm font-medium text-white/60">Preset</div>
-                  <Select value={preset} onValueChange={setPreset}>
-                    <SelectTrigger className="w-full rounded-xl bg-white/[0.04] border-0 p-1 h-auto hover:bg-white/[0.08]">
-                      <SelectValue>
-                        <div className="flex items-center">
-                          <div className="size-[50px] mr-1 grid justify-center items-center rounded-lg bg-white/[0.08]">
-                            <StandardIcon />
-                          </div>
-                          <div className="flex flex-col w-[180px] pl-1 text-left">
-                            <span className="mb-1 font-medium text-xs truncate">{selectedPreset?.label}</span>
-                            <span className="text-xs text-white/40 truncate">{selectedPreset?.description}</span>
-                          </div>
-                        </div>
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PRESETS.map((p) => (
-                        <SelectItem key={p.value} value={p.value}>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{p.label}</span>
-                            <span className="text-xs text-muted-foreground">{p.description}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Sharpness */}
-                <div className="flex gap-1.5 flex-col">
-                  <div className="flex items-center text-sm font-medium gap-1 text-white/60">
-                    Sharpness
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button type="button" className="focus:outline-none">
-                            <Info className="h-4 w-4" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Controls edge enhancement. Higher values create sharper details.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <div className="relative w-full h-9 rounded-[10px] overflow-hidden bg-white/[0.04]">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 z-10 text-sm">
-                      {sharpness}
-                    </span>
-                    <div
-                      className="absolute h-full bg-white/10"
-                      style={{ width: `${sharpness}%` }}
-                    />
-                    <Slider
-                      value={[sharpness]}
-                      onValueChange={([v]) => setSharpness(v)}
-                      min={0}
-                      max={100}
-                      step={1}
-                      className="h-full absolute inset-0 opacity-0"
-                    />
-                  </div>
-                </div>
-
-                {/* Denoise */}
-                <div className="flex gap-1.5 flex-col">
-                  <div className="flex items-center text-sm font-medium gap-1 text-white/60">
-                    Denoise
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button type="button" className="focus:outline-none">
-                            <Info className="h-4 w-4" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Removes noise and grain. Higher values apply more smoothing.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <div className="relative w-full h-9 rounded-[10px] overflow-hidden bg-white/[0.04]">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 z-10 text-sm">
-                      {denoise}
-                    </span>
-                    <div
-                      className="absolute h-full bg-white/10"
-                      style={{ width: `${denoise}%` }}
-                    />
-                    <Slider
-                      value={[denoise]}
-                      onValueChange={([v]) => setDenoise(v)}
-                      min={0}
-                      max={100}
-                      step={1}
-                      className="h-full absolute inset-0 opacity-0"
-                    />
-                  </div>
-                </div>
-
-                {/* Face Enhancement */}
-                <div className="flex items-center justify-between mt-5">
-                  <label className="text-sm font-semibold">Face enhancement</label>
-                  <Switch
-                    checked={faceEnhancement}
-                    onCheckedChange={setFaceEnhancement}
-                  />
-                </div>
+          {model !== 'recraft-creative' && (
+            <div className="flex gap-1.5 flex-col mb-4">
+              <div className="text-sm font-medium text-white/60">Scale factor</div>
+              <div className="w-full bg-white/[0.04] rounded-xl p-0.5 flex flex-wrap gap-0.5">
+                {SCALE_FACTORS.map((factor) => (
+                  <button
+                    key={factor}
+                    type="button"
+                    onClick={() => setScaleFactor(factor)}
+                    className={cn(
+                      'px-2.5 py-3 h-10 grow rounded-[10px] focus:outline-none text-sm font-semibold transition-colors duration-200',
+                      scaleFactor === factor
+                        ? 'bg-white text-black'
+                        : 'bg-transparent hover:bg-white/[0.08] text-white'
+                    )}
+                  >
+                    {factor}
+                  </button>
+                ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* Preset */}
+          {model !== 'recraft-creative' && (
+            <div className="flex gap-1.5 flex-col mb-4">
+              <div className="text-sm font-medium text-white/60">Preset</div>
+              <Select value={preset} onValueChange={setPreset}>
+                <SelectTrigger className="w-full rounded-xl bg-white/[0.04] border-0 p-1 h-auto hover:bg-white/[0.08]">
+                  <SelectValue>
+                    <div className="flex items-center">
+                      <div className="size-[50px] mr-1 grid justify-center items-center rounded-lg bg-white/[0.08]">
+                        <StandardIcon />
+                      </div>
+                      <div className="flex flex-col w-[180px] pl-1 text-left">
+                        <span className="mb-1 font-medium text-xs truncate">{selectedPreset?.label}</span>
+                        <span className="text-xs text-white/40 truncate">{selectedPreset?.description}</span>
+                      </div>
+                    </div>
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {PRESETS.map((p) => (
+                    <SelectItem key={p.value} value={p.value}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{p.label}</span>
+                        <span className="text-xs text-muted-foreground">{p.description}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Face Enhancement */}
+          {model !== 'recraft-creative' && (
+            <div className="flex items-center justify-between my-4">
+              <label className="text-sm font-semibold">Face enhancement</label>
+              <Switch
+                checked={faceEnhancement}
+                onCheckedChange={setFaceEnhancement}
+              />
+            </div>
+          )}
         </div>
       </div>
 

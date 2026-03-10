@@ -700,27 +700,27 @@ function ImagePageContent() {
                   <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 gap-3">
                     {group.isLoading
                       ? group.images.map((_, i) => (
-                          <SkeletonPlaceholder
-                            key={i}
-                            aspectRatio={group.aspectRatio}
-                          />
-                        ))
+                        <SkeletonPlaceholder
+                          key={i}
+                          aspectRatio={group.aspectRatio}
+                        />
+                      ))
                       : group.images
-                          .filter((img) => img.src)
-                          .map((image) => (
-                            <GalleryImage
-                              key={image.id}
-                              image={image}
-                              onClick={() =>
-                                setSelectedImage({
-                                  ...image,
-                                  model: image.model || group.model,
-                                  aspectRatio: image.aspectRatio || group.aspectRatio,
-                                  createdAt: image.createdAt || group.createdAt,
-                                })
-                              }
-                            />
-                          ))}
+                        .filter((img) => img.src)
+                        .map((image) => (
+                          <GalleryImage
+                            key={image.id}
+                            image={image}
+                            onClick={() =>
+                              setSelectedImage({
+                                ...image,
+                                model: image.model || group.model,
+                                aspectRatio: image.aspectRatio || group.aspectRatio,
+                                createdAt: image.createdAt || group.createdAt,
+                              })
+                            }
+                          />
+                        ))}
                   </div>
                 </div>
               ))}
@@ -1013,8 +1013,8 @@ function ImagePageContent() {
                     'focus-visible:ring-2 focus-visible:ring-neon/50',
                     'disabled:bg-[#1a1a1a] disabled:text-white/30 disabled:border-white/10 disabled:shadow-none',
                     !imageGeneration.isPending &&
-                      prompt.trim() &&
-                      'shadow-[0_0_10px_#c8ff0066]'
+                    prompt.trim() &&
+                    'shadow-[0_0_10px_#c8ff0066]'
                   )}
                 >
                   {imageGeneration.isPending ? (

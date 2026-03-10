@@ -45,6 +45,7 @@ async def generate_image_with_provider(
     input_images: Optional[list[str]] = None,
     num_images: int = 1,
     user_id: str = "",
+    feature_type: str = "",
     **kwargs: Any,
 ) -> str:
     """
@@ -137,6 +138,7 @@ async def generate_image_with_provider(
             model=model,
             provider=provider,
             aspect_ratio=aspect_ratio,
+            feature_type=feature_type,
         )
 
         # Use the URL directly (Supabase public URL or local URL)

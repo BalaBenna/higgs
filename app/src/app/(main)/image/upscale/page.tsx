@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { Upload, X, RefreshCw, Sparkles, Download, ZoomIn } from 'lucide-react'
 import { toast } from 'sonner'
 import Image from 'next/image'
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { ImageComparisonSlider } from '@/components/ui/image-comparison-slider'
 import { UpscalePanel, UpscaleSettings } from '@/components/generation/UpscalePanel'
 import { useFeatureGeneration } from '@/hooks/use-feature'
 import { useUpload } from '@/hooks/use-upload'
@@ -20,39 +21,55 @@ interface UpscaleResult {
 
 export default function ImageUpscalePage() {
   const [results, setResults] = useState<UpscaleResult[]>([])
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  
+
   const imageUpload = useUpload()
   const featureGeneration = useFeatureGeneration()
 
   const handleSubmit = async (settings: UpscaleSettings) => {
-    if (!imageUpload.filename) {
+    if (!imageUpload.filename || !imageUpload.url) {
       toast.error('Please upload an image first')
       return
     }
 
-    try {
-      const scaleValue = parseInt(settings.scaleFactor.replace('x', ''), 10) || 2
-      const result = await featureGeneration.mutateAsync({
-        featureType: 'upscale',
-        inputImages: [imageUpload.filename],
-        params: {
-          upscale_factor: `${scaleValue}x`,
-          face_enhancement: settings.faceEnhancement,
-          output_format: 'png',
-        },
-      })
+    const inputImage = imageUpload.url
 
-      if (result) {
+    try {
+      const isRecraftCreative = settings.model === 'recraft-creative'
+      const scaleValue = parseInt(settings.scaleFactor.replace('x', ''), 10) || 2
+      const result = await featureGeneration.mutateAsync(
+        isRecraftCreative
+          ? {
+            featureType: 'creative_upscale',
+            inputImages: [inputImage],
+          }
+          : {
+            featureType: 'upscale',
+            inputImages: [inputImage],
+            params: {
+              upscale_factor: `${scaleValue}x`,
+              enhance_model: settings.preset,
+              face_enhancement: settings.faceEnhancement,
+              output_format: 'png',
+            },
+          }
+      )
+
+      console.log('[Upscale] Raw result:', result)
+      const resultUrl = result?.url || result?.src || ''
+      console.log('[Upscale] Extracted URL:', resultUrl)
+      if (result && resultUrl) {
         const newResult: UpscaleResult = {
           id: result.id || `upscale_${Date.now()}`,
-          src: result.url || result.src || '',
+          src: resultUrl,
           settings,
         }
         setResults((prev) => [newResult, ...prev])
         toast.success('Upscale complete!')
+      } else {
+        toast.error('Upscale completed but no image URL was returned')
       }
     } catch (error) {
+      console.error('[Upscale] Error:', error)
       const message = error instanceof Error ? error.message : 'Upscale failed'
       toast.error(message)
     }
@@ -100,15 +117,19 @@ export default function ImageUpscalePage() {
             transition={{ delay: 0.1 }}
           >
             <input
-              ref={fileInputRef}
+              ref={imageUpload.fileInputRef}
               type="file"
               accept="image/png,image/jpeg,image/webp"
               className="hidden"
               onChange={imageUpload.handleFileSelect}
             />
             <div
-              className="border-2 border-dashed border-border rounded-xl p-12 text-center cursor-pointer hover:border-neon/50 transition-colors bg-card/50"
+              className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-colors bg-card/50 ${imageUpload.isDragging
+                  ? 'border-neon bg-neon/10'
+                  : 'border-border hover:border-neon/50'
+                }`}
               onClick={imageUpload.openFilePicker}
+              {...imageUpload.dropZoneProps}
             >
               {imageUpload.isUploading ? (
                 <div className="flex flex-col items-center gap-3">
@@ -141,7 +162,7 @@ export default function ImageUpscalePage() {
             <h2 className="text-xl font-semibold mb-4 text-center">Upscale Features</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
-                { label: 'Scale up to 16x', icon: ZoomIn },
+                { label: 'Scale up to 4x', icon: ZoomIn },
                 { label: 'Face Enhancement', icon: Sparkles },
                 { label: 'Noise Reduction', icon: Download },
                 { label: 'Detail Sharpening', icon: Upload },
@@ -208,74 +229,71 @@ export default function ImageUpscalePage() {
           )}
         </div>
 
-        {/* Canvas area - Image centered */}
+        {/* Canvas area */}
         <div className="flex-1 flex items-center justify-center p-8 overflow-auto">
-          <div className="flex gap-6 items-center">
-            {/* Original Image */}
+          {results.length > 0 && imageUpload.preview ? (
             <motion.div
-              className="flex flex-col items-center gap-2"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
+              className="w-full max-w-[900px] flex flex-col items-center gap-3"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
             >
-              <Badge variant="secondary">Original</Badge>
-              <div className="rounded-xl overflow-hidden border border-border shadow-lg relative group">
-                <img
-                  src={imageUpload.preview}
-                  alt="Original"
-                  className="max-w-[450px] max-h-[450px] object-contain"
-                />
+              <div className="flex items-center gap-2">
+                <Badge variant="default" className="bg-neon text-black">
+                  Upscaled {results[0].settings.model === 'recraft-creative' ? 'Creative' : results[0].settings.scaleFactor}
+                </Badge>
+                <button
+                  onClick={() => handleDownload(results[0].src)}
+                  className="p-1.5 rounded-lg bg-card border border-border hover:bg-accent transition-colors"
+                >
+                  <Download className="h-4 w-4" />
+                </button>
               </div>
+              <ImageComparisonSlider
+                beforeSrc={imageUpload.preview}
+                afterSrc={results[0].src}
+                beforeLabel="Original"
+                afterLabel="Upscaled"
+                className="w-full"
+              />
             </motion.div>
+          ) : (
+            <div className="flex gap-6 items-center">
+              {/* Original Image */}
+              <motion.div
+                className="flex flex-col items-center gap-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+              >
+                <Badge variant="secondary">Original</Badge>
+                <div className="rounded-xl overflow-hidden border border-border shadow-lg relative group">
+                  {imageUpload.preview && (
+                    <img
+                      src={imageUpload.preview}
+                      alt="Original"
+                      className="max-w-[450px] max-h-[450px] object-contain"
+                    />
+                  )}
+                </div>
+              </motion.div>
 
-            {/* Result Image */}
-            <AnimatePresence mode="wait">
-              {results.length > 0 && (
+              {/* Processing State */}
+              {featureGeneration.isPending && (
                 <motion.div
                   className="flex flex-col items-center gap-2"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
                 >
-                  <Badge variant="default" className="bg-neon text-black">
-                    Upscaled {results[0].settings.scaleFactor}
-                  </Badge>
-                  <div className="rounded-xl overflow-hidden border border-neon/30 shadow-lg relative group">
-                    <Image
-                      src={results[0].src}
-                      alt="Upscaled result"
-                      width={450}
-                      height={450}
-                      className="max-w-[450px] max-h-[450px] object-contain"
-                      unoptimized
-                    />
-                    <button
-                      onClick={() => handleDownload(results[0].src)}
-                      className="absolute top-2 right-2 p-2 rounded-lg bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Download className="h-4 w-4" />
-                    </button>
+                  <Badge variant="secondary">Processing</Badge>
+                  <div className="w-[450px] h-[450px] rounded-xl border border-border flex items-center justify-center bg-card/50">
+                    <div className="flex flex-col items-center gap-3">
+                      <RefreshCw className="h-12 w-12 animate-spin text-neon" />
+                      <p className="text-muted-foreground">Upscaling image...</p>
+                    </div>
                   </div>
                 </motion.div>
               )}
-            </AnimatePresence>
-
-            {/* Processing State */}
-            {featureGeneration.isPending && (
-              <motion.div
-                className="flex flex-col items-center gap-2"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-              >
-                <Badge variant="secondary">Processing</Badge>
-                <div className="w-[450px] h-[450px] rounded-xl border border-border flex items-center justify-center bg-card/50">
-                  <div className="flex flex-col items-center gap-3">
-                    <RefreshCw className="h-12 w-12 animate-spin text-neon" />
-                    <p className="text-muted-foreground">Upscaling image...</p>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Results strip */}

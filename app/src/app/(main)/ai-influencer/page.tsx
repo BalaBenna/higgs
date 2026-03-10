@@ -72,7 +72,7 @@ const MOTION_PRESETS = [
 
 export default function AIInfluencerPage() {
   const [activeTab, setActiveTab] = useState('create')
-  
+
   // Character attributes
   const [characterType, setCharacterType] = useState('realistic')
   const [gender, setGender] = useState('Female')
@@ -81,7 +81,7 @@ export default function AIInfluencerPage() {
   const [eyeColor, setEyeColor] = useState('#634e34')
   const [age, setAge] = useState('Adult')
   const [expandedSections, setExpandedSections] = useState<string[]>(['character-type', 'gender'])
-  
+
   // Additional attributes
   const [skinConditions, setSkinConditions] = useState<string[]>([])
   const [eyeType, setEyeType] = useState('')
@@ -90,22 +90,23 @@ export default function AIInfluencerPage() {
   const [faceShape, setFaceShape] = useState(50)
   const [jawDefinition, setJawDefinition] = useState(50)
   const [cheekbones, setCheekbones] = useState(50)
-  
+
   // Generation states
   const [generatedImage, setGeneratedImage] = useState<string | null>(null)
   const [generatedImageFile, setGeneratedImageFile] = useState<File | null>(null)
   const [isGeneratingImage, setIsGeneratingImage] = useState(false)
-  
+
   // Animation states
   const [motionVideoFile, setMotionVideoFile] = useState<File | null>(null)
   const [motionVideoPreview, setMotionVideoPreview] = useState<string | null>(null)
   const [selectedMotion, setSelectedMotion] = useState('')
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false)
-  const [generatedVideos, setGeneratedVideos] = useState<{url: string, prompt: string}[]>([])
-  
+  const [generatedVideos, setGeneratedVideos] = useState<{ url: string, prompt: string }[]>([])
+  const [motionDragActive, setMotionDragActive] = useState(false)
+
   // Refs
   const motionVideoRef = useRef<HTMLInputElement>(null!)
-  
+
   const imageGeneration = useImageGeneration()
   const videoGeneration = useVideoGeneration()
 
@@ -186,7 +187,7 @@ export default function AIInfluencerPage() {
         const imageUrl = result.images[0].url || result.images[0].src || null
         if (imageUrl) {
           setGeneratedImage(imageUrl)
-          
+
           // Convert URL to File for video generation
           try {
             const response = await fetch(imageUrl)
@@ -196,7 +197,7 @@ export default function AIInfluencerPage() {
           } catch (e) {
             console.error('Failed to convert image to file:', e)
           }
-          
+
           toast.success('AI Influencer created!')
           // Auto-switch to animate tab
           setActiveTab('animate')
@@ -256,7 +257,7 @@ export default function AIInfluencerPage() {
       }
 
       const prompt = motionDescriptions[selectedMotion] || 'natural movement'
-      
+
       const result = await videoGeneration.mutateAsync({
         model: 'kling-v2.6-motion-control-replicate',
         prompt: prompt,
@@ -334,9 +335,9 @@ export default function AIInfluencerPage() {
               </div>
 
               {/* Generate Button */}
-              <Button 
-                variant="neon" 
-                size="lg" 
+              <Button
+                variant="neon"
+                size="lg"
                 className="w-full mt-6 gap-2"
                 onClick={handleGenerateCharacter}
                 disabled={isGeneratingImage}
@@ -355,9 +356,9 @@ export default function AIInfluencerPage() {
               </Button>
 
               {generatedImage && (
-                <Button 
-                  variant="outline" 
-                  size="lg" 
+                <Button
+                  variant="outline"
+                  size="lg"
                   className="w-full mt-2 gap-2"
                   onClick={() => {
                     const link = document.createElement('a')
@@ -402,8 +403,18 @@ export default function AIInfluencerPage() {
                   onChange={handleMotionVideoSelect}
                 />
                 <div
-                  className="relative border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-neon/50 transition-colors"
+                  className={`relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${motionDragActive
+                      ? 'border-neon bg-neon/10'
+                      : 'border-border hover:border-neon/50'
+                    }`}
                   onClick={() => motionVideoRef.current?.click()}
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setMotionDragActive(true) }}
+                  onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setMotionDragActive(false) }}
+                  onDrop={(e) => {
+                    e.preventDefault(); e.stopPropagation(); setMotionDragActive(false)
+                    const file = e.dataTransfer.files?.[0]
+                    if (file) { setMotionVideoFile(file); const r = new FileReader(); r.onload = (ev) => setMotionVideoPreview(ev.target?.result as string); r.readAsDataURL(file) }
+                  }}
                 >
                   {motionVideoPreview ? (
                     <div className="relative">
@@ -456,9 +467,9 @@ export default function AIInfluencerPage() {
               </div>
 
               {/* Animate Button */}
-              <Button 
-                variant="neon" 
-                size="lg" 
+              <Button
+                variant="neon"
+                size="lg"
                 className="w-full gap-2"
                 onClick={handleAnimateCharacter}
                 disabled={!canAnimate}
@@ -539,11 +550,10 @@ export default function AIInfluencerPage() {
                 {CHARACTER_TYPES.map((type) => (
                   <button
                     key={type.id}
-                    className={`relative rounded-lg overflow-hidden border-2 transition-colors ${
-                      characterType === type.id
+                    className={`relative rounded-lg overflow-hidden border-2 transition-colors ${characterType === type.id
                         ? 'border-neon'
                         : 'border-transparent hover:border-border'
-                    }`}
+                      }`}
                     onClick={() => setCharacterType(type.id)}
                   >
                     <img
@@ -615,11 +625,10 @@ export default function AIInfluencerPage() {
                 {SKIN_COLORS.map((color) => (
                   <button
                     key={color}
-                    className={`w-8 h-8 rounded-full border-2 transition-all ${
-                      skinColor === color
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${skinColor === color
                         ? 'border-neon scale-110'
                         : 'border-transparent hover:scale-105'
-                    }`}
+                      }`}
                     style={{ backgroundColor: color }}
                     onClick={() => setSkinColor(color)}
                   />
@@ -638,11 +647,10 @@ export default function AIInfluencerPage() {
                 {EYE_COLORS.map((color) => (
                   <button
                     key={color}
-                    className={`w-8 h-8 rounded-full border-2 transition-all ${
-                      eyeColor === color
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${eyeColor === color
                         ? 'border-neon scale-110'
                         : 'border-transparent hover:scale-105'
-                    }`}
+                      }`}
                     style={{ backgroundColor: color }}
                     onClick={() => setEyeColor(color)}
                   />
@@ -684,9 +692,8 @@ export default function AIInfluencerPage() {
                   <Badge
                     key={condition}
                     variant={skinConditions.includes(condition) ? 'default' : 'outline'}
-                    className={`cursor-pointer hover:bg-accent ${
-                      skinConditions.includes(condition) ? 'bg-neon text-black' : ''
-                    }`}
+                    className={`cursor-pointer hover:bg-accent ${skinConditions.includes(condition) ? 'bg-neon text-black' : ''
+                      }`}
                     onClick={() => toggleSkinCondition(condition)}
                   >
                     {condition}
@@ -771,32 +778,32 @@ export default function AIInfluencerPage() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Face Shape</label>
-                  <Slider 
-                    value={[faceShape]} 
-                    onValueChange={([v]) => setFaceShape(v)} 
-                    min={0} 
-                    max={100} 
-                    step={1} 
+                  <Slider
+                    value={[faceShape]}
+                    onValueChange={([v]) => setFaceShape(v)}
+                    min={0}
+                    max={100}
+                    step={1}
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Jaw Definition</label>
-                  <Slider 
-                    value={[jawDefinition]} 
-                    onValueChange={([v]) => setJawDefinition(v)} 
-                    min={0} 
-                    max={100} 
-                    step={1} 
+                  <Slider
+                    value={[jawDefinition]}
+                    onValueChange={([v]) => setJawDefinition(v)}
+                    min={0}
+                    max={100}
+                    step={1}
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Cheekbones</label>
-                  <Slider 
-                    value={[cheekbones]} 
-                    onValueChange={([v]) => setCheekbones(v)} 
-                    min={0} 
-                    max={100} 
-                    step={1} 
+                  <Slider
+                    value={[cheekbones]}
+                    onValueChange={([v]) => setCheekbones(v)}
+                    min={0}
+                    max={100}
+                    step={1}
                   />
                 </div>
               </div>

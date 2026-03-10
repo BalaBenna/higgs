@@ -66,6 +66,7 @@ export default function CharacterPage() {
   const [referenceImage, setReferenceImage] = useState<File | null>(null)
   const [referencePreview, setReferencePreview] = useState<string | null>(null)
   const [generatePrompt, setGeneratePrompt] = useState('')
+  const [refDragActive, setRefDragActive] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const featureGeneration = useFeatureGeneration()
@@ -347,8 +348,18 @@ export default function CharacterPage() {
                 onChange={handleImageUpload}
               />
               <div
-                className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-neon/50 transition-colors"
+                className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${refDragActive
+                    ? 'border-neon bg-neon/10'
+                    : 'border-border hover:border-neon/50'
+                  }`}
                 onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setRefDragActive(true) }}
+                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setRefDragActive(false) }}
+                onDrop={(e) => {
+                  e.preventDefault(); e.stopPropagation(); setRefDragActive(false)
+                  const file = e.dataTransfer.files?.[0]
+                  if (file) { setReferenceImage(file); const r = new FileReader(); r.onload = (ev) => setReferencePreview(ev.target?.result as string); r.readAsDataURL(file) }
+                }}
               >
                 {referencePreview ? (
                   <div className="relative">

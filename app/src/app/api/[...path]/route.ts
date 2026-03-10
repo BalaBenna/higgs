@@ -66,6 +66,7 @@ async function proxyRequest(
       method: request.method,
       headers,
       body: body || undefined,
+      signal: AbortSignal.timeout(300_000), // 5 minutes for long-running operations (e.g. image upscale)
     })
 
     // Create response with same status and headers
@@ -98,9 +99,10 @@ async function proxyRequest(
       headers: responseHeaders,
     })
   } catch (error) {
-    console.error('Proxy error:', error)
+    const isTimeout = error instanceof DOMException && error.name === 'TimeoutError'
+    console.error(`[PROXY] ${isTimeout ? 'Timeout' : 'Error'} for ${request.method} ${url}:`, error)
     return NextResponse.json(
-      { error: 'Failed to connect to backend server' },
+      { error: isTimeout ? 'Request timed out' : 'Failed to connect to backend server' },
       { status: 502 }
     )
   }

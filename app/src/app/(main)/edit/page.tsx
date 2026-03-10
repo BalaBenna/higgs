@@ -199,9 +199,8 @@ export default function EditPage() {
                     key={dir.id}
                     variant={lightDirection === dir.id ? 'secondary' : 'outline'}
                     size="sm"
-                    className={`gap-1 ${
-                      lightDirection === dir.id ? 'border-neon/50 bg-neon/10' : ''
-                    }`}
+                    className={`gap-1 ${lightDirection === dir.id ? 'border-neon/50 bg-neon/10' : ''
+                      }`}
                     onClick={() => setLightDirection(dir.id)}
                   >
                     <dir.icon className="h-3 w-3" />
@@ -264,9 +263,8 @@ export default function EditPage() {
                     key={factor}
                     variant={scaleFactor === factor ? 'secondary' : 'outline'}
                     size="lg"
-                    className={`text-lg font-bold ${
-                      scaleFactor === factor ? 'border-neon/50 bg-neon/10' : ''
-                    }`}
+                    className={`text-lg font-bold ${scaleFactor === factor ? 'border-neon/50 bg-neon/10' : ''
+                      }`}
                     onClick={() => setScaleFactor(factor)}
                   >
                     {factor}
@@ -395,8 +393,12 @@ export default function EditPage() {
               onChange={imageUpload.handleFileSelect}
             />
             <div
-              className="border-2 border-dashed border-border rounded-xl p-12 text-center cursor-pointer hover:border-neon/50 transition-colors bg-card/50"
+              className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-colors bg-card/50 ${imageUpload.isDragging
+                  ? 'border-neon bg-neon/10'
+                  : 'border-border hover:border-neon/50'
+                }`}
               onClick={imageUpload.openFilePicker}
+              {...imageUpload.dropZoneProps}
             >
               {imageUpload.isUploading ? (
                 <div className="flex flex-col items-center gap-3">

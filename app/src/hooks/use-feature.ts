@@ -7,7 +7,7 @@ interface FeatureGenerationParams {
   featureType: string
   inputImages?: string[]
   prompt?: string
-  params?: Record<string, string | number>
+  params?: Record<string, string | number | boolean>
 }
 
 interface FeatureResult {
@@ -27,7 +27,14 @@ export function useFeatureGeneration() {
     mutationFn: async (params: FeatureGenerationParams): Promise<FeatureResult> => {
       const authHeaders = await getRequiredAuthHeaders()
 
-      const response = await fetch('/api/generate/feature', {
+      console.log('[Feature] Sending request:', params.featureType, params.params)
+
+      // Call the backend directly (bypass the Next.js proxy) to avoid
+      // Next.js killing the handler for long-running operations like upscale.
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || ''
+      const url = `${backendUrl}/api/generate/feature`
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({
@@ -38,10 +45,13 @@ export function useFeatureGeneration() {
         }),
       })
 
+      console.log('[Feature] Response status:', response.status)
+
       if (!response.ok) {
         let errorMsg = 'Feature generation failed'
         try {
           const errorText = await response.text()
+          console.log('[Feature] Error response body:', errorText)
           try {
             const errorData = JSON.parse(errorText)
             errorMsg = errorData.detail || errorData.message || errorMsg
@@ -52,7 +62,9 @@ export function useFeatureGeneration() {
         throw new Error(errorMsg)
       }
 
-      return response.json()
+      const data = await response.json()
+      console.log('[Feature] Success response:', data)
+      return data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['generations'] })
