@@ -212,7 +212,7 @@ export function NavDropdownTrigger({
       {children}
       {isOpen && menu && triggerRef.current && (
         <motion.div
-          className="fixed z-[999] pt-1"
+          className="fixed z-[60] pt-1"
           style={{
             top: triggerRef.current.getBoundingClientRect().bottom + window.scrollY,
             left: triggerRef.current.getBoundingClientRect().left + triggerRef.current.getBoundingClientRect().width / 2,

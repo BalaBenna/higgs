@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
 import { Heart, Play, Download, MoreHorizontal, User } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -25,15 +24,9 @@ interface GalleryCardProps {
 
 export function GalleryCard({ item }: GalleryCardProps) {
   const [isLiked, setIsLiked] = useState(false)
-  const [isHovered, setIsHovered] = useState(false)
-
   return (
-    <motion.div
-      className="group relative rounded-xl overflow-hidden bg-card border border-border/50 mb-4 card-hover cursor-pointer"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      whileHover={{ y: -4 }}
-      transition={{ duration: 0.2 }}
+    <div
+      className="group relative rounded-xl overflow-hidden bg-card border border-border/50 mb-4 card-hover cursor-pointer hover:-translate-y-1 transition-transform duration-200"
     >
       {/* Image/Video */}
       <div className="relative aspect-auto">
@@ -55,14 +48,12 @@ export function GalleryCard({ item }: GalleryCardProps) {
         )}
 
         {/* Hover Overlay */}
-        <motion.div
+        <div
           className={cn(
             'absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent',
-            'flex flex-col justify-end p-4'
+            'flex flex-col justify-end p-4',
+            'opacity-0 group-hover:opacity-100 transition-opacity duration-200'
           )}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: isHovered ? 1 : 0 }}
-          transition={{ duration: 0.2 }}
         >
           {/* Top Actions */}
           <div className="absolute top-3 right-3 flex gap-2">
@@ -113,7 +104,7 @@ export function GalleryCard({ item }: GalleryCardProps) {
               </Button>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Model Badge */}
         <Badge
@@ -123,6 +114,6 @@ export function GalleryCard({ item }: GalleryCardProps) {
           {item.model}
         </Badge>
       </div>
-    </motion.div>
+    </div>
   )
 }

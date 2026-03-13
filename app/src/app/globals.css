@@ -108,7 +108,7 @@
 
 /* Card hover effects */
 .card-hover {
-  @apply transition-all duration-300;
+  @apply transition-[border-color,box-shadow] duration-200;
 }
 
 .card-hover:hover {

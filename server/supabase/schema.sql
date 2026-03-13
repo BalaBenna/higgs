@@ -97,6 +97,23 @@ CREATE TABLE IF NOT EXISTS public.comfy_workflows (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- ---------------------------------------------------------------------------
+-- 7. characters — persistent AI character definitions
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.characters (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  style TEXT DEFAULT 'Realistic',
+  description TEXT DEFAULT '',
+  reference_images JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_characters_user_created
+  ON characters(user_id, created_at DESC);
+
 -- =============================================================================
 -- Auto-create profile on signup (trigger)
 -- =============================================================================
@@ -130,6 +147,7 @@ ALTER TABLE public.canvases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.generated_content ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.characters ENABLE ROW LEVEL SECURITY;
 
 -- Profiles: users can read/update their own profile
 DO $$ BEGIN
@@ -225,6 +243,31 @@ END $$;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can delete own content' AND tablename = 'generated_content') THEN
     CREATE POLICY "Users can delete own content" ON public.generated_content FOR DELETE USING (auth.uid() = user_id);
+  END IF;
+END $$;
+
+-- Characters: users can CRUD their own characters
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can view own characters' AND tablename = 'characters') THEN
+    CREATE POLICY "Users can view own characters" ON public.characters FOR SELECT USING (auth.uid() = user_id);
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can create characters' AND tablename = 'characters') THEN
+    CREATE POLICY "Users can create characters" ON public.characters FOR INSERT WITH CHECK (auth.uid() = user_id);
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can update own characters' AND tablename = 'characters') THEN
+    CREATE POLICY "Users can update own characters" ON public.characters FOR UPDATE USING (auth.uid() = user_id);
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can delete own characters' AND tablename = 'characters') THEN
+    CREATE POLICY "Users can delete own characters" ON public.characters FOR DELETE USING (auth.uid() = user_id);
   END IF;
 END $$;
 

@@ -114,7 +114,7 @@ function SkeletonPlaceholder({ aspectRatio }: { aspectRatio: string }) {
   return (
     <div
       className={cn(
-        'relative rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.05]',
+        'relative overflow-hidden bg-white/[0.03]',
         cls
       )}
     >
@@ -133,8 +133,6 @@ function GalleryImage({
   image: GeneratedImageData
   onClick?: () => void
 }) {
-  const [isHovered, setIsHovered] = useState(false)
-
   const handleDownload = async (e: React.MouseEvent) => {
     e.stopPropagation()
     try {
@@ -156,26 +154,22 @@ function GalleryImage({
 
   return (
     <motion.div
-      className="group relative rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.05] cursor-pointer"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      className="group relative overflow-hidden cursor-pointer break-inside-avoid mb-[3px]"
       onClick={onClick}
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
     >
-      <div className="relative aspect-square">
+      <div className="relative">
         <Image
           src={image.src}
           alt={image.prompt}
-          fill
-          className="object-cover"
+          width={400}
+          height={400}
+          className="w-full h-auto object-cover"
           unoptimized
         />
-        <motion.div
-          className="absolute inset-0 bg-black/60 flex flex-col"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: isHovered ? 1 : 0 }}
-          transition={{ duration: 0.15 }}
+        <div
+          className="absolute inset-0 bg-black/60 flex flex-col opacity-0 group-hover:opacity-100 transition-opacity duration-150"
         >
           <div className="mt-auto p-2 flex gap-1.5">
             <button
@@ -205,7 +199,7 @@ function GalleryImage({
               <Copy className="h-3 w-3" />
             </button>
           </div>
-        </motion.div>
+        </div>
       </div>
     </motion.div>
   )
@@ -682,48 +676,33 @@ function ImagePageContent() {
     <div className="relative h-[calc(100vh-3.5rem)]">
       {/* ── Scrollable Gallery (4 images per row) ── */}
       <div className="h-full overflow-y-auto pb-52">
-        <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="w-full">
           {groups.length > 0 ? (
-            <div className="space-y-10">
-              {groups.map((group) => (
-                <div key={group.id}>
-                  {/* Group prompt header */}
-                  <div className="mb-3">
-                    <p className="text-sm text-white/80 line-clamp-2">
-                      {group.prompt}
-                    </p>
-                    <p className="text-xs text-white/40 mt-0.5">
-                      {group.model} &middot; {group.aspectRatio}
-                    </p>
-                  </div>
-                  {/* 4-column image grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 gap-3">
-                    {group.isLoading
-                      ? group.images.map((_, i) => (
-                        <SkeletonPlaceholder
-                          key={i}
-                          aspectRatio={group.aspectRatio}
-                        />
-                      ))
-                      : group.images
-                        .filter((img) => img.src)
-                        .map((image) => (
-                          <GalleryImage
-                            key={image.id}
-                            image={image}
-                            onClick={() =>
-                              setSelectedImage({
-                                ...image,
-                                model: image.model || group.model,
-                                aspectRatio: image.aspectRatio || group.aspectRatio,
-                                createdAt: image.createdAt || group.createdAt,
-                              })
-                            }
-                          />
-                        ))}
-                  </div>
-                </div>
-              ))}
+            <div className="columns-2 md:columns-3 lg:columns-4 gap-[3px]">
+              {groups.map((group) =>
+                group.isLoading
+                  ? group.images.map((_, i) => (
+                    <div key={`${group.id}-${i}`} className="break-inside-avoid mb-[3px]">
+                      <SkeletonPlaceholder aspectRatio={group.aspectRatio} />
+                    </div>
+                  ))
+                  : group.images
+                    .filter((img) => img.src)
+                    .map((image) => (
+                      <GalleryImage
+                        key={image.id}
+                        image={image}
+                        onClick={() =>
+                          setSelectedImage({
+                            ...image,
+                            model: image.model || group.model,
+                            aspectRatio: image.aspectRatio || group.aspectRatio,
+                            createdAt: image.createdAt || group.createdAt,
+                          })
+                        }
+                      />
+                    ))
+              )}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-[60vh] text-center">

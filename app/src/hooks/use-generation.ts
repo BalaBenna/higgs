@@ -164,7 +164,12 @@ export function useVideoGeneration() {
         formData.append('voice_speed', String(params.voiceSpeed))
       if (params.lipSyncText) formData.append('lip_sync_text', params.lipSyncText)
 
-      const response = await fetch('/api/generate/video', {
+      // Call the backend directly (bypass the Next.js proxy) to avoid
+      // proxy timeouts for long-running video generation (can take 2-5 min).
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || ''
+      const url = `${backendUrl}/api/generate/video`
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: authHeaders,
         body: formData,

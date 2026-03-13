@@ -87,6 +87,7 @@ class KlingV26Schema(BaseModel):
     negative_prompt: Optional[str] = Field(default=None, description="What to avoid in the video.")
     generate_audio: Optional[bool] = Field(default=None, description="Generate audio for the video.")
     start_image: Optional[str] = Field(default=None, description="Start image filename or URL for image-to-video.")
+    end_image: Optional[str] = Field(default=None, description="End image for interpolation.")
     tool_call_id: Annotated[str, InjectedToolCallId]
 
 
@@ -210,6 +211,7 @@ async def generate_video_by_kling_v26_replicate(
     negative_prompt: Optional[str] = None,
     generate_audio: Optional[bool] = None,
     start_image: Optional[str] = None,
+    end_image: Optional[str] = None,
 ) -> str:
     kwargs = {}
     if negative_prompt:
@@ -218,6 +220,8 @@ async def generate_video_by_kling_v26_replicate(
         kwargs["generate_audio"] = generate_audio
     if start_image:
         kwargs["start_image"] = start_image
+    if end_image:
+        kwargs["end_image"] = end_image
     return await _generate_kling_video_via_replicate(
         config, "kling-v2.6", "Kling v2.6",
         prompt=prompt, aspect_ratio=aspect_ratio, duration=duration, **kwargs,
@@ -437,7 +441,7 @@ async def generate_video_by_kling_v26_motion_control_replicate(
     tool_call_id: Annotated[str, InjectedToolCallId],
     aspect_ratio: str = "16:9",
     duration: int = 5,
-    mode: Optional[str] = "standard",
+    mode: Optional[str] = "std",
     character_orientation: Optional[str] = None,
 ) -> str:
     kwargs = {
@@ -445,7 +449,9 @@ async def generate_video_by_kling_v26_motion_control_replicate(
         "video_url": video_url,
     }
     if mode:
-        kwargs["mode"] = mode
+        # Replicate API expects "std" or "pro", normalize common aliases
+        mode_map = {"standard": "std", "professional": "pro"}
+        kwargs["mode"] = mode_map.get(mode, mode)
     if character_orientation:
         kwargs["character_orientation"] = character_orientation
     return await _generate_kling_video_via_replicate(

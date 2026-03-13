@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
 import {
   Download,
   Copy,
@@ -10,6 +9,7 @@ import {
   RefreshCw,
   Maximize2,
   MoreHorizontal,
+  User,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -22,6 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { CreateCharacterDialog } from '@/components/generation/create-character-dialog'
 
 interface GeneratedImageProps {
   image: {
@@ -32,8 +33,8 @@ interface GeneratedImageProps {
 }
 
 export function GeneratedImage({ image }: GeneratedImageProps) {
-  const [isHovered, setIsHovered] = useState(false)
   const [isLiked, setIsLiked] = useState(false)
+  const [showCharacterDialog, setShowCharacterDialog] = useState(false)
 
   const handleDownload = async () => {
     try {
@@ -64,10 +65,8 @@ export function GeneratedImage({ image }: GeneratedImageProps) {
   }
 
   return (
-    <motion.div
-      className="group relative rounded-xl overflow-hidden bg-card border border-border/50 card-hover"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+    <div
+      className="group relative rounded-xl overflow-hidden bg-card border border-border/50 card-hover cursor-pointer"
     >
       <div className="relative aspect-square">
         <Image
@@ -79,11 +78,8 @@ export function GeneratedImage({ image }: GeneratedImageProps) {
         />
 
         {/* Hover Overlay */}
-        <motion.div
-          className="absolute inset-0 bg-black/60 flex flex-col"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: isHovered ? 1 : 0 }}
-          transition={{ duration: 0.2 }}
+        <div
+          className="absolute inset-0 bg-black/60 flex flex-col opacity-0 group-hover:opacity-100 transition-opacity duration-200"
         >
           {/* Top Actions */}
           <div className="flex items-center justify-between p-3">
@@ -121,6 +117,10 @@ export function GeneratedImage({ image }: GeneratedImageProps) {
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Regenerate
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowCharacterDialog(true)}>
+                  <User className="mr-2 h-4 w-4" />
+                  Create Character
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleViewFull}>
                   <Maximize2 className="mr-2 h-4 w-4" />
@@ -150,8 +150,14 @@ export function GeneratedImage({ image }: GeneratedImageProps) {
               <Maximize2 className="h-4 w-4" />
             </Button>
           </div>
-        </motion.div>
+        </div>
       </div>
-    </motion.div>
+      <CreateCharacterDialog
+        open={showCharacterDialog}
+        onOpenChange={setShowCharacterDialog}
+        referenceImageUrl={image.src}
+        promptSuggestion={image.prompt}
+      />
+    </div>
   )
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ImageIcon, Video, Trash2, Calendar, Wand2, Download } from 'lucide-react'
+import { ImageIcon, Video, Trash2, Calendar, Wand2, Download, User } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { ImageComparisonSlider } from '@/components/ui/image-comparison-slider'
+import { CreateCharacterDialog } from '@/components/generation/create-character-dialog'
 import { getAuthHeaders } from '@/lib/auth-headers'
 import * as VisuallyHidden from '@radix-ui/react-visually-hidden'
 
@@ -54,6 +55,7 @@ export default function MyContentPage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'image' | 'video'>('all')
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null)
+  const [characterDialogItem, setCharacterDialogItem] = useState<ContentItem | null>(null)
 
   const fetchContent = async () => {
     setLoading(true)
@@ -115,11 +117,12 @@ export default function MyContentPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-7xl px-4 py-8">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="h-[calc(100vh-3.5rem)] flex flex-col">
+      {/* Header bar */}
+      <div className="flex items-center justify-between px-5 py-4 shrink-0">
         <div>
-          <h1 className="text-3xl font-bold">My Content</h1>
-          <p className="mt-1 text-muted-foreground">
+          <h1 className="text-xl font-bold text-white">My Content</h1>
+          <p className="mt-0.5 text-xs text-white/40">
             Your generated images and videos
           </p>
         </div>
@@ -142,38 +145,38 @@ export default function MyContentPage() {
       </div>
 
       {loading ? (
-        <div className="flex h-64 items-center justify-center">
-          <div className="text-muted-foreground">Loading...</div>
+        <div className="flex flex-1 items-center justify-center">
+          <div className="text-white/30">Loading...</div>
         </div>
       ) : items.length === 0 ? (
-        <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/60">
-          <Wand2 className="h-10 w-10 text-muted-foreground/50" />
-          <p className="text-muted-foreground">No content yet. Start generating!</p>
+        <div className="flex flex-1 flex-col items-center justify-center gap-3">
+          <Wand2 className="h-10 w-10 text-white/20" />
+          <p className="text-white/40">No content yet. Start generating!</p>
         </div>
       ) : (
-        <ScrollArea className="h-[calc(100vh-220px)]">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        <div className="flex-1 overflow-y-auto">
+          <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-[3px]">
             {items.map((item) => {
               const mediaUrl = resolveMediaUrl(item)
               return (
                 <div
                   key={item.id}
-                  className="group relative cursor-pointer overflow-hidden rounded-xl border border-border/40 bg-card transition-colors hover:border-border/80"
+                  className="group relative cursor-pointer overflow-hidden break-inside-avoid mb-[3px]"
                   onClick={() => setSelectedItem(item)}
                 >
                   {/* Media */}
-                  <div className="relative aspect-square overflow-hidden bg-muted">
+                  <div className="relative overflow-hidden">
                     {item.type === 'image' ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={mediaUrl}
                         alt={item.prompt || 'Generated image'}
-                        className="h-full w-full object-cover"
+                        className="w-full h-auto object-cover"
                       />
                     ) : (
                       <video
                         src={mediaUrl}
-                        className="h-full w-full object-cover"
+                        className="w-full h-auto object-cover"
                         muted
                         loop
                         playsInline
@@ -184,63 +187,72 @@ export default function MyContentPage() {
                         }}
                       />
                     )}
-                    {/* Type badge */}
-                    <Badge
-                      className="absolute left-2 top-2 text-[10px]"
-                      variant={item.type === 'video' ? 'default' : 'secondary'}
-                    >
-                      {item.type === 'video' ? (
-                        <Video className="mr-1 h-3 w-3" />
-                      ) : (
-                        <ImageIcon className="mr-1 h-3 w-3" />
-                      )}
-                      {item.type}
-                    </Badge>
-                    {/* Action buttons */}
-                    <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleDownload(item)
-                        }}
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleDelete(item.id)
-                        }}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                  {/* Info */}
-                  <div className="p-3">
-                    <p className="line-clamp-2 text-sm text-foreground/90">
-                      {item.prompt || 'No prompt'}
-                    </p>
-                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{item.model || item.provider}</span>
-                      <span className="opacity-40">|</span>
-                      <Calendar className="h-3 w-3" />
-                      <span>
-                        {formatCreatedAt(item.created_at)}
-                      </span>
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex flex-col">
+                      {/* Top: type badge + actions */}
+                      <div className="flex items-start justify-between p-2">
+                        <Badge
+                          className="text-[10px] bg-black/50 backdrop-blur-sm border-0"
+                          variant={item.type === 'video' ? 'default' : 'secondary'}
+                        >
+                          {item.type === 'video' ? (
+                            <Video className="mr-1 h-3 w-3" />
+                          ) : (
+                            <ImageIcon className="mr-1 h-3 w-3" />
+                          )}
+                          {item.type}
+                        </Badge>
+                        <div className="flex gap-1">
+                          {item.type === 'image' && (
+                            <button
+                              className="h-7 w-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                              title="Create Character"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setCharacterDialogItem(item)
+                              }}
+                            >
+                              <User className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          <button
+                            className="h-7 w-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDownload(item)
+                            }}
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            className="h-7 w-7 rounded-lg bg-white/10 hover:bg-red-500/60 text-white flex items-center justify-center transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDelete(item.id)
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                      {/* Bottom: prompt + meta */}
+                      <div className="mt-auto p-2">
+                        <p className="line-clamp-2 text-xs text-white/80">
+                          {item.prompt || 'No prompt'}
+                        </p>
+                        <div className="mt-1 flex items-center gap-1.5 text-[10px] text-white/40">
+                          <span>{item.model || item.provider}</span>
+                          <span>&middot;</span>
+                          <span>{formatCreatedAt(item.created_at)}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               )
             })}
           </div>
-        </ScrollArea>
+        </div>
       )}
 
       {/* Enlarged view dialog */}
@@ -302,6 +314,15 @@ export default function MyContentPage() {
           })()}
         </DialogContent>
       </Dialog>
+
+      {characterDialogItem && (
+        <CreateCharacterDialog
+          open={!!characterDialogItem}
+          onOpenChange={(open) => !open && setCharacterDialogItem(null)}
+          referenceImageUrl={resolveMediaUrl(characterDialogItem)}
+          promptSuggestion={characterDialogItem.prompt}
+        />
+      )}
     </div>
   )
 }

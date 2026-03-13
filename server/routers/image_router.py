@@ -9,7 +9,7 @@ from middleware.auth import get_current_user
 from PIL import Image
 from io import BytesIO
 import os
-from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
+from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, Query
 import httpx
 import aiofiles
 from mimetypes import guess_type
@@ -191,3 +191,33 @@ async def get_file(file_id: str):
     except Exception:
         pass
     raise HTTPException(status_code=404, detail="File not found")
+
+
+@router.get("/uploads")
+async def list_uploads(
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    user_id: str = Depends(get_current_user),
+):
+    """List the current user's uploaded files from Supabase Storage."""
+    files = await storage_service.list_files(
+        user_id=user_id,
+        bucket=storage_service.UPLOADS_BUCKET,
+        limit=limit,
+        offset=offset,
+    )
+    return {"items": files, "limit": limit, "offset": offset}
+
+
+@router.delete("/uploads/{filename}")
+async def delete_upload(
+    filename: str,
+    user_id: str = Depends(get_current_user),
+):
+    """Delete an uploaded file from Supabase Storage."""
+    storage_path = f"{user_id}/{filename}"
+    try:
+        await storage_service.delete_file(storage_service.UPLOADS_BUCKET, storage_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete file: {e}")
+    return {"status": "deleted", "filename": filename}

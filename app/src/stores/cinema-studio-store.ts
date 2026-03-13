@@ -129,6 +129,8 @@ interface CinemaStudioState {
   setSidebarVisible: (visible: boolean) => void
 
   // Generated content
+  selectedContentIndex: number
+  setSelectedContentIndex: (index: number) => void
   generatedContent: Array<{
     id: string
     type: 'image' | 'video'
@@ -167,6 +169,7 @@ const initialState = {
   projects: [] as Project[],
   activeProjectId: null,
   sidebarVisible: true,
+  selectedContentIndex: 0,
   generatedContent: [] as CinemaStudioState['generatedContent'],
 }
 
@@ -190,6 +193,7 @@ export const useCinemaStudioStore = create<CinemaStudioState>((set) => ({
   setIsGenerating: (isGenerating) => set({ isGenerating }),
   setGenerationProgress: (generationProgress) => set({ generationProgress }),
   setSidebarVisible: (sidebarVisible) => set({ sidebarVisible }),
+  setSelectedContentIndex: (selectedContentIndex) => set({ selectedContentIndex }),
 
   setActiveProject: (activeProjectId) => set({ activeProjectId }),
 
@@ -232,6 +236,7 @@ export const useCinemaStudioStore = create<CinemaStudioState>((set) => ({
 
   addGeneratedContent: (content) =>
     set((state) => ({
+      selectedContentIndex: 0,
       generatedContent: [
         {
           ...content,
@@ -242,7 +247,7 @@ export const useCinemaStudioStore = create<CinemaStudioState>((set) => ({
       ],
     })),
 
-  clearGeneratedContent: () => set({ generatedContent: [] }),
+  clearGeneratedContent: () => set({ generatedContent: [], selectedContentIndex: 0 }),
 
   reset: () => set(initialState),
 }))

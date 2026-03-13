@@ -28,6 +28,7 @@ import {
   Save,
   X,
   Sliders,
+  Download,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -94,11 +95,9 @@ const DURATION_OPTIONS: { value: Duration; label: string }[] = [
 export default function CinemaStudioPage() {
   const startFrameRef = useRef<HTMLInputElement>(null)
   const endFrameRef = useRef<HTMLInputElement>(null)
-  const [selectedModel, setSelectedModel] = useState('generate_video_by_kling_v26_replicate')
+  const [selectedImageModel, setSelectedImageModel] = useState(IMAGE_MODELS[0].id)
+  const [selectedVideoModel, setSelectedVideoModel] = useState(VIDEO_MODELS_CINEMA[0].id)
   const [showAdvanced, setShowAdvanced] = useState(false)
-
-  // Set default values for advanced settings based on selected model
-  const modelSupportsAdvanced = selectedModel.includes('kling_v26')
   const [newProjectName, setNewProjectName] = useState('')
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [showMovementDropdown, setShowMovementDropdown] = useState(false)
@@ -150,10 +149,16 @@ export default function CinemaStudioPage() {
     loadProject,
     sidebarVisible,
     setSidebarVisible,
+    selectedContentIndex,
+    setSelectedContentIndex,
     generatedContent,
     addGeneratedContent,
     clearGeneratedContent,
   } = useCinemaStudioStore()
+
+  const selectedModel = mode === 'image' ? selectedImageModel : selectedVideoModel
+  const setSelectedModel = mode === 'image' ? setSelectedImageModel : setSelectedVideoModel
+  const modelSupportsAdvanced = selectedModel.includes('kling_v26')
 
   const handleStartFrameChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -232,6 +237,7 @@ export default function CinemaStudioPage() {
           duration: duration,
           aspectRatio: aspectRatio,
           sourceImage: startFrame,
+          endImage: endFrame,
           negativePrompt: negativePrompt || undefined,
           cfgScale: cfgScale,
           motionStrength: motionStrength,
@@ -472,7 +478,7 @@ export default function CinemaStudioPage() {
             {/* Main Preview */}
             <motion.div
               className={cn(
-                'relative rounded-2xl overflow-hidden bg-card border border-border/50 shadow-2xl',
+                'group relative rounded-2xl overflow-hidden bg-card border border-border/50 shadow-2xl',
                 aspectRatio === '16:9' && 'aspect-video',
                 aspectRatio === '9:16' && 'aspect-[9/16] max-h-[500px] mx-auto',
                 aspectRatio === '1:1' && 'aspect-square max-h-[500px] mx-auto'
@@ -481,22 +487,55 @@ export default function CinemaStudioPage() {
             >
               {generatedContent.length > 0 ? (
                 <div className="relative w-full h-full">
-                  {generatedContent[0].type === 'video' ? (
-                    <video
-                      src={generatedContent[0].url}
-                      className="w-full h-full object-cover"
-                      controls
-                      autoPlay
-                      loop
-                    />
-                  ) : (
-                    <Image
-                      src={generatedContent[0].url}
-                      alt="Generated"
-                      fill
-                      className="object-cover"
-                    />
-                  )}
+                  {(() => {
+                    const active = generatedContent[selectedContentIndex] ?? generatedContent[0]
+                    return active.type === 'video' ? (
+                      <video
+                        key={active.id}
+                        src={active.url}
+                        className="w-full h-full object-cover"
+                        controls
+                        autoPlay
+                        loop
+                      />
+                    ) : (
+                      <Image
+                        key={active.id}
+                        src={active.url}
+                        alt="Generated"
+                        fill
+                        className="object-cover"
+                      />
+                    )
+                  })()}
+                  <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 bg-black/50 hover:bg-black/70 text-white"
+                      onClick={async () => {
+                        const content = generatedContent[selectedContentIndex] ?? generatedContent[0]
+                        try {
+                          const response = await fetch(content.url)
+                          const blob = await response.blob()
+                          const url = window.URL.createObjectURL(blob)
+                          const a = document.createElement('a')
+                          a.href = url
+                          a.download = `cinema-${content.type}-${content.id}.${content.type === 'video' ? 'mp4' : 'png'}`
+                          document.body.appendChild(a)
+                          a.click()
+                          window.URL.revokeObjectURL(url)
+                          document.body.removeChild(a)
+                          toast.success('Downloaded!')
+                        } catch {
+                          const content2 = generatedContent[selectedContentIndex] ?? generatedContent[0]
+                          window.open(content2.url, '_blank')
+                        }
+                      }}
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
@@ -509,12 +548,22 @@ export default function CinemaStudioPage() {
                 </div>
               )}
 
-              {/* Play overlay for videos */}
-              {generatedContent.length === 0 && (
+              {/* Play overlay for empty state */}
+              {generatedContent.length === 0 && !isGenerating && (
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/40">
                   <div className="w-20 h-20 rounded-full bg-neon/90 flex items-center justify-center cursor-pointer hover:bg-neon transition-colors">
                     <Play className="h-8 w-8 text-black fill-black ml-1" />
                   </div>
+                </div>
+              )}
+
+              {/* Loading overlay */}
+              {isGenerating && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 z-20">
+                  <Loader2 className="h-10 w-10 text-neon animate-spin mb-3" />
+                  <p className="text-sm text-white/80">
+                    {mode === 'video' ? 'Generating video...' : 'Generating images...'}
+                  </p>
                 </div>
               )}
             </motion.div>
@@ -527,8 +576,9 @@ export default function CinemaStudioPage() {
                     key={content.id}
                     className={cn(
                       'w-16 h-16 rounded-lg overflow-hidden border-2 cursor-pointer transition-all',
-                      i === 0 ? 'border-neon' : 'border-transparent hover:border-border'
+                      i === selectedContentIndex ? 'border-neon' : 'border-transparent hover:border-border'
                     )}
+                    onClick={() => setSelectedContentIndex(i)}
                   >
                     {content.type === 'video' ? (
                       <video src={content.url} className="w-full h-full object-cover" />
@@ -757,31 +807,33 @@ export default function CinemaStudioPage() {
                   </div>
                 )}
 
-                {/* Frame Count */}
-                <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-                  <span className="text-xs text-muted-foreground">Frames</span>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => setFrameCount(Math.max(1, frameCount - 1))}
-                      disabled={frameCount <= 1}
-                    >
-                      <Minus className="h-3 w-3" />
-                    </Button>
-                    <span className="text-sm font-medium w-4 text-center">{frameCount}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => setFrameCount(Math.min(8, frameCount + 1))}
-                      disabled={frameCount >= 8}
-                    >
-                      <Plus className="h-3 w-3" />
-                    </Button>
+                {/* Frame Count (image mode only) */}
+                {mode === 'image' && (
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                    <span className="text-xs text-muted-foreground">Frames</span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => setFrameCount(Math.max(1, frameCount - 1))}
+                        disabled={frameCount <= 1}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="text-sm font-medium w-4 text-center">{frameCount}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => setFrameCount(Math.min(8, frameCount + 1))}
+                        disabled={frameCount >= 8}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Right Controls - Prompt & Frames */}
@@ -822,7 +874,7 @@ export default function CinemaStudioPage() {
                 <div className="flex items-center gap-4">
                   {/* Start Frame */}
                   <div
-                    className={`flex-1 flex items-center gap-3 p-3 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${startFrameDragActive
+                    className={`relative flex-1 flex items-center gap-3 p-3 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${startFrameDragActive
                         ? 'border-neon bg-neon/10'
                         : 'border-border hover:border-neon/50'
                       }`}
@@ -842,6 +894,18 @@ export default function CinemaStudioPage() {
                       className="hidden"
                       onChange={handleStartFrameChange}
                     />
+                    {startFrame && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setStartFrame(null)
+                          if (startFrameRef.current) startFrameRef.current.value = ''
+                        }}
+                        className="absolute top-1 right-1 p-1 rounded-full bg-black/60 hover:bg-red-500/80 text-white transition-colors z-10"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
                       {startFrame ? (
                         <ImageIcon className="h-5 w-5 text-neon" />
@@ -859,7 +923,7 @@ export default function CinemaStudioPage() {
 
                   {/* End Frame */}
                   <div
-                    className={`flex-1 flex items-center gap-3 p-3 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${endFrameDragActive
+                    className={`relative flex-1 flex items-center gap-3 p-3 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${endFrameDragActive
                         ? 'border-neon bg-neon/10'
                         : 'border-border hover:border-neon/50'
                       }`}
@@ -879,6 +943,18 @@ export default function CinemaStudioPage() {
                       className="hidden"
                       onChange={handleEndFrameChange}
                     />
+                    {endFrame && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEndFrame(null)
+                          if (endFrameRef.current) endFrameRef.current.value = ''
+                        }}
+                        className="absolute top-1 right-1 p-1 rounded-full bg-black/60 hover:bg-red-500/80 text-white transition-colors z-10"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
                       {endFrame ? (
                         <ImageIcon className="h-5 w-5 text-neon" />

@@ -24,3 +24,14 @@ async def update_config(request: Request):
     # 每次更新配置后，重新初始化工具
     await tool_service.initialize()
     return res
+
+
+@router.get("/available-tools")
+async def get_available_tools():
+    """Return tool IDs currently registered (provider API key is configured)."""
+    tools = tool_service.get_all_tools()
+    return {
+        tool_id: {"type": info.get("type", ""), "provider": info.get("provider", "")}
+        for tool_id, info in tools.items()
+        if tool_id != "write_plan"
+    }

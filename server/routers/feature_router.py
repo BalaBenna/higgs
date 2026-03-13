@@ -16,6 +16,7 @@ from pydantic import BaseModel
 from services.tool_service import TOOL_MAPPING, tool_service
 from services.config_service import FILES_DIR
 from services.db_service import db_service
+from services import supabase_service
 from middleware.auth import get_current_user
 
 router = APIRouter(prefix="/api")
@@ -106,6 +107,7 @@ class FeatureRequest(BaseModel):
     input_images: List[str] = []
     prompt: str = ""
     params: dict = {}
+    character_id: Optional[str] = None
 
 
 @router.post("/generate/feature")
@@ -114,6 +116,26 @@ async def generate_feature(
 ):
     """Unified feature endpoint for specialized AI operations."""
     print(f"🔧 Feature request: type={req.feature_type}, images={len(req.input_images)}, params={req.params}", flush=True)
+
+    # If a character_id is provided, fetch the character and prepend its
+    # reference images + enrich the prompt with character context.
+    if req.character_id:
+        try:
+            character = await supabase_service.get_character(req.character_id, user_id)
+            if character:
+                ref_imgs = character.get("reference_images") or []
+                ref_urls = [img["url"] for img in ref_imgs if img.get("url")]
+                req.input_images = ref_urls + req.input_images
+                char_ctx = f"Character: {character.get('name', '')}."
+                if character.get("style"):
+                    char_ctx += f" Style: {character['style']}."
+                if character.get("description"):
+                    char_ctx += f" {character['description']}."
+                char_ctx += " Maintain the exact same face, features, and identity as the reference image."
+                req.prompt = f"{char_ctx} {req.prompt}".strip()
+        except Exception as char_err:
+            print(f"Warning: could not load character {req.character_id}: {char_err}")
+
     dispatch = FEATURE_DISPATCH.get(req.feature_type)
     if not dispatch:
         raise HTTPException(
@@ -230,6 +252,8 @@ async def generate_feature(
                         "public_url": image_url,
                         "feature_type": req.feature_type,
                     }
+                    if req.character_id:
+                        content_metadata["character_id"] = req.character_id
                     if req.input_images:
                         content_metadata["input_images"] = req.input_images
                     await db_service.insert_generated_content(

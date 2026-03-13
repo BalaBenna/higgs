@@ -55,6 +55,33 @@ async def get_public_url(bucket: str, path: str) -> str:
     return result
 
 
+async def list_files(
+    user_id: str,
+    bucket: str = UPLOADS_BUCKET,
+    limit: int = 50,
+    offset: int = 0,
+) -> list[dict]:
+    """
+    List files in a Supabase Storage bucket for a given user.
+
+    Returns a list of dicts with 'name' and 'url' keys.
+    """
+    sb = await get_supabase()
+    result = await sb.storage.from_(bucket).list(
+        path=user_id,
+        options={"limit": limit, "offset": offset, "sortBy": {"column": "created_at", "order": "desc"}},
+    )
+    files = []
+    for item in result:
+        name = item.get("name", "")
+        if not name or item.get("id") is None:
+            continue
+        storage_path = f"{user_id}/{name}"
+        url = await get_public_url(bucket, storage_path)
+        files.append({"name": name, "url": url, "created_at": item.get("created_at", "")})
+    return files
+
+
 async def delete_file(bucket: str, path: str) -> None:
     """Delete a file from Supabase Storage."""
     sb = await get_supabase()

@@ -117,8 +117,13 @@ class ReplicateVideoProvider(VideoProviderBase, provider_name="replicate"):
             input_data["image_url"] = input_images[0]
 
         # start_image (used by new Kling tools instead of input_images)
+        # Motion control models use "image" field; standard models use "start_image"
         if kwargs.get("start_image"):
-            input_data["start_image"] = kwargs["start_image"]
+            if kwargs.get("video_url"):
+                # Motion control model: expects "image" not "start_image"
+                input_data["image"] = kwargs["start_image"]
+            else:
+                input_data["start_image"] = kwargs["start_image"]
 
         # end_image
         if kwargs.get("end_image"):

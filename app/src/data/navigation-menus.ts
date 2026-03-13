@@ -27,6 +27,7 @@ import {
   Heart,
   RotateCcw,
   VideoIcon,
+  UserPlus,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -141,7 +142,7 @@ export const EDIT_MENU: NavigationMenu = {
     { id: 'edit-video', label: 'Edit Video', icon: Scissors, path: '/edit', description: 'AI-powered video editing tools' },
     { id: 'inpaint-edit', label: 'Inpaint', icon: Eraser, path: '/inpaint', badge: 'top', description: 'Remove or replace image regions' },
     { id: 'relight-edit', label: 'Relight', icon: Lightbulb, path: '/edit', badge: 'new', description: 'Adjust lighting with AI' },
-    { id: 'ai-stylist', label: 'AI Stylist', icon: Palette, path: '/edit', description: 'Transform image styles with AI' },
+    { id: 'ai-stylist', label: 'AI Stylist', icon: Palette, path: '/edit/ai-stylist', description: 'Transform image styles with AI' },
     { id: 'upscale', label: 'Upscale', icon: Maximize, path: '/image/upscale', description: 'Enhance resolution and details' },
     { id: 'skin-enhancer', label: 'Skin Enhancer', icon: Heart, path: '/edit', description: 'Professional skin retouching' },
     { id: 'angles', label: 'Angles', icon: RotateCcw, path: '/edit', description: 'Change perspective and angles' },
@@ -159,10 +160,11 @@ export const EDIT_MENU: NavigationMenu = {
 
 export const CHARACTER_MENU: NavigationMenu = {
   features: [
+    { id: 'create-character', label: 'Create Character', icon: UserPlus, path: '/character/create', description: 'Build a consistent AI character' },
     { id: 'face-swap', label: 'Face Swap', icon: UserCircle, path: '/character/face-swap', description: 'Swap faces in photos with AI' },
     { id: 'character-swap', label: 'Character Swap', icon: Repeat, path: '/character/swap', description: 'Replace characters in scenes' },
     { id: 'video-face-swap', label: 'Video Face Swap', icon: VideoIcon, path: '/character/video-face-swap', description: 'Swap faces in video clips' },
-    { id: 'ai-stylist-char', label: 'AI Stylist', icon: Palette, path: '/edit', badge: 'top', description: 'AI fashion and style transfer' },
+    { id: 'ai-stylist-char', label: 'AI Stylist', icon: Palette, path: '/edit/ai-stylist', badge: 'top', description: 'AI fashion and style transfer' },
     { id: 'recast-studio-char', label: 'Recast Studio', icon: Clapperboard, path: '/video/recast', description: 'Restyle characters in videos' },
   ],
   models: [
