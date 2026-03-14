@@ -57,7 +57,7 @@ FEATURE_DISPATCH = {
     },
     "relight": {
         "tool_id": "generate_image_by_gpt_image_openai",
-        "prompt_template": "Relight this image with {direction} lighting at {intensity} intensity. Use {quality} light quality. {prompt}",
+        "prompt_template": "ONLY adjust the lighting in this image. Do NOT change the person's face, identity, features, body, clothing, hairstyle, background, or any other detail. Keep EVERYTHING exactly the same — only modify the light direction, shadows, and highlights. Apply {direction} lighting at {intensity}/10 intensity with {quality} light quality. {prompt}",
     },
     "upscale": {
         "tool_id": "enhance_image_by_topaz",

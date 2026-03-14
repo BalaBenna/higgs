@@ -154,12 +154,12 @@ export const VIDEO_MODEL_MAPPINGS: ModelMapping[] = [
     type: 'video',
     isAvailable: true,
   },
-  // OpenAI Sora
+  // OpenAI Sora (routed via Replicate)
   {
     id: 'sora-2',
     name: 'Sora 2',
     provider: 'OpenAI',
-    toolId: 'generate_video_by_sora_openai',
+    toolId: 'generate_video_by_sora_2_jaaz',
     type: 'video',
     isAvailable: true,
   },
@@ -167,7 +167,7 @@ export const VIDEO_MODEL_MAPPINGS: ModelMapping[] = [
     id: 'sora-2-pro',
     name: 'Sora 2 Pro',
     provider: 'OpenAI',
-    toolId: 'generate_video_by_sora_2_pro_openai',
+    toolId: 'generate_video_by_sora_2_jaaz',
     type: 'video',
     isAvailable: true,
   },

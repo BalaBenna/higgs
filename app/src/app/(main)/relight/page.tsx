@@ -1,0 +1,390 @@
+'use client'
+
+import { useState } from 'react'
+import { motion } from 'framer-motion'
+import Image from 'next/image'
+import {
+  Upload,
+  RefreshCw,
+  Download,
+  X,
+  Sparkles,
+  Sun,
+  ImageIcon,
+  Replace,
+} from 'lucide-react'
+import { toast } from 'sonner'
+
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Textarea } from '@/components/ui/textarea'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { useUpload } from '@/hooks/use-upload'
+import { useFeatureGeneration } from '@/hooks/use-feature'
+import { LightDirectionSphere } from '@/components/relight/LightDirectionSphere'
+import { QuickSelectGrid } from '@/components/relight/QuickSelectGrid'
+import { LightSettings } from '@/components/relight/LightSettings'
+
+interface RelightResult {
+  id: string
+  originalPreview: string
+  resultUrl: string
+  settings: string
+}
+
+function anglesToDirection(azimuth: number, elevation: number): string {
+  if (elevation > 60) return 'top'
+  if (elevation < -60) return 'bottom'
+  const a = ((azimuth % 360) + 360) % 360
+  if (a >= 315 || a < 45) return 'front'
+  if (a >= 45 && a < 135) return 'right'
+  if (a >= 135 && a < 225) return 'back'
+  return 'left'
+}
+
+function directionLabel(azimuth: number, elevation: number): string {
+  const dir = anglesToDirection(azimuth, elevation)
+  return dir.charAt(0).toUpperCase() + dir.slice(1)
+}
+
+export default function RelightPage() {
+  const [azimuth, setAzimuth] = useState(0)
+  const [elevation, setElevation] = useState(0)
+  const [intensity, setIntensity] = useState(5)
+  const [colorTemp, setColorTemp] = useState(5500)
+  const [brightness, setBrightness] = useState(50)
+  const [lightMode, setLightMode] = useState<'soft' | 'hard'>('soft')
+  const [additionalPrompt, setAdditionalPrompt] = useState('')
+  const [results, setResults] = useState<RelightResult[]>([])
+  const [selectedResult, setSelectedResult] = useState<RelightResult | null>(null)
+
+  const imageUpload = useUpload()
+  const featureGeneration = useFeatureGeneration()
+
+  const handleDirectionChange = (az: number, el: number) => {
+    setAzimuth(az)
+    setElevation(el)
+  }
+
+  const currentSettingsLabel = () => {
+    return `${directionLabel(azimuth, elevation)} · ${lightMode} · ${intensity}/10`
+  }
+
+  const handleGenerate = async () => {
+    if (!imageUpload.url) {
+      toast.error('Please upload an image first')
+      return
+    }
+
+    try {
+      const direction = anglesToDirection(azimuth, elevation)
+      const angleDetail = `Light source at ${Math.round(azimuth)}° azimuth, ${Math.round(elevation)}° elevation. Color temperature: ${colorTemp}K. Brightness: ${brightness}%. Do NOT alter the person's face, identity, or any other detail — change ONLY the lighting, shadows, and highlights.`
+
+      const result = await featureGeneration.mutateAsync({
+        featureType: 'relight',
+        inputImages: [imageUpload.url],
+        prompt: `${angleDetail}${additionalPrompt ? ' ' + additionalPrompt : ''}`.trim(),
+        params: {
+          direction,
+          intensity,
+          quality: lightMode,
+        },
+      })
+
+      if (result) {
+        const newResult: RelightResult = {
+          id: result.id || `relight_${Date.now()}`,
+          originalPreview: imageUpload.preview || '',
+          resultUrl: result.url || result.src || '',
+          settings: currentSettingsLabel(),
+        }
+        setResults((prev) => [newResult, ...prev])
+        setSelectedResult(newResult)
+        toast.success('Relight applied successfully!')
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Relight failed'
+      toast.error(message)
+    }
+  }
+
+  // Upload state — hero layout
+  if (!imageUpload.preview) {
+    return (
+      <div className="h-[calc(100vh-3.5rem)] flex flex-col items-center justify-center px-4">
+        <motion.div
+          className="max-w-lg w-full text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          {/* Placeholder card */}
+          <div
+            className={`relative rounded-2xl overflow-hidden border-2 border-dashed mb-8 cursor-pointer transition-colors ${
+              imageUpload.isDragging
+                ? 'border-[#c8ff00] bg-[#c8ff00]/5'
+                : 'border-white/10 hover:border-white/20'
+            }`}
+            onClick={imageUpload.openFilePicker}
+            {...imageUpload.dropZoneProps}
+          >
+            <input
+              ref={imageUpload.fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={imageUpload.handleFileSelect}
+            />
+            <div className="aspect-[4/3] bg-gradient-to-b from-white/[0.03] to-transparent flex flex-col items-center justify-center">
+              {imageUpload.isUploading ? (
+                <RefreshCw className="h-12 w-12 animate-spin text-[#c8ff00]" />
+              ) : (
+                <>
+                  <div className="w-20 h-20 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-4">
+                    <Sun className="h-10 w-10 text-white/20" />
+                  </div>
+                  <Upload className="h-5 w-5 text-white/30 mb-3" />
+                  <p className="text-sm text-white/40">
+                    Drop an image or click to browse
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Title */}
+          <h1 className="text-4xl font-bold text-white tracking-tight mb-3">
+            RELIGHT
+          </h1>
+          <p className="text-white/40 text-sm max-w-sm mx-auto mb-6">
+            Adjust lighting position, color temperature, and brightness to
+            perfect any photo
+          </p>
+
+          <Button
+            variant="neon"
+            size="lg"
+            className="gap-2"
+            onClick={imageUpload.openFilePicker}
+          >
+            <Upload className="h-4 w-4" />
+            Upload media
+          </Button>
+        </motion.div>
+      </div>
+    )
+  }
+
+  // Editor state — image + sidebar
+  const displayImage = selectedResult?.resultUrl || imageUpload.preview
+
+  return (
+    <div className="flex h-[calc(100vh-3.5rem)]">
+      {/* Left Panel — Image Preview */}
+      <div className="flex-1 flex flex-col bg-background">
+        {/* Top bar */}
+        <div className="border-b border-white/[0.06] px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-white/60 hover:text-white"
+              onClick={() => {
+                imageUpload.clear()
+                setResults([])
+                setSelectedResult(null)
+              }}
+            >
+              <X className="h-3.5 w-3.5" />
+              Close
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-white/60 hover:text-white"
+              onClick={imageUpload.openFilePicker}
+            >
+              <Replace className="h-3.5 w-3.5" />
+              Replace
+            </Button>
+            <input
+              ref={imageUpload.fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={imageUpload.handleFileSelect}
+            />
+          </div>
+          {results.length > 0 && (
+            <Badge variant="secondary" className="text-[10px]">
+              {results.length} result{results.length !== 1 ? 's' : ''}
+            </Badge>
+          )}
+        </div>
+
+        {/* Main image area */}
+        <div className="flex-1 flex items-center justify-center p-6 overflow-auto">
+          <motion.div
+            className="relative rounded-xl overflow-hidden border border-white/[0.06] shadow-2xl"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+          >
+            <img
+              src={displayImage!}
+              alt={selectedResult ? 'Relit result' : 'Original'}
+              className="max-w-[600px] max-h-[500px] object-contain"
+            />
+            {selectedResult && (
+              <Badge
+                className="absolute top-3 left-3 bg-[#c8ff00]/90 text-black text-[10px] font-semibold"
+              >
+                Relit
+              </Badge>
+            )}
+          </motion.div>
+        </div>
+
+        {/* Results strip */}
+        {results.length > 0 && (
+          <div className="border-t border-white/[0.06] px-4 py-3 bg-black/20">
+            <div className="flex items-center gap-3 overflow-x-auto pb-1">
+              {/* Original thumbnail */}
+              <button
+                className={`relative flex-shrink-0 rounded-lg overflow-hidden border-2 transition-colors ${
+                  !selectedResult
+                    ? 'border-[#c8ff00]/50'
+                    : 'border-white/[0.06] hover:border-white/20'
+                }`}
+                onClick={() => setSelectedResult(null)}
+              >
+                <img
+                  src={imageUpload.preview!}
+                  alt="Original"
+                  className="w-14 h-14 object-cover"
+                />
+                <span className="absolute bottom-0 inset-x-0 bg-black/70 text-[8px] text-white/70 text-center py-0.5">
+                  Original
+                </span>
+              </button>
+
+              {results.map((result) => (
+                <button
+                  key={result.id}
+                  className={`relative flex-shrink-0 rounded-lg overflow-hidden border-2 transition-colors ${
+                    selectedResult?.id === result.id
+                      ? 'border-[#c8ff00]/50'
+                      : 'border-white/[0.06] hover:border-white/20'
+                  }`}
+                  onClick={() => setSelectedResult(result)}
+                >
+                  <img
+                    src={result.resultUrl}
+                    alt={result.settings}
+                    className="w-14 h-14 object-cover"
+                  />
+                  <span className="absolute bottom-0 inset-x-0 bg-black/70 text-[8px] text-white/70 text-center py-0.5">
+                    {result.settings.split(' · ')[0]}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Right Sidebar — Controls */}
+      <div className="w-[320px] border-l border-white/[0.06] bg-black/20 flex flex-col">
+        <ScrollArea className="flex-1">
+          <div className="p-4 space-y-5">
+            {/* Header */}
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#c8ff00]/20 to-[#c8ff00]/5 border border-[#c8ff00]/20 flex items-center justify-center">
+                <Sun className="h-3.5 w-3.5 text-[#c8ff00]" />
+              </div>
+              <h2 className="text-sm font-semibold text-white">Relight</h2>
+            </div>
+
+            {/* Quick Select */}
+            <QuickSelectGrid
+              azimuth={azimuth}
+              elevation={elevation}
+              onChange={handleDirectionChange}
+            />
+
+            {/* Interactive Sphere */}
+            <LightDirectionSphere
+              azimuth={azimuth}
+              elevation={elevation}
+              onChange={handleDirectionChange}
+              size={200}
+            />
+
+            {/* Light Settings */}
+            <LightSettings
+              intensity={intensity}
+              onIntensityChange={setIntensity}
+              colorTemp={colorTemp}
+              onColorTempChange={setColorTemp}
+              brightness={brightness}
+              onBrightnessChange={setBrightness}
+              lightMode={lightMode}
+              onLightModeChange={setLightMode}
+            />
+
+            {/* Additional Guidance */}
+            <div>
+              <p className="text-[11px] text-white/50 mb-2 font-medium uppercase tracking-wider">
+                Additional guidance
+              </p>
+              <Textarea
+                placeholder="Optional: Describe specific lighting mood, shadows, colors..."
+                value={additionalPrompt}
+                onChange={(e) => setAdditionalPrompt(e.target.value)}
+                className="min-h-[70px] resize-none bg-white/[0.03] border-white/[0.06] text-sm placeholder:text-white/25"
+              />
+            </div>
+
+            {/* Download button for selected result */}
+            {selectedResult?.resultUrl && (
+              <a href={selectedResult.resultUrl} download className="block">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-1.5 border-white/[0.06] text-white/60 hover:text-white"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download Result
+                </Button>
+              </a>
+            )}
+          </div>
+        </ScrollArea>
+
+        {/* Generate Button */}
+        <div className="p-4 border-t border-white/[0.06]">
+          <Button
+            className="w-full"
+            variant="neon"
+            size="lg"
+            onClick={handleGenerate}
+            disabled={!imageUpload.url || featureGeneration.isPending}
+          >
+            {featureGeneration.isPending ? (
+              <>
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                Relighting...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                Apply Relight
+              </>
+            )}
+          </Button>
+          <p className="text-[11px] text-white/30 text-center mt-2">
+            {currentSettingsLabel()}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}

@@ -86,12 +86,14 @@ FEATURE_PROMPTS = {
 - Maintain color accuracy
 - Preserve original artistic intent""",
 
-    "relight": """Adjust image lighting:
+    "relight": """Adjust ONLY the lighting in this image:
 - Apply new lighting direction naturally
-- Recalculate shadows and highlights
-- Maintain material properties
-- Preserve color relationships
-- Create realistic light falloff""",
+- Recalculate shadows and highlights based on new light position
+- CRITICAL: Preserve the exact same person — same face, identity, features, expression, skin tone
+- CRITICAL: Do NOT change clothing, hairstyle, background, pose, or composition
+- Maintain material properties and color relationships
+- Create realistic light falloff and shadow casting
+- This is a lighting edit ONLY — the output must be identical to the input except for lighting""",
 
     "style_transfer": """Apply artistic style:
 - Transfer style while preserving content

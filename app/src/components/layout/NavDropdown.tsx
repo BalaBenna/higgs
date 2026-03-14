@@ -3,7 +3,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 
 import { cn } from '@/lib/utils'
@@ -176,63 +176,87 @@ export function NavDropdownTrigger({
   const [isOpen, setIsOpen] = useState(false)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const triggerRef = useRef<HTMLDivElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const openDropdown = useCallback(() => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current)
-    setIsOpen(true)
+  // Compute dropdown position from trigger ref
+  const posRef = useRef({ top: 0, left: 0 })
+
+  const updatePos = useCallback(() => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      posRef.current = {
+        top: rect.bottom,
+        left: rect.left + rect.width / 2,
+      }
+    }
   }, [])
 
-  const closeDropdown = useCallback(() => {
+  const clearCloseTimer = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+  }, [])
+
+  const open = useCallback(() => {
+    clearCloseTimer()
+    updatePos()
+    setIsOpen(true)
+  }, [clearCloseTimer, updatePos])
+
+  const scheduleClose = useCallback(() => {
+    clearCloseTimer()
     timeoutRef.current = setTimeout(() => {
       setIsOpen(false)
     }, 150)
-  }, [])
-
-  const handleMouseEnter = useCallback(() => {
-    openDropdown()
-  }, [openDropdown])
-
-  const handleMouseLeave = useCallback(() => {
-    closeDropdown()
-  }, [closeDropdown])
+  }, [clearCloseTimer])
 
   useEffect(() => {
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
-    }
-  }, [])
+    return () => clearCloseTimer()
+  }, [clearCloseTimer])
 
   return (
     <div
       ref={triggerRef}
       className={cn('relative inline-block', className)}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseEnter={open}
+      onMouseLeave={scheduleClose}
     >
       {children}
-      {isOpen && menu && triggerRef.current && (
-        <motion.div
-          className="fixed z-[60] pt-1"
-          style={{
-            top: triggerRef.current.getBoundingClientRect().bottom + window.scrollY,
-            left: triggerRef.current.getBoundingClientRect().left + triggerRef.current.getBoundingClientRect().width / 2,
-            transform: 'translateX(-50%)',
-          }}
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.15, ease: 'easeOut' }}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-        >
-          <NavDropdown
-            menu={menu}
-            isOpen={isOpen}
-            onClose={() => setIsOpen(false)}
-            tabId={tabId}
-          />
-        </motion.div>
-      )}
+
+      {/*
+        Render dropdown in a portal-like fixed container.
+        Use a separate div for mouse tracking so the hover zone
+        covers the gap between trigger and dropdown content.
+      */}
+      <AnimatePresence>
+        {isOpen && menu && (
+          <motion.div
+            ref={dropdownRef}
+            className="fixed z-[60]"
+            style={{
+              top: posRef.current.top,
+              left: posRef.current.left,
+              transform: 'translateX(-50%)',
+            }}
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.12, ease: 'easeOut' }}
+            onMouseEnter={open}
+            onMouseLeave={scheduleClose}
+          >
+            {/* Invisible bridge — must be wide enough to cover the dropdown */}
+            <div className="h-3" style={{ minWidth: 680 }} />
+            <NavDropdown
+              menu={menu}
+              isOpen={isOpen}
+              onClose={() => setIsOpen(false)}
+              tabId={tabId}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

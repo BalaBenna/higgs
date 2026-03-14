@@ -108,7 +108,7 @@ export const IMAGE_MENU: NavigationMenu = {
     { id: 'cinema-studio-image', label: 'Cinema Studio Image', icon: Film, path: '/cinema-studio', badge: 'top', description: 'Professional studio-quality images' },
     { id: 'create-storyboard', label: 'Create Storyboard', icon: LayoutGrid, path: '/image/storyboard', description: 'Visual story planning with AI' },
     { id: 'soul-id-character', label: 'Soul ID Character', icon: User, path: '/character', badge: 'new', description: 'Consistent character generation' },
-    { id: 'relight', label: 'Relight', icon: Lightbulb, path: '/edit', badge: 'new', description: 'AI-powered lighting adjustments' },
+    { id: 'relight', label: 'Relight', icon: Lightbulb, path: '/relight', badge: 'new', description: 'AI-powered lighting adjustments' },
     { id: 'inpaint', label: 'Inpaint', icon: Paintbrush, path: '/inpaint', badge: 'new', description: 'Edit specific areas of images' },
     { id: 'image-upscale', label: 'Image Upscale', icon: Maximize, path: '/image/upscale', description: 'Enhance image resolution' },
     { id: 'face-swap', label: 'Face Swap', icon: UserCircle, path: '/character/face-swap', description: 'Swap faces in photos with AI' },
@@ -141,7 +141,7 @@ export const EDIT_MENU: NavigationMenu = {
   features: [
     { id: 'edit-video', label: 'Edit Video', icon: Scissors, path: '/edit', description: 'AI-powered video editing tools' },
     { id: 'inpaint-edit', label: 'Inpaint', icon: Eraser, path: '/inpaint', badge: 'top', description: 'Remove or replace image regions' },
-    { id: 'relight-edit', label: 'Relight', icon: Lightbulb, path: '/edit', badge: 'new', description: 'Adjust lighting with AI' },
+    { id: 'relight-edit', label: 'Relight', icon: Lightbulb, path: '/relight', badge: 'new', description: 'Adjust lighting with AI' },
     { id: 'ai-stylist', label: 'AI Stylist', icon: Palette, path: '/edit/ai-stylist', description: 'Transform image styles with AI' },
     { id: 'upscale', label: 'Upscale', icon: Maximize, path: '/image/upscale', description: 'Enhance resolution and details' },
     { id: 'skin-enhancer', label: 'Skin Enhancer', icon: Heart, path: '/edit', description: 'Professional skin retouching' },

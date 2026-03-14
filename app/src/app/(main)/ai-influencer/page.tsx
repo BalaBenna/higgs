@@ -109,10 +109,16 @@ const GENDERS = [
 const ETHNICITIES = [
   { id: 'Caucasian', name: 'Caucasian', image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300&h=400&fit=crop&crop=face' },
   { id: 'African', name: 'African', image: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=300&h=400&fit=crop&crop=face' },
-  { id: 'Asian', name: 'Asian', image: 'https://images.unsplash.com/photo-1542596768-5d1d21f1cf98?w=300&h=400&fit=crop&crop=face' },
+  { id: 'South Asian', name: 'South Asian', image: 'https://images.unsplash.com/photo-1618835962148-cf177563c6c0?w=300&h=400&fit=crop&crop=face' },
+  { id: 'East Asian', name: 'East Asian', image: 'https://images.unsplash.com/photo-1542596768-5d1d21f1cf98?w=300&h=400&fit=crop&crop=face' },
+  { id: 'Southeast Asian', name: 'Southeast Asian', image: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&h=400&fit=crop&crop=face' },
   { id: 'Latino', name: 'Latino', image: 'https://images.unsplash.com/photo-1596815064285-45ed8a9c0463?w=300&h=400&fit=crop&crop=face' },
   { id: 'Middle Eastern', name: 'Middle Eastern', image: 'https://images.unsplash.com/photo-1564463836146-4e30522c2984?w=300&h=400&fit=crop&crop=face' },
-  { id: 'Mixed', name: 'Mixed', image: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&h=400&fit=crop&crop=face' },
+  { id: 'Native American', name: 'Native American', image: 'https://images.unsplash.com/photo-1602442787305-decbc44e59cf?w=300&h=400&fit=crop&crop=face' },
+  { id: 'Pacific Islander', name: 'Pacific Islander', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=400&fit=crop&crop=face' },
+  { id: 'Central Asian', name: 'Central Asian', image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&h=400&fit=crop&crop=face' },
+  { id: 'Caribbean', name: 'Caribbean', image: 'https://images.unsplash.com/photo-1523264653568-d3d4142cb824?w=300&h=400&fit=crop&crop=face' },
+  { id: 'Mixed', name: 'Mixed', image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&h=400&fit=crop&crop=face' },
 ]
 
 const AGES = [

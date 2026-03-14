@@ -154,7 +154,7 @@ async def feature_relight_jaaz(
     ctx = config.get("configurable", {})
     user_id = ctx.get("user_id", "")
     feature_type = ctx.get("feature_type", "")
-    final_prompt = f"Relight this image with the following lighting adjustments: {prompt}"
+    final_prompt = f"ONLY adjust the lighting in this image. Do NOT change the person's face, identity, features, body, clothing, hairstyle, background, or any other detail. Keep EVERYTHING exactly the same — only modify the light direction, shadows, and highlights. {prompt}"
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
         session_id=ctx.get("session_id", ""),
