@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Sparkles, RefreshCw, Wand2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -17,7 +17,7 @@ import { AspectRatioSelector } from './AspectRatioSelector'
 import { MediaUploader, type MediaFile } from './MediaUploader'
 import { RemotionPreview } from './RemotionPreview'
 
-import { useVibeMotionGeneration, useMotionMediaUpload, usePromptEnhancement, useSaveVibeMotion } from '@/hooks/use-vibe-motion'
+import { useVibeMotionGeneration, useMotionMediaUpload, usePromptEnhancement, useSaveVibeMotion, useAvailableModels } from '@/hooks/use-vibe-motion'
 import {
   ASPECT_RATIO_DATA,
   MODEL_DATA,
@@ -31,27 +31,50 @@ import {
   type ThemeId,
 } from '@/lib/remotion/types'
 
+interface InitialProject {
+  preset: PresetId
+  prompt: string
+  code: string
+  model: string
+  style?: string
+  duration: number
+  aspectRatio: string
+}
+
 interface VibeMotionCreatorProps {
   preset: PresetId
+  initialProject?: InitialProject
   onBack: () => void
 }
 
-export function VibeMotionCreator({ preset, onBack }: VibeMotionCreatorProps) {
-  const [prompt, setPrompt] = useState('')
-  const [model, setModel] = useState<ModelId>('gpt-4o')
-  const [style, setStyle] = useState<StyleId | undefined>()
+export function VibeMotionCreator({ preset, initialProject, onBack }: VibeMotionCreatorProps) {
+  const [prompt, setPrompt] = useState(initialProject?.prompt ?? '')
+  const [model, setModel] = useState<ModelId>((initialProject?.model as ModelId) ?? 'gpt-4o')
+  const [style, setStyle] = useState<StyleId | undefined>(
+    (initialProject?.style as StyleId) ?? undefined
+  )
   const [theme, setTheme] = useState<ThemeId | undefined>()
-  const [duration, setDuration] = useState(10)
-  const [aspectRatio, setAspectRatio] = useState<AspectRatioId>('16:9')
+  const [duration, setDuration] = useState(initialProject?.duration ?? 10)
+  const [aspectRatio, setAspectRatio] = useState<AspectRatioId>(
+    (initialProject?.aspectRatio as AspectRatioId) ?? '16:9'
+  )
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([])
-  const [generatedCode, setGeneratedCode] = useState('')
-  const [previewDuration, setPreviewDuration] = useState(10)
+  const [generatedCode, setGeneratedCode] = useState(initialProject?.code ?? '')
+  const [previewDuration, setPreviewDuration] = useState(initialProject?.duration ?? 10)
 
   const ratioData = ASPECT_RATIO_DATA.find((r) => r.id === aspectRatio) ?? ASPECT_RATIO_DATA[0]
 
   const mediaUpload = useMotionMediaUpload()
   const promptEnhancement = usePromptEnhancement()
   const saveVibeMotion = useSaveVibeMotion()
+  const { data: availableModelIds } = useAvailableModels()
+
+  // Auto-select first available model if current selection is unavailable
+  useEffect(() => {
+    if (availableModelIds && availableModelIds.length > 0 && !availableModelIds.includes(model)) {
+      setModel(availableModelIds[0] as ModelId)
+    }
+  }, [availableModelIds, model])
 
   const onCodeUpdate = useCallback((code: string) => {
     setGeneratedCode(code)
@@ -257,7 +280,7 @@ export function VibeMotionCreator({ preset, onBack }: VibeMotionCreatorProps) {
         )}
 
         {/* Model */}
-        <ModelSelector value={model} onChange={setModel} />
+        <ModelSelector value={model} onChange={setModel} availableModelIds={availableModelIds} />
 
         {/* Style */}
         <StyleSelector value={style} onChange={setStyle} />

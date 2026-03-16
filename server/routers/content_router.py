@@ -44,9 +44,10 @@ async def save_vibe_motion_content(
 
     storage_path = f"{user_id}/{file_id}.json"
     await storage_service.upload_file(
+        user_id=user_id,
+        file_bytes=req.code.encode("utf-8"),
+        filename=f"{file_id}.json",
         bucket=storage_service.GENERATED_CONTENT_BUCKET,
-        path=storage_path,
-        data=req.code,
         content_type="application/json",
     )
 
@@ -61,7 +62,39 @@ async def save_vibe_motion_content(
         }
     )
 
+    # Also save to vibe_motion_projects table for the "Your Projects" listing
+    try:
+        await db_service.create_vibe_motion_project(
+            id=file_id,
+            name=req.prompt[:80] if req.prompt else "Untitled",
+            preset=req.preset,
+            user_id=user_id,
+            prompt=req.prompt,
+            code=req.code,
+            model=req.model,
+            style=req.style,
+            duration=req.duration,
+            aspect_ratio=req.aspect_ratio,
+            media_urls=req.media_urls,
+        )
+    except Exception as e:
+        print(f"Warning: Failed to save vibe motion project: {e}")
+
     return {"status": "saved", "file_id": file_id}
+
+
+@router.get("/vibe-motion/projects")
+async def list_vibe_motion_projects(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    user_id: str = Depends(get_current_user),
+):
+    """Return paginated list of user's vibe motion projects."""
+    offset = (page - 1) * limit
+    items = await db_service.list_vibe_motion_projects(
+        user_id=user_id, limit=limit, offset=offset
+    )
+    return {"items": items, "page": page, "limit": limit}
 
 
 @router.get("")

@@ -85,6 +85,36 @@ async def _download_external_media(url: str) -> Optional[str]:
         return None
 
 
+def _read_local_file(url: str) -> Optional[bytes]:
+    """Read a local file from FILES_DIR given an /api/file/ URL."""
+    if not url or not url.startswith("/api/file/"):
+        return None
+    filename = url.replace("/api/file/", "", 1)
+    file_path = os.path.join(FILES_DIR, filename)
+    if not os.path.isfile(file_path):
+        return None
+    with open(file_path, "rb") as f:
+        return f.read()
+
+
+def _guess_mime(url: str) -> str:
+    """Guess MIME type from file extension."""
+    lower = url.lower()
+    if lower.endswith(".png"):
+        return "image/png"
+    if lower.endswith((".jpg", ".jpeg")):
+        return "image/jpeg"
+    if lower.endswith(".webp"):
+        return "image/webp"
+    if lower.endswith(".gif"):
+        return "image/gif"
+    if lower.endswith(".mp4"):
+        return "video/mp4"
+    if lower.endswith(".webm"):
+        return "video/webm"
+    return "application/octet-stream"
+
+
 class MotionGenerateRequest(BaseModel):
     prompt: str
     system_prompt: str
@@ -170,9 +200,21 @@ async def _gemini_event_stream(client, req: MotionGenerateRequest):
     try:
         from google.genai import types
 
+        # Build multimodal contents if media is present
+        contents = []
+        if req.media_urls:
+            for url in req.media_urls:
+                file_bytes = _read_local_file(url)
+                if file_bytes:
+                    mime = _guess_mime(url)
+                    contents.append(
+                        types.Part.from_bytes(data=file_bytes, mime_type=mime)
+                    )
+        contents.append(req.prompt)
+
         response = await client.aio.models.generate_content_stream(
             model=req.model or "gemini-2.5-pro",
-            contents=req.prompt,
+            contents=contents,
             config=types.GenerateContentConfig(
                 system_instruction=req.system_prompt,
                 temperature=0.7,

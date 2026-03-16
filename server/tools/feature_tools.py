@@ -212,7 +212,7 @@ async def feature_skin_enhancer_jaaz(
     ctx = config.get("configurable", {})
     user_id = ctx.get("user_id", "")
     feature_type = ctx.get("feature_type", "")
-    final_prompt = f"Enhance the skin in this portrait. Smooth skin texture naturally, reduce blemishes, and improve skin tone while keeping it photorealistic. {prompt}"
+    final_prompt = f"ONLY enhance the skin in this portrait. Do NOT change the person's face, facial features, identity, expression, eyes, nose, mouth, hair, clothing, pose, background, or any other detail. Keep EVERYTHING exactly the same — only improve the skin quality: {prompt}"
     return await generate_image_with_provider(
         canvas_id=ctx.get("canvas_id", ""),
         session_id=ctx.get("session_id", ""),

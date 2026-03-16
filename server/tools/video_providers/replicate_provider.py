@@ -100,16 +100,19 @@ class ReplicateVideoProvider(VideoProviderBase, provider_name="replicate"):
         aspect_ratio: str = "16:9",
         input_images: Optional[List[str]] = None,
         camera_fixed: bool = True,
+        model: str = "",
         **kwargs: Any,
     ) -> Dict[str, Any]:
         """Build request payload for Replicate API"""
+        # Models that don't use duration/aspect_ratio (lip sync only needs video + text/audio)
+        _no_duration_models = {"kling-lip-sync"}
         input_data: Dict[str, Any] = {
             "prompt": prompt,
         }
 
-        if duration:
+        if duration and model not in _no_duration_models:
             input_data["duration"] = duration
-        if aspect_ratio:
+        if aspect_ratio and model not in _no_duration_models:
             input_data["aspect_ratio"] = aspect_ratio
 
         # Image inputs
@@ -117,10 +120,10 @@ class ReplicateVideoProvider(VideoProviderBase, provider_name="replicate"):
             input_data["image_url"] = input_images[0]
 
         # start_image (used by new Kling tools instead of input_images)
-        # Motion control models use "image" field; standard models use "start_image"
+        # Avatar v2 and motion control models use "image" field; standard models use "start_image"
+        _image_as_image_field = kwargs.get("video_url") or kwargs.get("audio_url") or "avatar" in model
         if kwargs.get("start_image"):
-            if kwargs.get("video_url"):
-                # Motion control model: expects "image" not "start_image"
+            if _image_as_image_field:
                 input_data["image"] = kwargs["start_image"]
             else:
                 input_data["start_image"] = kwargs["start_image"]
@@ -163,7 +166,11 @@ class ReplicateVideoProvider(VideoProviderBase, provider_name="replicate"):
 
         # video / video_url (for motion control, lip sync)
         if kwargs.get("video_url"):
-            input_data["video"] = kwargs["video_url"]
+            # Lip sync expects "video_url"; motion control expects "video"
+            if "lip-sync" in model:
+                input_data["video_url"] = kwargs["video_url"]
+            else:
+                input_data["video"] = kwargs["video_url"]
 
         # audio / audio_file (for avatar, lip sync)
         if kwargs.get("audio_url"):
@@ -187,7 +194,7 @@ class ReplicateVideoProvider(VideoProviderBase, provider_name="replicate"):
         self,
         prediction_url: str,
         headers: Dict[str, str],
-        max_polls: int = 120,
+        max_polls: int = 240,
     ) -> str:
         """Poll Replicate prediction until succeeded or failed"""
         async with HttpClient.create_aiohttp() as session:
@@ -244,6 +251,7 @@ class ReplicateVideoProvider(VideoProviderBase, provider_name="replicate"):
                 aspect_ratio=aspect_ratio,
                 input_images=input_images,
                 camera_fixed=camera_fixed,
+                model=model,
                 **kwargs,
             )
 

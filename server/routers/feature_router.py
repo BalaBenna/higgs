@@ -65,7 +65,7 @@ FEATURE_DISPATCH = {
     },
     "skin_enhance": {
         "tool_id": "generate_image_by_gpt_image_openai",
-        "prompt_template": "Enhance the skin in this portrait. Smooth skin texture naturally, reduce blemishes, and improve skin tone while keeping it photorealistic. {prompt}",
+        "prompt_template": "ONLY enhance the skin in this portrait. Do NOT change the person's face, facial features, identity, expression, eyes, nose, mouth, hair, clothing, pose, background, or any other detail. Keep EVERYTHING exactly the same — only improve the skin quality: {prompt}",
     },
     "background_replace": {
         "tool_id": "generate_image_by_gpt_image_openai",
@@ -108,6 +108,7 @@ class FeatureRequest(BaseModel):
     prompt: str = ""
     params: dict = {}
     character_id: Optional[str] = None
+    tool_id: Optional[str] = None
 
 
 @router.post("/generate/feature")
@@ -143,7 +144,7 @@ async def generate_feature(
             detail=f"Unknown feature type: '{req.feature_type}'. Available: {list(FEATURE_DISPATCH.keys())}",
         )
 
-    tool_id = dispatch["tool_id"]
+    tool_id = req.tool_id or dispatch["tool_id"]
     tool_info = TOOL_MAPPING.get(tool_id) or tool_service.tools.get(tool_id)
     if not tool_info:
         raise HTTPException(status_code=404, detail=f"Tool '{tool_id}' not found")
@@ -199,6 +200,11 @@ async def generate_feature(
         has_input_image = sig and "input_image" in sig.parameters if sig else False
         if has_input_image and not has_input_images and req.input_images:
             invoke_args["input_image"] = req.input_images[0]
+
+        # Fallback: pass "image" if the tool uses that param name (e.g. Seededit)
+        has_image = sig and "image" in sig.parameters if sig else False
+        if has_image and not has_input_images and not has_input_image and req.input_images:
+            invoke_args["image"] = req.input_images
 
         # Pass upscale-specific params if the tool supports them
         if req.params.get("upscale_factor"):

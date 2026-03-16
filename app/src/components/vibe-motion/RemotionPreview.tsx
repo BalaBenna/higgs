@@ -160,34 +160,9 @@ export function RemotionPreview({
         URL.revokeObjectURL(url)
         toast.success('Video downloaded as WebM')
       } else {
-        // Fallback: try server-side rendering
-        const response = await fetch('/api/render-motion', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code, width, height, fps, durationInFrames }),
-        })
-
-        if (!response.ok) {
-          let errorMsg = 'Download not available'
-          try {
-            const data = await response.json()
-            errorMsg = data.error || errorMsg
-          } catch {
-            errorMsg = await response.text()
-          }
-          throw new Error(errorMsg)
-        }
-
-        const blob = await response.blob()
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `motion-${width}x${height}-${Date.now()}.mp4`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
-        toast.success('Video downloaded successfully')
+        toast.error(
+          'Canvas recording not available. Try Chrome or Edge for video downloads.'
+        )
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Download failed'

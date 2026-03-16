@@ -8,6 +8,7 @@ interface FeatureGenerationParams {
   inputImages?: string[]
   prompt?: string
   params?: Record<string, string | number | boolean>
+  toolId?: string
 }
 
 interface FeatureResult {
@@ -42,6 +43,7 @@ export function useFeatureGeneration() {
           input_images: params.inputImages || [],
           prompt: params.prompt || '',
           params: params.params || {},
+          ...(params.toolId ? { tool_id: params.toolId } : {}),
         }),
       })
 

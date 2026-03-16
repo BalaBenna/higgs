@@ -10,6 +10,7 @@ import {
   Download,
   Eraser,
   Trash2,
+  Loader2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -26,14 +27,14 @@ import {
 } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useVideoGeneration } from '@/hooks/use-generation'
-import { useUpload } from '@/hooks/use-upload'
+import { getAuthHeaders } from '@/lib/auth-headers'
 
 const VIDEO_MODELS = [
-  { id: 'kling-v2.6-replicate', name: 'Kling v2.6', provider: 'Kuaishou', quality: 'High' },
-  { id: 'veo-3.1', name: 'Google Veo 3.1', provider: 'Google', quality: 'Ultra' },
-  { id: 'seedance-1.5-pro', name: 'Seedance 1.5 Pro', provider: 'ByteDance', quality: 'High' },
-  { id: 'hailuo-o2', name: 'Minimax Hailuo O2', provider: 'MiniMax', quality: 'High' },
-  { id: 'sora-2', name: 'Sora 2', provider: 'OpenAI', quality: 'High' },
+  { id: 'kling-v2.6-replicate', name: 'Kling v2.6', provider: 'Kuaishou', quality: 'High', supportsImage: true },
+  { id: 'veo-3.1', name: 'Google Veo 3.1', provider: 'Google', quality: 'Ultra', supportsImage: true },
+  { id: 'seedance-1.5-pro', name: 'Seedance 1.5 Pro', provider: 'ByteDance', quality: 'High', supportsImage: true },
+  { id: 'hailuo-o2', name: 'Minimax Hailuo O2', provider: 'MiniMax', quality: 'High', supportsImage: false },
+  { id: 'sora-2', name: 'Sora 2', provider: 'OpenAI', quality: 'High', supportsImage: false },
 ]
 
 const PEN_COLORS = [
@@ -48,12 +49,31 @@ const DURATIONS = [
   { id: '10', label: '10 seconds' },
 ]
 
+const ASPECT_RATIOS = [
+  { id: '16:9', label: '16:9' },
+  { id: '9:16', label: '9:16' },
+  { id: '1:1', label: '1:1' },
+]
+
 interface GeneratedVideoData {
   id: string
   url: string
   prompt: string
   duration: string
   model: string
+}
+
+function resolveUrl(item: Record<string, unknown>): string {
+  return (
+    (item.public_url as string) ||
+    ((item.metadata as Record<string, unknown>)?.public_url as string) ||
+    (item.storage_path
+      ? (item.storage_path as string).startsWith('http')
+        ? (item.storage_path as string)
+        : `/api/file/${item.storage_path}`
+      : '') ||
+    ''
+  )
 }
 
 export default function DrawToVideoPage() {
@@ -63,12 +83,44 @@ export default function DrawToVideoPage() {
   const [prompt, setPrompt] = useState('')
   const [model, setModel] = useState('kling-v2.6-replicate')
   const [duration, setDuration] = useState('5')
+  const [aspectRatio, setAspectRatio] = useState('16:9')
   const [penColor, setPenColor] = useState('#000000')
   const [lineWidth, setLineWidth] = useState(3)
   const [generatedVideos, setGeneratedVideos] = useState<GeneratedVideoData[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(true)
 
   const videoGeneration = useVideoGeneration()
-  const uploader = useUpload()
+
+  // Load history on mount
+  const fetchHistory = useCallback(async () => {
+    try {
+      const headers = await getAuthHeaders()
+      const res = await fetch('/api/my-content?type=video&limit=30', { headers })
+      if (!res.ok) return
+      const data = await res.json()
+      const items = (data.items || [])
+        .filter((item: Record<string, unknown>) => {
+          const url = resolveUrl(item)
+          return url && url.length > 0
+        })
+        .map((item: Record<string, unknown>) => ({
+          id: (item.id as string) || `hist_${Date.now()}_${Math.random()}`,
+          url: resolveUrl(item),
+          prompt: (item.prompt as string) || '',
+          duration: ((item.metadata as Record<string, unknown>)?.duration as string) || '',
+          model: (item.model as string) || '',
+        }))
+      setGeneratedVideos(items)
+    } catch {
+      // ignore
+    } finally {
+      setLoadingHistory(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchHistory()
+  }, [fetchHistory])
 
   // Initialize canvas
   useEffect(() => {
@@ -141,6 +193,11 @@ export default function DrawToVideoPage() {
     const canvas = canvasRef.current
     if (!canvas) return
 
+    const selectedModel = VIDEO_MODELS.find((m) => m.id === model)
+    if (selectedModel && !selectedModel.supportsImage) {
+      toast.warning(`${selectedModel.name} doesn't support image input — your drawing will be ignored. The video will be generated from the prompt only.`)
+    }
+
     try {
       // Convert canvas to blob
       const blob = await new Promise<Blob | null>((resolve) =>
@@ -153,22 +210,15 @@ export default function DrawToVideoPage() {
 
       const file = new File([blob], 'drawing.png', { type: 'image/png' })
 
-      // Upload the drawing first
-      const uploadResult = await uploader.upload(file)
-      if (!uploadResult) {
-        toast.error('Failed to upload drawing')
-        return
-      }
-
       const result = await videoGeneration.mutateAsync({
         model,
         prompt: `Animate this drawing into a video: ${prompt}`,
         duration: parseInt(duration),
-        sourceImage: file,
+        aspectRatio,
+        sourceImage: selectedModel?.supportsImage ? file : undefined,
       })
 
       if (result) {
-        const selectedModel = VIDEO_MODELS.find((m) => m.id === model)
         const newVideo: GeneratedVideoData = {
           id: result.id || `draw_${Date.now()}`,
           url: result.url || '',
@@ -281,6 +331,24 @@ export default function DrawToVideoPage() {
               />
             </div>
 
+            {/* Aspect Ratio */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Aspect Ratio</label>
+              <div className="grid grid-cols-3 gap-2">
+                {ASPECT_RATIOS.map((ar) => (
+                  <Button
+                    key={ar.id}
+                    variant={aspectRatio === ar.id ? 'secondary' : 'outline'}
+                    size="sm"
+                    className={aspectRatio === ar.id ? 'border-neon/50 bg-neon/10' : ''}
+                    onClick={() => setAspectRatio(ar.id)}
+                  >
+                    {ar.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
             {/* Duration */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Duration</label>
@@ -309,17 +377,10 @@ export default function DrawToVideoPage() {
                 <SelectContent>
                   {VIDEO_MODELS.map((m) => (
                     <SelectItem key={m.id} value={m.id}>
-                      <div className="flex items-center justify-between w-full gap-2">
-                        <div>
-                          <span>{m.name}</span>
-                          <span className="text-xs text-muted-foreground ml-2">
-                            {m.provider}
-                          </span>
-                        </div>
-                        {m.quality && (
-                          <Badge variant="secondary" className="text-[10px]">
-                            {m.quality}
-                          </Badge>
+                      <div className="flex items-center gap-2">
+                        <span>{m.name}</span>
+                        {!m.supportsImage && (
+                          <span className="text-[10px] text-muted-foreground">(text only)</span>
                         )}
                       </div>
                     </SelectItem>
@@ -337,12 +398,12 @@ export default function DrawToVideoPage() {
             variant="neon"
             size="lg"
             onClick={handleGenerate}
-            disabled={!prompt.trim() || videoGeneration.isPending || uploader.isUploading}
+            disabled={!prompt.trim() || videoGeneration.isPending}
           >
-            {videoGeneration.isPending || uploader.isUploading ? (
+            {videoGeneration.isPending ? (
               <>
                 <RefreshCw className="h-4 w-4 animate-spin" />
-                {uploader.isUploading ? 'Uploading...' : 'Generating...'}
+                Generating...
               </>
             ) : (
               <>
@@ -370,7 +431,11 @@ export default function DrawToVideoPage() {
               </div>
             </div>
 
-            {generatedVideos.length > 0 ? (
+            {loadingHistory ? (
+              <div className="flex items-center justify-center h-[400px]">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : generatedVideos.length > 0 ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {generatedVideos.map((video, index) => (
                   <motion.div
@@ -378,7 +443,7 @@ export default function DrawToVideoPage() {
                     className="space-y-3"
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.1 }}
+                    transition={{ delay: index * 0.05 }}
                   >
                     <div className="relative aspect-video rounded-xl overflow-hidden bg-card border border-border/50">
                       {video.url ? (
@@ -398,9 +463,11 @@ export default function DrawToVideoPage() {
                         <Badge variant="secondary" className="text-xs">
                           {video.model}
                         </Badge>
-                        <Badge className="bg-black/70 text-white text-xs">
-                          {video.duration}
-                        </Badge>
+                        {video.duration && (
+                          <Badge className="bg-black/70 text-white text-xs">
+                            {video.duration}
+                          </Badge>
+                        )}
                       </div>
                       {video.url && (
                         <a href={video.url} download>
@@ -411,9 +478,11 @@ export default function DrawToVideoPage() {
                         </a>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {video.prompt}
-                    </p>
+                    {video.prompt && (
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {video.prompt}
+                      </p>
+                    )}
                   </motion.div>
                 ))}
               </div>

@@ -530,12 +530,6 @@ async def generate_video(
 
     try:
         call_id = f"call_{uuid.uuid4().hex[:8]}"
-        invoke_args = {
-            "prompt": prompt,
-            "aspect_ratio": aspect_ratio or "16:9",
-        }
-        if duration:
-            invoke_args["duration"] = int(duration)
 
         # Inspect tool signature for supported params
         sig = (
@@ -544,6 +538,15 @@ async def generate_video(
             else None
         )
         params = sig.parameters if sig else {}
+
+        invoke_args = {
+            "prompt": prompt,
+        }
+        # Only pass aspect_ratio and duration if the tool accepts them
+        if "aspect_ratio" in params:
+            invoke_args["aspect_ratio"] = aspect_ratio or "16:9"
+        if duration and "duration" in params:
+            invoke_args["duration"] = int(duration)
 
         has_input_images_param = "input_images" in params
         has_start_image_param = "start_image" in params
@@ -733,3 +736,57 @@ async def generate_video(
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class TTSRequest(BaseModel):
+    text: str
+    voice: str = "alloy"
+    speed: float = 1.0
+
+
+@router.post("/tts")
+async def text_to_speech(
+    req: TTSRequest,
+    user_id: str = Depends(get_current_user),
+):
+    """Convert text to speech using OpenAI TTS API. Returns a file URL."""
+    openai_config = config_service.app_config.get("openai", {})
+    api_key = openai_config.get("api_key") or os.environ.get("OPENAI_API_KEY", "")
+    if not api_key:
+        raise HTTPException(status_code=400, detail="OpenAI API key is not configured")
+
+    try:
+        async with HttpClient.create_aiohttp() as session:
+            async with session.post(
+                "https://api.openai.com/v1/audio/speech",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "tts-1",
+                    "input": req.text,
+                    "voice": req.voice,
+                    "speed": req.speed,
+                    "response_format": "mp3",
+                },
+            ) as response:
+                if response.status != 200:
+                    error_text = await response.text()
+                    raise HTTPException(
+                        status_code=response.status,
+                        detail=f"TTS failed: {error_text[:200]}",
+                    )
+
+                audio_bytes = await response.read()
+                file_id = generate_file_id()
+                filename = f"{file_id}.mp3"
+                filepath = os.path.join(FILES_DIR, filename)
+                with open(filepath, "wb") as f:
+                    f.write(audio_bytes)
+
+                return {"filename": filename, "url": f"/api/file/{filename}"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"TTS generation failed: {str(e)}")

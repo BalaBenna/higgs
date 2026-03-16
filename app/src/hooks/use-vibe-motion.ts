@@ -1,6 +1,6 @@
 'use client'
 
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { buildSystemPrompt } from '@/lib/remotion/system-prompt'
 import type { MotionGenerationParams, PresetId } from '@/lib/remotion/types'
 import { ASPECT_RATIO_DATA, THEME_DATA } from '@/lib/remotion/types'
@@ -266,5 +266,52 @@ export function useSaveVibeMotion() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-content'] })
     },
+  })
+}
+
+export function useVibeMotionProjects() {
+  return useQuery({
+    queryKey: ['vibe-motion-projects'],
+    queryFn: async () => {
+      const authHeaders = await getRequiredAuthHeaders()
+      const response = await fetch('/api/my-content/vibe-motion/projects?limit=20', {
+        headers: authHeaders,
+      })
+      if (!response.ok) return []
+      const data = (await response.json()) as {
+        items: {
+          id: string
+          name: string
+          preset: string
+          prompt: string
+          code: string
+          model: string
+          style: string | null
+          duration: number
+          aspect_ratio: string
+          media_urls: string | null
+          created_at: string
+          updated_at: string
+        }[]
+      }
+      return data.items
+    },
+    staleTime: 30_000,
+  })
+}
+
+export function useAvailableModels() {
+  return useQuery({
+    queryKey: ['available-models'],
+    queryFn: async () => {
+      const authHeaders = await getRequiredAuthHeaders()
+      const response = await fetch('/api/available-models', { headers: authHeaders })
+      if (!response.ok) return []
+      const data = (await response.json()) as {
+        models: { id: string; label: string; provider: string; vision: boolean }[]
+      }
+      return data.models.map((m) => m.id)
+    },
+    staleTime: 60_000,
   })
 }

@@ -13,10 +13,14 @@ import {
   Fingerprint,
   ShoppingBag,
   Timer,
+  Clock,
+  RefreshCw,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import type { PresetId } from '@/lib/remotion/types'
+import { PRESET_LABELS } from '@/lib/remotion/types'
+import { useVibeMotionProjects } from '@/hooks/use-vibe-motion'
 
 const TEMPLATES: {
   id: PresetId
@@ -90,11 +94,34 @@ const TEMPLATES: {
   },
 ]
 
-interface VibeMotionLandingProps {
-  onSelectTemplate: (id: PresetId) => void
+const PRESET_ICONS: Partial<Record<PresetId, typeof BarChart3>> = {
+  infographics: BarChart3,
+  'text-animation': Type,
+  posters: Image,
+  presentation: Presentation,
+  'social-media-ad': Megaphone,
+  'logo-animation': Fingerprint,
+  'product-showcase': ShoppingBag,
+  countdown: Timer,
+  scratch: Plus,
 }
 
-export function VibeMotionLanding({ onSelectTemplate }: VibeMotionLandingProps) {
+interface VibeMotionLandingProps {
+  onSelectTemplate: (id: PresetId) => void
+  onLoadProject?: (project: {
+    preset: PresetId
+    prompt: string
+    code: string
+    model: string
+    style?: string
+    duration: number
+    aspectRatio: string
+  }) => void
+}
+
+export function VibeMotionLanding({ onSelectTemplate, onLoadProject }: VibeMotionLandingProps) {
+  const { data: projects, isLoading: projectsLoading } = useVibeMotionProjects()
+
   return (
     <div className="container mx-auto px-4 py-12 max-w-6xl">
       {/* Header */}
@@ -164,15 +191,83 @@ export function VibeMotionLanding({ onSelectTemplate }: VibeMotionLandingProps) 
         <h2 className="text-lg font-semibold mb-4 text-muted-foreground uppercase tracking-wider text-xs">
           Your Projects
         </h2>
-        <Card className="p-12 text-center border-dashed">
-          <Sparkles className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
-          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-            No projects yet
-          </p>
-          <p className="text-xs text-muted-foreground/60 mt-1">
-            Choose a template above to create your first Vibe Motion project
-          </p>
-        </Card>
+
+        {projectsLoading ? (
+          <Card className="p-12 text-center border-dashed">
+            <RefreshCw className="h-8 w-8 mx-auto mb-3 text-muted-foreground/50 animate-spin" />
+            <p className="text-sm text-muted-foreground">Loading projects...</p>
+          </Card>
+        ) : projects && projects.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {projects.map((project) => {
+              const PresetIcon = PRESET_ICONS[project.preset as PresetId] ?? Sparkles
+              const date = project.updated_at || project.created_at
+              const formattedDate = date
+                ? new Date(date).toLocaleDateString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                  })
+                : ''
+
+              return (
+                <Card
+                  key={project.id}
+                  className="cursor-pointer group overflow-hidden bg-card/50 border-border/50 hover:border-neon/30 transition-all"
+                  onClick={() =>
+                    onLoadProject?.({
+                      preset: (project.preset || 'scratch') as PresetId,
+                      prompt: project.prompt || '',
+                      code: project.code || '',
+                      model: project.model || 'gpt-4o',
+                      style: project.style || undefined,
+                      duration: project.duration || 10,
+                      aspectRatio: project.aspect_ratio || '16:9',
+                    })
+                  }
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
+                        <PresetIcon className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">
+                          {project.name || 'Untitled'}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                          {project.prompt
+                            ? project.prompt.slice(0, 80) + (project.prompt.length > 80 ? '...' : '')
+                            : 'No prompt'}
+                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Badge variant="secondary" className="text-[10px]">
+                            {PRESET_LABELS[project.preset as PresetId] || project.preset}
+                          </Badge>
+                          {formattedDate && (
+                            <span className="flex items-center gap-1 text-[10px] text-muted-foreground/60">
+                              <Clock className="h-3 w-3" />
+                              {formattedDate}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        ) : (
+          <Card className="p-12 text-center border-dashed">
+            <Sparkles className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
+            <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+              No projects yet
+            </p>
+            <p className="text-xs text-muted-foreground/60 mt-1">
+              Choose a template above to create your first Vibe Motion project
+            </p>
+          </Card>
+        )}
       </motion.div>
     </div>
   )

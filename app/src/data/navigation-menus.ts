@@ -144,7 +144,7 @@ export const EDIT_MENU: NavigationMenu = {
     { id: 'relight-edit', label: 'Relight', icon: Lightbulb, path: '/relight', badge: 'new', description: 'Adjust lighting with AI' },
     { id: 'ai-stylist', label: 'AI Stylist', icon: Palette, path: '/edit/ai-stylist', description: 'Transform image styles with AI' },
     { id: 'upscale', label: 'Upscale', icon: Maximize, path: '/image/upscale', description: 'Enhance resolution and details' },
-    { id: 'skin-enhancer', label: 'Skin Enhancer', icon: Heart, path: '/edit', description: 'Professional skin retouching' },
+    { id: 'skin-enhancer', label: 'Skin Enhancer', icon: Heart, path: '/edit/skin-enhancer', description: 'Professional skin retouching' },
     { id: 'angles', label: 'Angles', icon: RotateCcw, path: '/edit', description: 'Change perspective and angles' },
   ],
   models: [
